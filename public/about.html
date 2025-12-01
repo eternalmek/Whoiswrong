@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - Who Is Wrong?</title>
+    <meta name="description" content="Learn about Betterappai, the company behind Who Is Wrong? - making fun interactive AI apps.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'display': ['Oswald', 'sans-serif'],
+                        'sans': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: white;
+        }
+        
+        h1, h2, h3, .font-display {
+            font-family: 'Oswald', sans-serif;
+        }
+        
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 glass-panel">
+        <div class="max-w-6xl mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <a href="/" class="flex items-center gap-2">
+                    <span class="text-2xl">⚖️</span>
+                    <span class="font-display text-xl font-bold">
+                        Who Is <span class="text-red-500">Wrong?</span>
+                    </span>
+                </a>
+                
+                <div class="flex items-center gap-3">
+                    <a href="/" class="text-gray-400 hover:text-white transition text-sm">
+                        <i class="fas fa-gavel mr-1"></i> Judge
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- About Content -->
+    <div class="pt-24 pb-16 px-4">
+        <div class="max-w-3xl mx-auto">
+            
+            <!-- Header -->
+            <div class="text-center mb-12">
+                <h1 class="font-display text-5xl font-bold mb-4">
+                    About <span class="gradient-text">Betterappai</span>
+                </h1>
+                <p class="text-gray-400 text-lg">The creative minds behind Who Is Wrong?</p>
+            </div>
+            
+            <!-- Mission Section -->
+            <div class="glass-panel p-8 rounded-2xl mb-8">
+                <div class="text-center mb-6">
+                    <span class="text-6xl">🚀</span>
+                </div>
+                <h2 class="font-display text-2xl font-bold text-center mb-4">Our Mission</h2>
+                <p class="text-gray-300 text-lg text-center leading-relaxed">
+                    We are <span class="text-red-400 font-bold">Betterappai</span>, a company with a mission to make 
+                    <span class="text-white font-semibold">fun, interactive AI apps</span> that bring joy and entertainment to people's lives.
+                </p>
+            </div>
+            
+            <!-- What We Do Section -->
+            <div class="glass-panel p-8 rounded-2xl mb-8">
+                <h2 class="font-display text-2xl font-bold mb-6 flex items-center gap-3">
+                    <i class="fas fa-lightbulb text-yellow-400"></i>
+                    What We Do
+                </h2>
+                <div class="space-y-4 text-gray-300">
+                    <p>
+                        At Betterappai, we believe that AI should be accessible, fun, and engaging for everyone. 
+                        We create innovative applications that harness the power of artificial intelligence to 
+                        solve everyday problems in entertaining ways.
+                    </p>
+                    <p>
+                        <span class="text-white font-semibold">Who Is Wrong?</span> is our flagship product — an AI-powered 
+                        judge that settles debates and arguments with decisive verdicts. No more "it depends" or wishy-washy answers. 
+                        Our AI always picks a side!
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Values Section -->
+            <div class="glass-panel p-8 rounded-2xl mb-8">
+                <h2 class="font-display text-2xl font-bold mb-6 flex items-center gap-3">
+                    <i class="fas fa-heart text-red-400"></i>
+                    Our Values
+                </h2>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="text-center">
+                        <div class="text-4xl mb-3">🎮</div>
+                        <h3 class="font-bold text-white mb-2">Fun First</h3>
+                        <p class="text-gray-400 text-sm">We prioritize entertainment and enjoyment in everything we build.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl mb-3">🤖</div>
+                        <h3 class="font-bold text-white mb-2">AI Innovation</h3>
+                        <p class="text-gray-400 text-sm">We push the boundaries of what's possible with artificial intelligence.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl mb-3">👥</div>
+                        <h3 class="font-bold text-white mb-2">User Focused</h3>
+                        <p class="text-gray-400 text-sm">Our users are at the heart of every decision we make.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Contact Section -->
+            <div class="glass-panel p-8 rounded-2xl">
+                <h2 class="font-display text-2xl font-bold mb-4 flex items-center gap-3">
+                    <i class="fas fa-envelope text-blue-400"></i>
+                    Get In Touch
+                </h2>
+                <p class="text-gray-300 mb-4">
+                    Have questions, suggestions, or just want to say hi? We'd love to hear from you!
+                </p>
+                <p class="text-gray-400">
+                    Follow us on social media or reach out through our platforms.
+                </p>
+                <div class="flex gap-4 mt-6">
+                    <a href="#" class="text-gray-400 hover:text-white transition text-2xl"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-white transition text-2xl"><i class="fab fa-tiktok"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-white transition text-2xl"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+            
+            <!-- Back to Home -->
+            <div class="text-center mt-12">
+                <a href="/" class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-xl transition">
+                    <i class="fas fa-gavel"></i>
+                    Start Judging Now
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="py-8 px-4 border-t border-gray-800">
+        <div class="max-w-6xl mx-auto text-center text-gray-500 text-sm">
+            <p>&copy; 2024 Betterappai. All rights reserved.</p>
+            <div class="mt-4 flex justify-center gap-6">
+                <a href="/about.html" class="hover:text-red-400 transition">About</a>
+                <a href="/legal.html" class="hover:text-red-400 transition">Legal</a>
+                <a href="/" class="hover:text-red-400 transition">Home</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
