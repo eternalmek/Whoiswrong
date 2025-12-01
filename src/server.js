@@ -8,6 +8,7 @@ dotenv.config();
 
 const judgeRouter = require('./routes/judge');
 const historyRouter = require('./routes/history');
+const authRouter = require('./routes/auth');
 
 const PORT = process.env.PORT || 8080;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
@@ -36,6 +37,7 @@ app.use(limiter);
 // Routes
 app.use('/api/judge', judgeRouter);
 app.use('/api/judgements', historyRouter);
+app.use('/api/auth', authRouter);
 
 // Health
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
