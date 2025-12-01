@@ -42,6 +42,25 @@ app.use('/api/auth', authRouter);
 // Health
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
+// Root endpoint - API documentation
+app.get('/', (req, res) => {
+  res.json({
+    name: 'Who Is Wrong? API',
+    version: '1.0.0',
+    description: 'Backend API for Who Is Wrong? — OpenAI + Supabase integration',
+    endpoints: {
+      'POST /api/judge': 'Submit a battle for judgement (body: { context, optionA, optionB })',
+      'GET /api/judgements': 'Get judgement history (query: limit, mine)',
+      'POST /api/auth/signup': 'Create a new account (body: { email, password })',
+      'POST /api/auth/login': 'Log in to existing account (body: { email, password })',
+      'GET /api/auth/me': 'Get current user info (requires Authorization header)',
+      'DELETE /api/auth/me': 'Delete current user account (requires Authorization header)',
+      'GET /health': 'Health check endpoint'
+    },
+    status: 'ok'
+  });
+});
+
 // Error handler
 app.use((err, req, res, next) => {
   console.error(err);
