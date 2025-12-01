@@ -1,5 +1,16 @@
 const { createClient } = require('@supabase/supabase-js');
 
+/**
+ * Supabase Configuration
+ * 
+ * To get these values from your Supabase project:
+ * 1. Go to https://supabase.com and open your project
+ * 2. Navigate to: Settings → API
+ * 3. Copy the values:
+ *    - SUPABASE_URL: from "Project URL"
+ *    - SUPABASE_ANON_KEY: from "anon public" key (safe for client-side)
+ *    - SUPABASE_SERVICE_ROLE_KEY: from "service_role" key (server-side ONLY!)
+ */
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
