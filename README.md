@@ -43,32 +43,93 @@ This repository provides a small Node.js backend that:
 - src/routes/loadingMessages.js — GET /api/loading-messages (funny loading messages)
 - src/openaiClient.js — wrapper that calls OpenAI and returns parsed JSON with roast
 - src/supabaseClient.js — Supabase clients (service + anon)
-- migrations/001_create_judgements.sql — SQL to create the judgements table
+- supabase/migrations/ — Database migrations for Supabase
+- supabase/config.toml — Supabase local development configuration
 
 ## Setup
 
-1. Copy `.env.example` to `.env` and provide values for:
-   - `OPENAI_API_KEY`
-   - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY` (for auth/login)
-   - `SUPABASE_SERVICE_ROLE_KEY` (server-side only)
-   - `FRONTEND_ORIGIN` (optional)
-   - `PORT` (optional)
+### Option 1: Local Development with Supabase CLI (Recommended)
 
-2. Install dependencies:
-   ```
+This option runs Supabase locally using Docker, which is great for development.
+
+**Prerequisites:**
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+- Node.js 18+
+
+**Steps:**
+
+1. Install dependencies:
+   ```bash
    npm install
    ```
 
-3. Create the table in Supabase:
-   - Run the SQL in `migrations/001_create_judgements.sql` using Supabase SQL editor.
+2. Start Supabase locally:
+   ```bash
+   npm run db:start
+   ```
+   
+   This will output your local Supabase credentials. Copy the `API URL`, `anon key`, and `service_role key`.
+
+3. Copy `.env.example` to `.env` and configure:
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Update with local Supabase values (from step 2):
+   ```
+   PORT=8080
+   FRONTEND_ORIGIN=http://localhost:3000
+   OPENAI_API_KEY=your_openai_key
+   SUPABASE_URL=http://127.0.0.1:54321
+   SUPABASE_ANON_KEY=your_local_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_local_service_role_key
+   ```
 
 4. Start the server:
+   ```bash
+   npm run dev
    ```
+
+**Supabase CLI Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `npm run db:start` | Start local Supabase (includes Postgres, Auth, Storage) |
+| `npm run db:stop` | Stop local Supabase |
+| `npm run db:status` | Check local Supabase status |
+| `npm run db:reset` | Reset database and run all migrations |
+| `npm run db:migrate` | Run pending migrations |
+| `npm run db:diff` | Generate migration from schema changes |
+| `npm run db:push` | Push migrations to remote Supabase project |
+
+### Option 2: Remote Supabase Project
+
+Use this option if you prefer to connect to a hosted Supabase project.
+
+1. Create a project at [supabase.com](https://supabase.com)
+
+2. Copy `.env.example` to `.env` and provide values for:
+   - `OPENAI_API_KEY`
+   - `SUPABASE_URL` — from your Supabase project settings
+   - `SUPABASE_ANON_KEY` — from your Supabase project settings
+   - `SUPABASE_SERVICE_ROLE_KEY` — from your Supabase project settings
+   - `FRONTEND_ORIGIN` (optional)
+   - `PORT` (optional)
+
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+4. Create the table in Supabase:
+   - Run the SQL in `supabase/migrations/20240101000000_create_judgements.sql` using Supabase SQL editor.
+
+5. Start the server:
+   ```bash
    npm start
    ```
    or for development:
-   ```
+   ```bash
    npm run dev
    ```
 
