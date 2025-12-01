@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../supabaseClient');
+const { supabaseServiceRole } = require('../supabaseClient');
+const { optionalUser } = require('../middleware/auth');
 const { callOpenAI } = require('../openaiClient');
 
 // POST /api/judge
-// body: { context, optionA, optionB, user_id? }
-router.post('/', async (req, res, next) => {
+// body: { context, optionA, optionB }
+router.post('/', optionalUser, async (req, res, next) => {
   try {
-    const { context = '', optionA, optionB, user_id = null } = req.body || {};
+    const { context = '', optionA, optionB } = req.body || {};
 
     if (!optionA || !optionB) {
       return res.status(400).json({ error: 'optionA and optionB are required.' });
@@ -41,13 +42,13 @@ router.post('/', async (req, res, next) => {
       wrong: ai.wrong,
       right: ai.right,
       reason: ai.reason,
-      user_id: user_id || null,
+      user_id: req.auth?.user?.id || null,
       raw_model_response: ai.raw
     };
 
     let saved = null;
-    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      const { data, error } = await supabase.from('judgements').insert([insertPayload]).select().limit(1);
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY && supabaseServiceRole) {
+      const { data, error } = await supabaseServiceRole.from('judgements').insert([insertPayload]).select().limit(1);
       if (error) {
         console.warn('Supabase insert warning:', error);
       } else {
