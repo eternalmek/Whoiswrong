@@ -9,6 +9,8 @@ dotenv.config();
 const judgeRouter = require('./routes/judge');
 const historyRouter = require('./routes/history');
 const authRouter = require('./routes/auth');
+const receiptRouter = require('./routes/receipt');
+const loadingMessagesRouter = require('./routes/loadingMessages');
 
 const PORT = process.env.PORT || 8080;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
@@ -38,6 +40,8 @@ app.use(limiter);
 app.use('/api/judge', judgeRouter);
 app.use('/api/judgements', historyRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/receipt', receiptRouter);
+app.use('/api/loading-messages', loadingMessagesRouter);
 
 // Health
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
@@ -63,15 +67,24 @@ app.get('/api', (req, res) => {
   res.json({
     name: 'Who Is Wrong? API',
     version: '1.0.0',
-    description: 'Backend API for Who Is Wrong? — OpenAI + Supabase integration',
+    description: 'Backend API for Who Is Wrong? — The King of Petty. OpenAI + Supabase integration.',
     endpoints: {
-      'POST /api/judge': 'Submit a battle for judgement (body: { context, optionA, optionB })',
+      'POST /api/judge': 'Submit a battle for judgement (body: { context, optionA, optionB }). Returns savage verdict with roast.',
       'GET /api/judgements': 'Get judgement history (query: limit, mine)',
+      'POST /api/receipt': 'Generate shareable receipt data (body: { wrong, right, reason, roast })',
+      'GET /api/loading-messages': 'Get funny loading messages (query: count). Returns messages array.',
+      'GET /api/loading-messages/random': 'Get a single random loading message',
       'POST /api/auth/signup': 'Create a new account (body: { email, password })',
       'POST /api/auth/login': 'Log in to existing account (body: { email, password })',
       'GET /api/auth/me': 'Get current user info (requires Authorization header)',
       'DELETE /api/auth/me': 'Delete current user account (requires Authorization header)',
       'GET /health': 'Health check endpoint'
+    },
+    features: {
+      savageMode: 'AI roasts the loser with brutal, funny responses',
+      noNeutrality: 'AI NEVER says "it depends" — always picks a side',
+      receipts: 'Generate shareable receipt images of verdicts',
+      loadingMessages: 'Funny messages to show while waiting for verdict'
     },
     status: 'ok'
   });

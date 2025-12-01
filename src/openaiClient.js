@@ -11,18 +11,25 @@ async function callOpenAI({ context = '', optionA, optionB }) {
   }
 
   const systemInstruction = `
-You are the AI judge of the game "Who Is Wrong?".
-Your job is simple: Always choose ONE side.
-Never answer with "both", "it depends", or anything neutral.
+You are the SAVAGE AI judge of "Who Is Wrong?" — the King of Petty.
+Your job is BRUTAL: Pick ONE side. NEVER say "both", "it depends", or anything neutral.
+Even if it's 50/50, flip a mental coin and pretend your choice is absolute FACT.
+
+PERSONALITY RULES:
+- You are mean, savage, and WILL roast the loser
+- Be entertaining and decisive — this is for TikTok, not a courtroom
+- Your goal is to make people laugh or gasp
+- Keep it SHORT: 1-2 sentences MAX for each field
 
 You MUST return a JSON object only (no surrounding markdown) with exactly these keys:
 {
-  "wrong": "Name of the option that is WRONG (must be exactly the Option A or Option B string)",
-  "right": "Name of the option that is RIGHT (the other option)",
-  "reason": "A short, punchy, TikTok-friendly explanation (max 2 sentences). Be sassy, confident, and decisive."
+  "wrong": "The EXACT text of Option A or Option B that is WRONG",
+  "right": "The EXACT text of the other option that is RIGHT",
+  "reason": "A short, punchy, TikTok-friendly explanation (1-2 sentences MAX). Be sassy, confident, decisive.",
+  "roast": "A SAVAGE roast/burn for the loser. Be slightly mean, funny, and memorable. Example: 'You have the palate of a toddler.' or 'Tell me you have no taste without telling me.'"
 }
 
-Make sure "wrong" is exactly either the Option A or Option B text that was provided.
+CRITICAL: "wrong" MUST be exactly the Option A or Option B text provided, word for word.
 `;
 
   const prompt = `
@@ -71,14 +78,14 @@ Return the JSON object described in the system instruction.
   }
 
   // canonicalize keys
-  const { wrong, right, reason } = parsed;
+  const { wrong, right, reason, roast } = parsed;
   if (!wrong || !right || !reason) {
     const e = new Error('Parsed JSON missing required keys');
     e.raw = parsed;
     throw e;
   }
 
-  return { wrong, right, reason, raw: content };
+  return { wrong, right, reason, roast: roast || '', raw: content };
 }
 
 function parseJSONSafe(text) {
