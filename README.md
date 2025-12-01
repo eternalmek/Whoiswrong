@@ -1,6 +1,8 @@
 # Who Is Wrong? — Full Stack App (OpenAI + Supabase)
 
-The AI Judge that always picks a side! Settle any debate with AI-powered judgement.
+**The King of Petty** — A viral-ready, TikTok-friendly judgement API.
+
+This repository provides a small Node.js backend that:
 
 ## Features
 
@@ -14,34 +16,34 @@ The AI Judge that always picks a side! Settle any debate with AI-powered judgeme
 
 ### Backend
 - Accepts battles (context, optionA, optionB)
-- Calls OpenAI GPT-4 to produce a decisive JSON verdict { wrong, right, reason }
+- Calls OpenAI to produce a **savage, decisive** JSON verdict { wrong, right, reason, roast }
+- Never says "it depends" — always picks a side
+- Roasts the loser with brutal, funny burns
 - Persists the judgement to Supabase
-- Provides authentication and account management
-- Provides a history endpoint (with optional user scoping)
+- Provides authentication and lightweight account management
+- Provides shareable receipt generation
+- Provides funny loading messages for frontend
 
-## Files Structure
+## Viral Features
 
-```
-├── public/                    # Frontend static files
-│   ├── index.html            # Main landing page
-│   ├── account.html          # Account management page
-│   └── app.js                # Frontend JavaScript
-├── src/
-│   ├── server.js             # Express server & middleware
-│   ├── routes/
-│   │   ├── judge.js          # POST /api/judge
-│   │   ├── history.js        # GET /api/judgements
-│   │   └── auth.js           # Auth + account endpoints
-│   ├── middleware/
-│   │   └── auth.js           # Auth middleware
-│   ├── openaiClient.js       # OpenAI wrapper
-│   └── supabaseClient.js     # Supabase clients
-├── api/
-│   └── index.js              # Vercel serverless entry
-├── migrations/
-│   └── 001_create_judgements.sql
-└── vercel.json               # Vercel deployment config
-```
+✅ **Savage Mode** — AI roasts the loser ("You have the palate of a toddler")  
+✅ **No Neutrality** — AI ALWAYS picks a side, even on 50/50 choices  
+✅ **Short & Punchy** — 1-2 sentence responses max  
+✅ **Receipt Generation** — Create shareable "receipt" images of verdicts  
+✅ **Loading Messages** — Funny messages to show while waiting ("Reading the evidence...")  
+✅ **Anonymous First** — No login required for judgements
+
+## Files
+
+- src/server.js — Express server & middleware
+- src/routes/judge.js — POST /api/judge (savage AI verdicts)
+- src/routes/history.js — GET /api/judgements
+- src/routes/auth.js — auth + account endpoints
+- src/routes/receipt.js — POST /api/receipt (generate shareable receipts)
+- src/routes/loadingMessages.js — GET /api/loading-messages (funny loading messages)
+- src/openaiClient.js — wrapper that calls OpenAI and returns parsed JSON with roast
+- src/supabaseClient.js — Supabase clients (service + anon)
+- migrations/001_create_judgements.sql — SQL to create the judgements table
 
 ## Setup
 
@@ -70,37 +72,90 @@ The AI Judge that always picks a side! Settle any debate with AI-powered judgeme
    npm run dev
    ```
 
-5. Open http://localhost:8080 in your browser
-
 ## API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/judge` | POST | Submit a battle for judgement |
-| `/api/judgements` | GET | Get judgement history |
-| `/api/auth/signup` | POST | Create a new account |
-| `/api/auth/login` | POST | Log in to existing account |
-| `/api/auth/me` | GET | Get current user info |
-| `/api/auth/me` | DELETE | Delete current user account |
-| `/health` | GET | Health check endpoint |
+### Core Judgement
+
+**POST /api/judge** — Get a savage verdict
+```json
+// Request
+{ "context": "Pizza debate", "optionA": "Pineapple Pizza", "optionB": "Regular Pizza" }
+
+// Response
+{
+  "ok": true,
+  "judgement": {
+    "wrong": "Pineapple Pizza",
+    "right": "Regular Pizza",
+    "reason": "Fruit on pizza is a crime against Italy.",
+    "roast": "You have the palate of a toddler."
+  }
+}
+```
+
+### Shareable Receipts
+
+**POST /api/receipt** — Generate receipt data for sharing
+```json
+// Request
+{ "wrong": "Pineapple Pizza", "right": "Regular Pizza", "reason": "...", "roast": "..." }
+
+// Response
+{
+  "ok": true,
+  "receipt": {
+    "store": "WHO IS WRONG?",
+    "tagline": "THE KING OF PETTY",
+    "orderNumber": "#123456",
+    "date": "Dec 1, 2025",
+    "items": [{ "name": "Pineapple Pizza", "description": "WRONG OPINION", "cost": "Your Dignity", "verdict": "RETURNED" }],
+    "winner": "Regular Pizza",
+    "total": "L + Ratio",
+    "footer": "NO REFUNDS • NO APPEALS • FINAL VERDICT"
+  }
+}
+```
+
+### Loading Messages
+
+**GET /api/loading-messages** — Get funny loading messages
+```json
+{ "ok": true, "messages": ["Reading the evidence...", "Consulting the petty council...", ...] }
+```
+
+**GET /api/loading-messages/random** — Get a single random message
+```json
+{ "ok": true, "message": "Warming up the gavel..." }
+```
+
+### History
+
+**GET /api/judgements?limit=20&mine=true** — Get judgement history
+
+### Auth (Optional)
+
+- POST /api/auth/signup — body: { email, password }
+- POST /api/auth/login — body: { email, password }
+- GET /api/auth/me — headers: Authorization: Bearer <access_token>
+- DELETE /api/auth/me — headers: Authorization: Bearer <access_token>
 
 ## Deploying to Vercel
 
-1. Add the environment variables to your Vercel project:
-   - `OPENAI_API_KEY`
-   - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `FRONTEND_ORIGIN` (set to your Vercel domain)
+- Add the environment variables above to your Vercel project
+- Make sure `FRONTEND_ORIGIN` matches your Vercel domain so CORS succeeds
+- The API routes are prefixed with `/api/` for easy proxying
 
-2. Deploy with `vercel deploy`
-
-## Security Notes
+## Security Note
 
 - Never expose your Supabase service_role key or OpenAI key in client code
 - The service_role key grants elevated privileges; restrict it to server-side use only
-- All API calls from the frontend go through the backend, keeping keys secure
 
-## License
+## Frontend Integration Tips
 
-MIT
+For a viral TikTok experience, your frontend should:
+
+1. **Play a gavel sound** when the verdict appears
+2. **Show a giant "WRONG" stamp** slamming onto the screen
+3. **Display loading messages** from the `/api/loading-messages` endpoint
+4. **Generate receipt images** using the `/api/receipt` data
+5. **Keep time-to-verdict under 10 seconds** — zero friction!

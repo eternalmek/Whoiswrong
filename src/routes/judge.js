@@ -42,6 +42,7 @@ router.post('/', optionalUser, async (req, res, next) => {
       wrong: ai.wrong,
       right: ai.right,
       reason: ai.reason,
+      roast: ai.roast || null,
       user_id: req.auth?.user?.id || null,
       raw_model_response: ai.raw
     };
@@ -61,7 +62,8 @@ router.post('/', optionalUser, async (req, res, next) => {
       judgement: {
         wrong: ai.wrong,
         right: ai.right,
-        reason: ai.reason
+        reason: ai.reason,
+        roast: ai.roast || ''
       },
       saved
     });

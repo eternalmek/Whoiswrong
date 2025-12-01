@@ -9,6 +9,7 @@ create table if not exists public.judgements (
   wrong text not null,
   right text not null,
   reason text,
+  roast text,
   raw_model_response text,
   user_id text, -- optional: map to auth users if you use authentication
   created_at timestamptz default now()
@@ -16,3 +17,6 @@ create table if not exists public.judgements (
 
 -- index for fetching recent entries
 create index if not exists idx_judgements_created_at on public.judgements (created_at desc);
+
+-- Migration: Add roast column if table already exists
+-- ALTER TABLE public.judgements ADD COLUMN IF NOT EXISTS roast text;
