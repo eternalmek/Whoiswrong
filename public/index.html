@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Who Is Wrong? - The AI Judge That Always Picks a Side</title>
+    <meta name="description" content="Settle your debates with AI! Who Is Wrong? is the viral TikTok-ready AI judge that always picks a side. No more &quot;it depends&quot; - get decisive answers now!">
+    <meta name="keywords" content="AI judge, debate settler, who is right, argument resolver, TikTok viral">
+    
+    <!-- Open Graph / Social -->
+    <meta property="og:title" content="Who Is Wrong? - The AI Judge">
+    <meta property="og:description" content="Settle your debates with AI! Get decisive answers - no more 'it depends'.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/og-image.png">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Who Is Wrong? - The AI Judge">
+    <meta name="twitter:description" content="Settle your debates with AI! Get decisive answers.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'display': ['Oswald', 'sans-serif'],
+                        'sans': ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'brand': {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: white;
+        }
+        
+        h1, h2, h3, .font-display {
+            font-family: 'Oswald', sans-serif;
+        }
+        
+        .neon-border {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), 0 0 30px rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.6);
+        }
+        
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .gavel-animation {
+            animation: hit 0.8s ease-in-out infinite alternate;
+        }
+        
+        @keyframes hit {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(-45deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse-glow {
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(239, 68, 68, 0.6); }
+        }
+        
+        .slide-up {
+            animation: slideUp 0.5s ease-out forwards;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #444; 
+            border-radius: 4px;
+        }
+        
+        /* Modal animation */
+        .modal-backdrop {
+            transition: opacity 0.3s ease;
+        }
+        
+        .modal-content {
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        
+        /* Gradient text */
+        .gradient-text {
+            background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Counter animation */
+        .counter {
+            display: inline-block;
+        }
+        
+        /* Trust badge */
+        .trust-badge {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        /* Floating elements */
+        .float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        /* Input focus effects */
+        input:focus, textarea:focus {
+            outline: none;
+        }
+        
+        /* Button hover effects */
+        .btn-primary {
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+        }
+        
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 glass-panel">
+        <div class="max-w-6xl mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <a href="/" class="flex items-center gap-2">
+                    <span class="text-2xl">⚖️</span>
+                    <span class="font-display text-xl font-bold">
+                        Who Is <span class="text-red-500">Wrong?</span>
+                    </span>
+                </a>
+                
+                <div class="flex items-center gap-3">
+                    <!-- User Menu (hidden by default) -->
+                    <div id="userMenu" class="hidden items-center gap-3">
+                        <a href="/account.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2">
+                            <i class="fas fa-user-circle"></i>
+                            <span id="userEmail" class="hidden md:inline">Account</span>
+                        </a>
+                        <button onclick="logout()" class="text-gray-400 hover:text-red-400 transition text-sm">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span class="hidden md:inline ml-1">Logout</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Auth Buttons (shown when logged out) -->
+                    <div id="authButtons" class="flex items-center gap-2">
+                        <button onclick="showModal('loginModal')" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition">
+                            Log In
+                        </button>
+                        <button onclick="showModal('signupModal')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">
+                            Sign Up Free
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section class="pt-24 pb-16 px-4 bg-gradient-to-b from-gray-900 via-black to-black">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                
+                <!-- Left: Text Content -->
+                <div class="text-center lg:text-left">
+                    <h1 class="font-display text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
+                        Settle Any Debate with
+                        <span class="gradient-text">AI Judgement</span>
+                    </h1>
+                    
+                    <p class="text-gray-400 text-lg md:text-xl mb-8 max-w-lg mx-auto lg:mx-0">
+                        No more "it depends." The AI Judge always picks a side. Perfect for TikTok, arguments with friends, or just having fun!
+                    </p>
+                    
+                    <!-- CTA Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8">
+                        <a href="#judge-section" class="btn-primary bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-xl text-lg flex items-center justify-center gap-2">
+                            <i class="fas fa-gavel"></i>
+                            Start Judging Now
+                        </a>
+                        <button onclick="showModal('signupModal')" class="bg-white/10 hover:bg-white/20 text-white font-bold py-4 px-8 rounded-xl text-lg border border-white/20 transition flex items-center justify-center gap-2">
+                            <i class="fas fa-user-plus"></i>
+                            Create Free Account
+                        </button>
+                    </div>
+                    
+                    <!-- Trust Indicators -->
+                    <div class="flex flex-wrap gap-4 justify-center lg:justify-start">
+                        <div class="trust-badge flex items-center gap-2 px-3 py-2 rounded-lg">
+                            <i class="fas fa-shield-alt text-green-400"></i>
+                            <span class="text-sm text-gray-300">100% Free</span>
+                        </div>
+                        <div class="trust-badge flex items-center gap-2 px-3 py-2 rounded-lg">
+                            <i class="fas fa-bolt text-green-400"></i>
+                            <span class="text-sm text-gray-300">Instant Results</span>
+                        </div>
+                        <div class="trust-badge flex items-center gap-2 px-3 py-2 rounded-lg">
+                            <i class="fas fa-brain text-green-400"></i>
+                            <span class="text-sm text-gray-300">Powered by AI</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right: Animated Preview -->
+                <div class="relative">
+                    <div class="glass-panel neon-border p-6 rounded-2xl float">
+                        <div class="text-center mb-4">
+                            <span class="text-6xl">⚖️</span>
+                        </div>
+                        <div class="space-y-3 mb-4">
+                            <div class="flex items-center gap-3">
+                                <span class="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm font-bold">A</span>
+                                <span class="text-white">Messi</span>
+                            </div>
+                            <div class="text-center text-gray-500 text-sm font-bold">VS</div>
+                            <div class="flex items-center gap-3">
+                                <span class="bg-red-500/20 text-red-400 px-3 py-1 rounded-full text-sm font-bold">B</span>
+                                <span class="text-white">Ronaldo</span>
+                            </div>
+                        </div>
+                        <div class="bg-red-500/10 border border-red-500/30 p-4 rounded-lg text-center">
+                            <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Verdict</div>
+                            <div class="text-xl font-bold text-red-400">❌ Ronaldo is WRONG!</div>
+                            <p class="text-gray-400 text-sm mt-2 italic">"While both are legends, Messi's 8 Ballon d'Ors speak for themselves!"</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Decorative elements -->
+                    <div class="absolute -top-4 -right-4 w-24 h-24 bg-red-500/20 rounded-full blur-3xl"></div>
+                    <div class="absolute -bottom-8 -left-8 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Main Judge Section -->
+    <section id="judge-section" class="py-20 px-4">
+        <div class="max-w-lg mx-auto">
+            
+            <!-- Section Header -->
+            <div class="text-center mb-8">
+                <h2 class="font-display text-3xl md:text-4xl font-bold mb-3">
+                    Ready to <span class="text-red-500">Judge?</span>
+                </h2>
+                <p class="text-gray-400">Enter your battle below and let AI decide who's wrong!</p>
+            </div>
+            
+            <!-- Input Form Section -->
+            <div id="inputSection" class="glass-panel p-6 rounded-2xl shadow-2xl">
+                <form id="judgeForm" class="space-y-4">
+                    
+                    <!-- Context (Optional) -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">
+                            <i class="fas fa-question-circle mr-1"></i> Context / Question (Optional)
+                        </label>
+                        <input type="text" id="contextInput" placeholder="e.g., Who is the best football player?" 
+                            class="w-full bg-gray-800/70 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all placeholder-gray-600">
+                    </div>
+
+                    <div class="flex items-center justify-center text-gray-500 font-bold text-xs py-2">
+                        <div class="flex-1 h-px bg-gray-700"></div>
+                        <span class="px-3">VS</span>
+                        <div class="flex-1 h-px bg-gray-700"></div>
+                    </div>
+
+                    <!-- Option A -->
+                    <div class="relative">
+                        <label class="block text-xs font-bold text-blue-400 uppercase mb-2">
+                            <i class="fas fa-user mr-1"></i> Option A
+                        </label>
+                        <input type="text" id="optionA" placeholder="e.g., Messi" required
+                            class="w-full bg-gray-800/70 border border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder-gray-600">
+                    </div>
+
+                    <!-- Option B -->
+                    <div class="relative">
+                        <label class="block text-xs font-bold text-red-400 uppercase mb-2">
+                            <i class="fas fa-user mr-1"></i> Option B
+                        </label>
+                        <input type="text" id="optionB" placeholder="e.g., Ronaldo" required
+                            class="w-full bg-gray-800/70 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all placeholder-gray-600">
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" 
+                        class="btn-primary w-full mt-6 bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl text-xl uppercase tracking-wider shadow-lg flex items-center justify-center gap-3 pulse-glow">
+                        <i class="fas fa-gavel"></i>
+                        <span>Judge Now</span>
+                    </button>
+                </form>
+                
+                <p class="text-center text-xs text-gray-500 mt-4 flex items-center justify-center gap-2">
+                    <i class="fas fa-video text-red-400"></i>
+                    <span>Tip: Screen record this for TikTok!</span>
+                </p>
+            </div>
+
+            <!-- Loading Section -->
+            <div id="loadingSection" class="hidden glass-panel p-10 rounded-2xl text-center">
+                <div class="text-7xl text-red-500 mb-6 inline-block origin-bottom-right gavel-animation">
+                    <i class="fas fa-gavel"></i>
+                </div>
+                <h2 class="text-2xl font-display font-bold animate-pulse mb-2">Deliberating...</h2>
+                <p class="text-gray-400 text-sm">Reviewing the evidence. Choosing a side.</p>
+                <div class="mt-6 flex justify-center gap-2">
+                    <span class="w-2 h-2 bg-red-500 rounded-full animate-bounce" style="animation-delay: 0ms;"></span>
+                    <span class="w-2 h-2 bg-red-500 rounded-full animate-bounce" style="animation-delay: 150ms;"></span>
+                    <span class="w-2 h-2 bg-red-500 rounded-full animate-bounce" style="animation-delay: 300ms;"></span>
+                </div>
+            </div>
+
+            <!-- Result Section -->
+            <div id="resultSection" class="hidden glass-panel p-1 rounded-2xl neon-border overflow-hidden fade-in">
+                <div class="bg-black/60 p-6 rounded-xl">
+                    
+                    <!-- The Verdict -->
+                    <div class="text-center mb-6">
+                        <div class="inline-block bg-red-600 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest mb-4">
+                            <i class="fas fa-scroll mr-1"></i> Official Verdict
+                        </div>
+                        
+                        <div class="relative mb-6">
+                            <div class="text-gray-500 text-sm font-bold uppercase mb-2">Who is wrong?</div>
+                            <h2 id="loserName" class="text-4xl md:text-5xl font-display font-bold text-red-500 uppercase leading-tight break-words">
+                                <!-- Filled by JS -->
+                            </h2>
+                            <span class="text-6xl absolute -top-2 -right-2 opacity-20 pointer-events-none">❌</span>
+                        </div>
+
+                        <div class="w-full h-px bg-gray-700/50 my-4"></div>
+
+                        <div class="relative">
+                            <div class="text-gray-500 text-sm font-bold uppercase mb-2">Who is right?</div>
+                            <h3 id="winnerName" class="text-2xl md:text-3xl font-display font-bold text-green-400 uppercase break-words">
+                                <!-- Filled by JS -->
+                            </h3>
+                            <span class="text-4xl absolute -top-2 -right-2 opacity-20 pointer-events-none">✓</span>
+                        </div>
+                    </div>
+
+                    <!-- The Explanation -->
+                    <div class="bg-gray-800/50 p-4 rounded-lg border-l-4 border-red-500 mb-6">
+                        <div class="flex items-start gap-3">
+                            <span class="text-2xl">🗣️</span>
+                            <p id="explanationText" class="text-lg italic text-gray-200 leading-relaxed">
+                                <!-- Filled by JS -->
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <button onclick="copyResult()" class="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                        <button onclick="shareOnTwitter()" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2">
+                            <i class="fab fa-twitter"></i> Tweet
+                        </button>
+                    </div>
+                    
+                    <button onclick="resetApp()" class="w-full bg-white text-black hover:bg-gray-200 p-4 rounded-lg font-bold transition flex items-center justify-center gap-2">
+                        <i class="fas fa-redo"></i> New Battle
+                    </button>
+                    
+                    <!-- Sign up prompt for non-logged-in users -->
+                    <div id="signupPrompt" class="mt-6 p-4 bg-gradient-to-r from-red-900/30 to-orange-900/30 rounded-lg border border-red-500/30 text-center">
+                        <p class="text-gray-300 text-sm mb-3">
+                            <i class="fas fa-star text-yellow-400 mr-1"></i>
+                            Sign up to save your verdicts and track your debate history!
+                        </p>
+                        <button onclick="showModal('signupModal')" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg text-sm transition">
+                            Create Free Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Error Message -->
+            <div id="errorSection" class="hidden mt-4 bg-red-900/50 border border-red-500 text-red-200 p-4 rounded-lg text-center text-sm fade-in">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <span id="errorMessage">Something went wrong. Try again.</span>
+            </div>
+        </div>
+    </section>
+    
+    <!-- How It Works -->
+    <section class="py-20 px-4 bg-gradient-to-b from-black to-gray-900/50">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-12">
+                <h2 class="font-display text-3xl md:text-4xl font-bold mb-3">
+                    How It <span class="text-red-500">Works</span>
+                </h2>
+                <p class="text-gray-400 max-w-lg mx-auto">Three simple steps to settle any debate</p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="glass-panel p-6 rounded-2xl text-center slide-up" style="animation-delay: 0.1s;">
+                    <div class="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-3xl">✏️</span>
+                    </div>
+                    <h3 class="font-display text-xl font-bold mb-2">1. Enter Options</h3>
+                    <p class="text-gray-400 text-sm">Type in the two sides of your debate. Add context if needed.</p>
+                </div>
+                
+                <div class="glass-panel p-6 rounded-2xl text-center slide-up" style="animation-delay: 0.2s;">
+                    <div class="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-3xl">⚖️</span>
+                    </div>
+                    <h3 class="font-display text-xl font-bold mb-2">2. AI Judges</h3>
+                    <p class="text-gray-400 text-sm">AI analyzes your options and makes a decisive choice. No wishy-washy answers!</p>
+                </div>
+                
+                <div class="glass-panel p-6 rounded-2xl text-center slide-up" style="animation-delay: 0.3s;">
+                    <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-3xl">🎉</span>
+                    </div>
+                    <h3 class="font-display text-xl font-bold mb-2">3. Share & Celebrate</h3>
+                    <p class="text-gray-400 text-sm">Copy or tweet your verdict. Perfect for settling arguments and going viral!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- CTA Section -->
+    <section class="py-20 px-4 bg-gradient-to-b from-gray-900 to-black">
+        <div class="max-w-2xl mx-auto text-center">
+            <h2 class="font-display text-4xl md:text-5xl font-bold mb-6">
+                Ready to Settle Your <span class="gradient-text">Next Debate?</span>
+            </h2>
+            <p class="text-gray-400 text-lg mb-8">
+                The AI Judge always picks a side. It's free, instant, and always decisive!
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="#judge-section" class="btn-primary bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-xl text-lg flex items-center justify-center gap-2">
+                    <i class="fas fa-gavel"></i>
+                    Judge Now - It's Free
+                </a>
+                <button onclick="showModal('signupModal')" class="bg-white/10 hover:bg-white/20 text-white font-bold py-4 px-8 rounded-xl text-lg border border-white/20 transition">
+                    Create Account
+                </button>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="py-12 px-4 border-t border-gray-800">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="text-2xl">⚖️</span>
+                        <span class="font-display text-xl font-bold">Who Is Wrong?</span>
+                    </div>
+                    <p class="text-gray-400 text-sm">The AI Judge that always picks a side. Settle debates, create content, have fun!</p>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold text-white mb-4">Quick Links</h4>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="#judge-section" class="hover:text-red-400 transition">Judge Now</a></li>
+                        <li><a href="/account.html" class="hover:text-red-400 transition">My Account</a></li>
+                        <li><a href="#" class="hover:text-red-400 transition">About</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold text-white mb-4">Legal</h4>
+                    <ul class="space-y-2 text-gray-400 text-sm">
+                        <li><a href="#" class="hover:text-red-400 transition">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-red-400 transition">Terms of Service</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold text-white mb-4">Follow Us</h4>
+                    <div class="flex gap-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition text-xl"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition text-xl"><i class="fab fa-tiktok"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition text-xl"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 pt-8 text-center text-gray-500 text-sm">
+                <p>&copy; 2024 Who Is Wrong? All rights reserved. Made with ⚖️ and AI.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-backdrop absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="hideModal('loginModal')"></div>
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="modal-content glass-panel p-8 rounded-2xl w-full max-w-md relative z-10 neon-border">
+                <button onclick="hideModal('loginModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+                
+                <div class="text-center mb-6">
+                    <span class="text-4xl mb-4 block">⚖️</span>
+                    <h3 class="font-display text-2xl font-bold">Welcome Back!</h3>
+                    <p class="text-gray-400 text-sm mt-1">Log in to access your verdicts</p>
+                </div>
+                
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Email</label>
+                        <input type="email" id="loginEmail" required placeholder="you@example.com"
+                            class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition placeholder-gray-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Password</label>
+                        <input type="password" id="loginPassword" required placeholder="••••••••"
+                            class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition placeholder-gray-600">
+                    </div>
+                    
+                    <div id="loginError" class="hidden text-red-400 text-sm text-center p-2 bg-red-900/30 rounded"></div>
+                    
+                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl text-lg transition">
+                        Log In
+                    </button>
+                </form>
+                
+                <p class="text-center text-gray-400 text-sm mt-6">
+                    Don't have an account? 
+                    <button onclick="hideModal('loginModal'); showModal('signupModal');" class="text-red-400 hover:text-red-300 font-medium">Sign Up</button>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Signup Modal -->
+    <div id="signupModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-backdrop absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="hideModal('signupModal')"></div>
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="modal-content glass-panel p-8 rounded-2xl w-full max-w-md relative z-10 neon-border">
+                <button onclick="hideModal('signupModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+                
+                <div class="text-center mb-6">
+                    <span class="text-4xl mb-4 block">🎉</span>
+                    <h3 class="font-display text-2xl font-bold">Create Your Account</h3>
+                    <p class="text-gray-400 text-sm mt-1">Join to save verdicts and track history</p>
+                </div>
+                
+                <!-- Benefits -->
+                <div class="bg-green-900/20 border border-green-500/30 rounded-lg p-4 mb-6">
+                    <ul class="text-sm text-gray-300 space-y-2">
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i> Save all your verdicts</li>
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i> Access your debate history</li>
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i> 100% Free forever</li>
+                    </ul>
+                </div>
+                
+                <form id="signupForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Email</label>
+                        <input type="email" id="signupEmail" required placeholder="you@example.com"
+                            class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition placeholder-gray-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Password</label>
+                        <input type="password" id="signupPassword" required placeholder="Min 6 characters" minlength="6"
+                            class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition placeholder-gray-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Confirm Password</label>
+                        <input type="password" id="signupPasswordConfirm" required placeholder="Confirm password" minlength="6"
+                            class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition placeholder-gray-600">
+                    </div>
+                    
+                    <div id="signupError" class="hidden text-red-400 text-sm text-center p-2 bg-red-900/30 rounded"></div>
+                    
+                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl text-lg transition">
+                        Create Free Account
+                    </button>
+                </form>
+                
+                <p class="text-center text-gray-400 text-sm mt-6">
+                    Already have an account? 
+                    <button onclick="hideModal('signupModal'); showModal('loginModal');" class="text-red-400 hover:text-red-300 font-medium">Log In</button>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg hidden z-50 flex items-center gap-3">
+        <i id="toastIcon" class="fas fa-check-circle text-green-400"></i>
+        <span id="toastMessage">Success!</span>
+    </div>
+    
+    <script src="/app.js"></script>
+</body>
+</html>

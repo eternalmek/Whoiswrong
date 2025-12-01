@@ -3,6 +3,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
 
 dotenv.config();
 
@@ -15,8 +16,19 @@ const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
 
 const app = express();
 
-// Middlewares
-app.use(helmet());
+// Middlewares - use helmet with relaxed CSP for CDN scripts
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+    },
+  },
+}));
 app.use(express.json({ limit: '64kb' })); // keep payloads small
 app.use(express.urlencoded({ extended: false }));
 
@@ -42,21 +54,8 @@ app.use('/api/auth', authRouter);
 // Health
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Root endpoint - Landing page
-app.get('/', (req, res) => {
-  res.type('html').send(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Who Is Wrong?</title>
-      </head>
-      <body>
-        <h1>Who Is Wrong?</h1>
-        <p>Welcome! Frontend coming soon.</p>
-      </body>
-    </html>
-  `);
-});
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
@@ -75,6 +74,16 @@ app.get('/api', (req, res) => {
     },
     status: 'ok'
   });
+});
+
+// Fallback to index.html for SPA routing (non-API routes)
+app.get('*', (req, res) => {
+  // Only serve index.html for non-API routes
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+  } else {
+    res.status(404).json({ error: 'Not found' });
+  }
 });
 
 // Error handler
