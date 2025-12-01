@@ -42,8 +42,24 @@ app.use('/api/auth', authRouter);
 // Health
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Root endpoint - API documentation
+// Root endpoint - Landing page
 app.get('/', (req, res) => {
+  res.type('html').send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Who Is Wrong?</title>
+      </head>
+      <body>
+        <h1>Who Is Wrong?</h1>
+        <p>Welcome! Frontend coming soon.</p>
+      </body>
+    </html>
+  `);
+});
+
+// API documentation endpoint
+app.get('/api', (req, res) => {
   res.json({
     name: 'Who Is Wrong? API',
     version: '1.0.0',
