@@ -1,30 +1,57 @@
-# Who Is Wrong? — Backend (OpenAI + Supabase)
+# Who Is Wrong? — Full Stack App (OpenAI + Supabase)
 
-This repository provides a small Node.js backend that:
+The AI Judge that always picks a side! Settle any debate with AI-powered judgement.
 
+## Features
+
+### Frontend
+- **Modern, conversion-optimized landing page** with clear CTAs
+- **AI Judge form** - Enter two options and get a decisive verdict
+- **User authentication** - Sign up and login with email/password
+- **Account management** - View profile, verdict history, and delete account
+- **Social sharing** - Copy verdicts or share on Twitter
+- **Responsive design** - Works on desktop and mobile
+
+### Backend
 - Accepts battles (context, optionA, optionB)
-- Calls OpenAI to produce a decisive JSON verdict { wrong, right, reason }
+- Calls OpenAI GPT-4 to produce a decisive JSON verdict { wrong, right, reason }
 - Persists the judgement to Supabase
-- Provides authentication and lightweight account management
-- Provides a simple history endpoint (with optional user scoping)
+- Provides authentication and account management
+- Provides a history endpoint (with optional user scoping)
 
-Files:
-- src/server.js — Express server & middleware
-- src/routes/judge.js — POST /api/judge
-- src/routes/history.js — GET /api/judgements
-- src/routes/auth.js — auth + account endpoints
-- src/openaiClient.js — wrapper that calls OpenAI and returns parsed JSON
-- src/supabaseClient.js — Supabase clients (service + anon)
-- migrations/001_create_judgements.sql — SQL to create the judgements table
+## Files Structure
 
-Setup
+```
+├── public/                    # Frontend static files
+│   ├── index.html            # Main landing page
+│   ├── account.html          # Account management page
+│   └── app.js                # Frontend JavaScript
+├── src/
+│   ├── server.js             # Express server & middleware
+│   ├── routes/
+│   │   ├── judge.js          # POST /api/judge
+│   │   ├── history.js        # GET /api/judgements
+│   │   └── auth.js           # Auth + account endpoints
+│   ├── middleware/
+│   │   └── auth.js           # Auth middleware
+│   ├── openaiClient.js       # OpenAI wrapper
+│   └── supabaseClient.js     # Supabase clients
+├── api/
+│   └── index.js              # Vercel serverless entry
+├── migrations/
+│   └── 001_create_judgements.sql
+└── vercel.json               # Vercel deployment config
+```
+
+## Setup
+
 1. Copy `.env.example` to `.env` and provide values for:
-   - OPENAI_API_KEY
-   - SUPABASE_URL
-   - SUPABASE_ANON_KEY (for auth/login)
-   - SUPABASE_SERVICE_ROLE_KEY (server-side only)
-   - FRONTEND_ORIGIN (optional)
-   - PORT (optional)
+   - `OPENAI_API_KEY`
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY` (for auth/login)
+   - `SUPABASE_SERVICE_ROLE_KEY` (server-side only)
+   - `FRONTEND_ORIGIN` (optional)
+   - `PORT` (optional)
 
 2. Install dependencies:
    ```
@@ -34,50 +61,46 @@ Setup
 3. Create the table in Supabase:
    - Run the SQL in `migrations/001_create_judgements.sql` using Supabase SQL editor.
 
- 4. Start the server:
-    ```
-    npm start
-    ```
-    or for development:
-    ```
-    npm run dev
-    ```
+4. Start the server:
+   ```
+   npm start
+   ```
+   or for development:
+   ```
+   npm run dev
+   ```
 
-Deploying to Vercel
-- Add the environment variables above to your Vercel project (including `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` as encrypted env vars).
-- Make sure `FRONTEND_ORIGIN` matches your Vercel domain so CORS succeeds.
-- Expose the Express server via `vercel dev` or a custom server entry point; the API routes are prefixed with `/api/` for easy proxying.
+5. Open http://localhost:8080 in your browser
 
-Frontend integration
-- Replace the existing direct client-side OpenAI call with a call to your backend:
-  - POST /api/judge
-  - Body (JSON): { context, optionA, optionB }
-  - Optional: pass `Authorization: Bearer <supabase access token>` to attach the user id
-  - Response: { ok: true, judgement: { wrong, right, reason }, saved: {...} }
+## API Endpoints
 
-- Auth-friendly endpoints (ready for Vercel/Next.js frontend):
-  - POST /api/auth/signup — body: { email, password }
-  - POST /api/auth/login — body: { email, password }
-  - GET /api/auth/me — headers: Authorization: Bearer <access_token>
-  - DELETE /api/auth/me — headers: Authorization: Bearer <access_token>
-  - GET /api/judgements?limit=20&mine=true — when `mine=true`, scopes to the authenticated user if a valid token is present
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/judge` | POST | Submit a battle for judgement |
+| `/api/judgements` | GET | Get judgement history |
+| `/api/auth/signup` | POST | Create a new account |
+| `/api/auth/login` | POST | Log in to existing account |
+| `/api/auth/me` | GET | Get current user info |
+| `/api/auth/me` | DELETE | Delete current user account |
+| `/health` | GET | Health check endpoint |
 
-Example (fetch):
-```
-const response = await fetch('https://your-backend.example.com/api/judge', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ context, optionA, optionB })
-});
-const payload = await response.json();
-console.log(payload.judgement);
-```
+## Deploying to Vercel
 
-Security note
-- Never expose your Supabase service_role key or OpenAI key in client code. Keep them only on the server.
-- The service_role key grants elevated privileges; restrict it to server-side use only.
+1. Add the environment variables to your Vercel project:
+   - `OPENAI_API_KEY`
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `FRONTEND_ORIGIN` (set to your Vercel domain)
 
-What's next
-- Add authentication (associate user_id with judgements).
-- Add more robust model fallback logic and monitoring for parse failures.
-- If you want, I can adapt the backend to use OpenAI's newer Responses API or to return structured JSON via function-calling style (if you prefer strict schema enforcement).
+2. Deploy with `vercel deploy`
+
+## Security Notes
+
+- Never expose your Supabase service_role key or OpenAI key in client code
+- The service_role key grants elevated privileges; restrict it to server-side use only
+- All API calls from the frontend go through the backend, keeping keys secure
+
+## License
+
+MIT
