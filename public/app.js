@@ -290,8 +290,8 @@ function showCopySuccess() {
 }
 
 function shareOnTwitter() {
-    const wrong = document.getElementById('loserName').innerText;
-    const reason = document.getElementById('explanationText').innerText;
+    const wrong = document.getElementById('loserName').innerText || 'someone';
+    const reason = document.getElementById('explanationText').innerText || 'No reason given.';
     const text = encodeURIComponent(`The AI Judge says ${wrong} is WRONG! 😂\n\n${reason}\n\nSettle your debates at:`);
     const url = encodeURIComponent(window.location.origin);
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');

@@ -322,23 +322,61 @@
                     return;
                 }
                 
-                historyList.innerHTML = items.map(item => `
-                    <div class="bg-gray-800/50 p-4 rounded-lg border-l-4 border-red-500">
-                        <div class="flex items-center gap-2 mb-2 text-sm text-gray-400">
-                            <i class="fas fa-calendar"></i>
-                            ${new Date(item.created_at).toLocaleDateString()}
-                        </div>
-                        <div class="flex items-center gap-2 mb-2">
-                            <span class="text-blue-400">${escapeHtml(item.option_a)}</span>
-                            <span class="text-gray-500">vs</span>
-                            <span class="text-red-400">${escapeHtml(item.option_b)}</span>
-                        </div>
-                        <div class="text-sm">
-                            <span class="text-red-400 font-bold">❌ Wrong:</span> ${escapeHtml(item.wrong)}
-                        </div>
-                        <div class="text-sm text-gray-400 mt-1 italic">"${escapeHtml(item.reason || '')}"</div>
-                    </div>
-                `).join('');
+                // Clear existing content
+                historyList.innerHTML = '';
+                
+                // Build items using DOM manipulation for better XSS protection
+                items.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'bg-gray-800/50 p-4 rounded-lg border-l-4 border-red-500';
+                    
+                    // Date row
+                    const dateDiv = document.createElement('div');
+                    dateDiv.className = 'flex items-center gap-2 mb-2 text-sm text-gray-400';
+                    dateDiv.innerHTML = '<i class="fas fa-calendar"></i>';
+                    const dateText = document.createTextNode(' ' + new Date(item.created_at).toLocaleDateString());
+                    dateDiv.appendChild(dateText);
+                    itemDiv.appendChild(dateDiv);
+                    
+                    // Options row
+                    const optionsDiv = document.createElement('div');
+                    optionsDiv.className = 'flex items-center gap-2 mb-2';
+                    
+                    const optionA = document.createElement('span');
+                    optionA.className = 'text-blue-400';
+                    optionA.textContent = item.option_a || '';
+                    optionsDiv.appendChild(optionA);
+                    
+                    const vs = document.createElement('span');
+                    vs.className = 'text-gray-500';
+                    vs.textContent = 'vs';
+                    optionsDiv.appendChild(vs);
+                    
+                    const optionB = document.createElement('span');
+                    optionB.className = 'text-red-400';
+                    optionB.textContent = item.option_b || '';
+                    optionsDiv.appendChild(optionB);
+                    
+                    itemDiv.appendChild(optionsDiv);
+                    
+                    // Wrong row
+                    const wrongDiv = document.createElement('div');
+                    wrongDiv.className = 'text-sm';
+                    const wrongLabel = document.createElement('span');
+                    wrongLabel.className = 'text-red-400 font-bold';
+                    wrongLabel.textContent = '❌ Wrong: ';
+                    wrongDiv.appendChild(wrongLabel);
+                    wrongDiv.appendChild(document.createTextNode(item.wrong || ''));
+                    itemDiv.appendChild(wrongDiv);
+                    
+                    // Reason row
+                    const reasonDiv = document.createElement('div');
+                    reasonDiv.className = 'text-sm text-gray-400 mt-1 italic';
+                    reasonDiv.textContent = '"' + (item.reason || '') + '"';
+                    itemDiv.appendChild(reasonDiv);
+                    
+                    historyList.appendChild(itemDiv);
+                });
                 
             } catch (error) {
                 console.error('Load history error:', error);
@@ -349,13 +387,6 @@
                     </div>
                 `;
             }
-        }
-        
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
         }
         
         // ==========================================

@@ -20,7 +20,7 @@
       "dest": "/api/index.js"
     },
     {
-      "src": "/(.*\\.(js|css|html|png|jpg|jpeg|gif|ico|svg))",
+      "src": "/(.*\\.(js|css|html|png|jpg|jpeg|gif|ico|svg|woff|woff2|webp|json|txt|xml))",
       "dest": "/public/$1"
     },
     {
