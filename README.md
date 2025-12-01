@@ -1,9 +1,20 @@
-# Who Is Wrong? — Backend (OpenAI + Supabase)
+# Who Is Wrong? — Full Stack App (OpenAI + Supabase)
 
 **The King of Petty** — A viral-ready, TikTok-friendly judgement API.
 
 This repository provides a small Node.js backend that:
 
+## Features
+
+### Frontend
+- **Modern, conversion-optimized landing page** with clear CTAs
+- **AI Judge form** - Enter two options and get a decisive verdict
+- **User authentication** - Sign up and login with email/password
+- **Account management** - View profile, verdict history, and delete account
+- **Social sharing** - Copy verdicts or share on Twitter
+- **Responsive design** - Works on desktop and mobile
+
+### Backend
 - Accepts battles (context, optionA, optionB)
 - Calls OpenAI to produce a **savage, decisive** JSON verdict { wrong, right, reason, roast }
 - Never says "it depends" — always picks a side
@@ -37,12 +48,12 @@ This repository provides a small Node.js backend that:
 ## Setup
 
 1. Copy `.env.example` to `.env` and provide values for:
-   - OPENAI_API_KEY
-   - SUPABASE_URL
-   - SUPABASE_ANON_KEY (for auth/login)
-   - SUPABASE_SERVICE_ROLE_KEY (server-side only)
-   - FRONTEND_ORIGIN (optional)
-   - PORT (optional)
+   - `OPENAI_API_KEY`
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY` (for auth/login)
+   - `SUPABASE_SERVICE_ROLE_KEY` (server-side only)
+   - `FRONTEND_ORIGIN` (optional)
+   - `PORT` (optional)
 
 2. Install dependencies:
    ```
