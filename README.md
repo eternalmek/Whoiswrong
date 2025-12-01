@@ -108,23 +108,42 @@ Use this option if you prefer to connect to a hosted Supabase project.
 
 1. Create a project at [supabase.com](https://supabase.com)
 
-2. Copy `.env.example` to `.env` and provide values for:
-   - `OPENAI_API_KEY`
-   - `SUPABASE_URL` — from your Supabase project settings
-   - `SUPABASE_ANON_KEY` — from your Supabase project settings
-   - `SUPABASE_SERVICE_ROLE_KEY` — from your Supabase project settings
-   - `FRONTEND_ORIGIN` (optional)
-   - `PORT` (optional)
+2. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
 
-3. Install dependencies:
+3. Get your Supabase credentials:
+   - Go to your Supabase project dashboard
+   - Navigate to **Settings → API** in the left menu
+   - Find and copy the following values:
+   
+   | Environment Variable | Where to Find |
+   |---------------------|---------------|
+   | `SUPABASE_URL` | **Project URL** section |
+   | `SUPABASE_ANON_KEY` | **anon public** key under "Project API keys" |
+   | `SUPABASE_SERVICE_ROLE_KEY` | **service_role** key under "Project API keys" |
+
+   > ⚠️ **Security Note**: The `service_role` key has elevated privileges. Never expose it in client-side code or commit it to version control!
+
+4. Update your `.env` file with the values:
+   ```
+   OPENAI_API_KEY=your_openai_key
+   SUPABASE_URL=https://your-project-ref.supabase.co
+   SUPABASE_ANON_KEY=your_anon_key_here
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+   FRONTEND_ORIGIN=http://localhost:3000
+   ```
+
+5. Install dependencies:
    ```bash
    npm install
    ```
 
-4. Create the table in Supabase:
+6. Create the table in Supabase:
    - Run the SQL in `supabase/migrations/20240101000000_create_judgements.sql` using Supabase SQL editor.
 
-5. Start the server:
+7. Start the server:
    ```bash
    npm start
    ```
