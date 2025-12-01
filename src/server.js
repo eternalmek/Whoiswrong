@@ -7,6 +7,16 @@ const path = require('path');
 
 dotenv.config();
 
+import('@vercel/analytics/next')
+  .then(({ Analytics }) => {
+    if (Analytics) {
+      console.info('Vercel Analytics module loaded');
+    }
+  })
+  .catch((error) => {
+    console.warn('Vercel Analytics module unavailable:', error.message);
+  });
+
 const judgeRouter = require('./routes/judge');
 const historyRouter = require('./routes/history');
 const authRouter = require('./routes/auth');
