@@ -25,11 +25,14 @@ router.get('/status', async (req, res) => {
   try {
     const baseUrl = (process.env.FRONTEND_ORIGIN || process.env.NEXT_PUBLIC_BASE_URL || '').trim();
 
-    const checks = {
+    const requiredChecks = {
       stripeSecretKey: hasStringEnv('STRIPE_SECRET_KEY'),
       singleJudgePriceId: hasStringEnv('STRIPE_PRICE_SINGLE_JUDGE'),
       allJudgesPriceId: hasStringEnv('STRIPE_PRICE_ALL_JUDGES'),
       webhookSecret: hasStringEnv('STRIPE_WEBHOOK_SECRET'),
+    };
+
+    const optionalChecks = {
       frontendOrigin: baseUrl,
     };
 
@@ -40,20 +43,17 @@ router.get('/status', async (req, res) => {
       webhook: true, // /api/webhook
     };
 
-    const missing = Object.entries(checks)
-      .filter(([, value]) => {
-        if (typeof value === 'boolean') return !value;
-        return value.length === 0;
-      })
+    const missingRequired = Object.entries(requiredChecks)
+      .filter(([, value]) => !value)
       .map(([key]) => key);
 
     const statusPayload = {
-      ok: missing.length === 0 && Boolean(stripe),
+      ok: missingRequired.length === 0 && Boolean(stripe),
       paymentServiceConfigured: Boolean(stripe),
-      checks,
+      checks: { ...requiredChecks, ...optionalChecks },
       routes: routeAvailability,
-      missing,
-      message: missing.length === 0
+      missing: missingRequired,
+      message: missingRequired.length === 0
         ? 'All payment dependencies are configured and routes are mounted'
         : 'Payment configuration is incomplete; see missing array for details',
     };
