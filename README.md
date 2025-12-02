@@ -41,6 +41,8 @@ This repository provides a small Node.js backend that:
 - src/routes/auth.js — auth + account endpoints
 - src/routes/receipt.js — POST /api/receipt (generate shareable receipts)
 - src/routes/loadingMessages.js — GET /api/loading-messages (funny loading messages)
+- src/routes/checkout.js — POST /api/checkout (Stripe checkout sessions)
+- src/routes/webhook.js — POST /api/webhook (Stripe webhook handler)
 - src/openaiClient.js — wrapper that calls OpenAI and returns parsed JSON with roast
 - src/supabaseClient.js — Supabase clients (service + anon)
 - supabase/migrations/ — Database migrations for Supabase
@@ -218,6 +220,57 @@ Use this option if you prefer to connect to a hosted Supabase project.
 - POST /api/auth/login — body: { email, password }
 - GET /api/auth/me — headers: Authorization: Bearer <access_token>
 - DELETE /api/auth/me — headers: Authorization: Bearer <access_token>
+
+### Stripe Payments
+
+**POST /api/checkout** — Create a Stripe checkout session
+```json
+// Request for single judge unlock
+{ "mode": "single", "judgeId": "tech_billionaire" }
+
+// Request for all judges subscription
+{ "mode": "subscription" }
+
+// Response
+{ "url": "https://checkout.stripe.com/..." }
+```
+
+**POST /api/webhook** — Stripe webhook endpoint (called by Stripe, not for direct use)
+- Handles `checkout.session.completed` for payment verification
+- Handles `invoice.payment_succeeded` for subscription renewals
+- Handles `customer.subscription.deleted` for subscription cancellations
+
+## Stripe Configuration
+
+To enable Stripe payments:
+
+1. **Create a Stripe Account** at [stripe.com](https://stripe.com)
+
+2. **Get API Keys:**
+   - Go to Stripe Dashboard → Developers → API keys
+   - Copy your secret key (`sk_...`) and publishable key (`pk_...`)
+
+3. **Create Products and Prices:**
+   - Go to Products in Stripe Dashboard
+   - Create a product for "Single Judge Unlock" with a one-time price of $0.99 AUD
+   - Create a product for "All Judges Subscription" with a recurring price of $3.99 AUD/month
+   - Copy the price IDs (`price_...`)
+
+4. **Set Up Webhook:**
+   - Go to Developers → Webhooks
+   - Add an endpoint with URL: `https://your-domain.com/api/webhook`
+   - Select events: `checkout.session.completed`, `invoice.payment_succeeded`, `customer.subscription.deleted`
+   - Copy the signing secret (`whsec_...`)
+
+5. **Configure Environment Variables:**
+   ```
+   STRIPE_SECRET_KEY=sk_...
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_...
+   STRIPE_PRICE_SINGLE_JUDGE=price_...
+   STRIPE_PRICE_ALL_JUDGES=price_...
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   NEXT_PUBLIC_BASE_URL=https://your-domain.com
+   ```
 
 ## Deploying to Vercel
 
