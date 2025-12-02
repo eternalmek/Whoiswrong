@@ -146,17 +146,8 @@ function updateFreeJudgesLabel() {
     const label = document.getElementById('freeTriesLabel');
     if (!label) return;
 
-    if (hasAllAccess) {
-        label.innerText = 'All judges unlocked';
-        label.classList.remove('text-green-400');
-        label.classList.add('text-yellow-300');
-        return;
-    }
-
-    const freeCount = FREE_CELEBRITY_JUDGES.length;
-    label.innerText = `${freeCount} judges free`;
-    label.classList.add('text-green-400');
-    label.classList.remove('text-red-400', 'text-yellow-300');
+    // Keep the label hidden - do not display free judges count
+    label.classList.add('hidden');
 }
 
 function renderJudgeChips() {
