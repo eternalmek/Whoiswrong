@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.30.0",
-    "@vercel/analytics": "file:vendor/vercel-analytics",
+    "@vercel/analytics": "^1.6.0",
     "axios": "^1.4.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",

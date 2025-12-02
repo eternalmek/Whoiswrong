@@ -7,16 +7,6 @@ const path = require('path');
 
 dotenv.config();
 
-import('@vercel/analytics/next')
-  .then(({ Analytics }) => {
-    if (Analytics) {
-      console.info('Vercel Analytics module loaded');
-    }
-  })
-  .catch((error) => {
-    console.warn('Vercel Analytics module unavailable:', error.message);
-  });
-
 const judgeRouter = require('./routes/judge');
 const historyRouter = require('./routes/history');
 const authRouter = require('./routes/auth');
@@ -29,16 +19,16 @@ const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
 
 const app = express();
 
-// Middlewares - use helmet with relaxed CSP for CDN scripts
+// Middlewares - use helmet with relaxed CSP for CDN scripts and Vercel Analytics
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://va.vercel-scripts.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https://va.vercel-scripts.com", "https://vitals.vercel-insights.com"],
     },
   },
 }));
