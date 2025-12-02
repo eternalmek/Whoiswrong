@@ -69,6 +69,14 @@ if (!availableJudges.find((j) => j.id === selectedJudgeId)) {
 let unlockedJudgeIds = safeParseArray(localStorage.getItem(UNLOCKED_KEY), []);
 let hasAllAccess = localStorage.getItem(ALL_ACCESS_KEY) === 'true';
 
+// --- Stripe Prices State ---
+// Default/fallback prices (used until Stripe prices are fetched)
+let stripePrices = {
+    singleJudge: { formatted: '$0.99', amount: 0.99, currency: 'AUD' },
+    allJudges: { formatted: '$3.99', amount: 3.99, currency: 'AUD', interval: 'month' }
+};
+let pricesLoaded = false;
+
 // Loading messages for variety
 const LOADING_MESSAGES = [
     "Reviewing the evidence...",
@@ -228,7 +236,7 @@ function getJudgeAccessInfo(judgeId) {
     let label = 'Free';
     if (isFreeByDefault) label = 'Free';
     else if (hasAllAccess || unlocked) label = '✓ Unlocked';
-    else label = '$0.99';
+    else label = stripePrices.singleJudge.formatted;
 
     return { judge, unlocked, label };
 }
@@ -381,6 +389,91 @@ function updateJudgeUI() {
     updateJudgeHint();
     updateFreeJudgesLabel();
     updateUnlockButtons();
+    updatePriceUI();
+}
+
+/**
+ * Fetch current prices from Stripe API
+ * 
+ * This function fetches the actual prices configured in Stripe
+ * and updates the global stripePrices state.
+ * Prices are cached on the server for 5 minutes.
+ */
+async function fetchStripePrices() {
+    try {
+        const response = await fetch(`${API_BASE}/api/prices`);
+        
+        if (!response.ok) {
+            console.warn('Failed to fetch Stripe prices, using defaults');
+            return;
+        }
+
+        const data = await response.json();
+        
+        if (data.singleJudge && data.allJudges) {
+            stripePrices = data;
+            pricesLoaded = true;
+            
+            // Update UI with new prices
+            updateJudgeUI();
+        }
+    } catch (error) {
+        console.warn('Error fetching Stripe prices:', error);
+        // Keep using default prices
+    }
+}
+
+/**
+ * Format interval string for display
+ * @param {string} interval - Stripe interval (e.g., 'month', 'year')
+ * @returns {string} Formatted interval string (e.g., '/mo', '/yr')
+ */
+function formatInterval(interval) {
+    if (interval === 'month') return '/mo';
+    if (interval === 'year') return '/yr';
+    return '';
+}
+
+/**
+ * Update price displays in the UI with Stripe prices
+ */
+function updatePriceUI() {
+    // Update unlock single button
+    const unlockSelectedBtn = document.getElementById('unlockSelectedJudge');
+    if (unlockSelectedBtn) {
+        const priceSpan = unlockSelectedBtn.querySelector('span');
+        if (priceSpan) {
+            priceSpan.textContent = stripePrices.singleJudge.formatted;
+        }
+    }
+
+    // Update unlock all button
+    const unlockAllBtn = document.getElementById('unlockAllJudges');
+    if (unlockAllBtn) {
+        const priceSpan = unlockAllBtn.querySelector('span');
+        if (priceSpan) {
+            const interval = formatInterval(stripePrices.allJudges.interval);
+            priceSpan.textContent = `All ${stripePrices.allJudges.formatted}${interval}`;
+        }
+    }
+
+    // Update purchase modal buttons
+    const purchaseSingleBtn = document.getElementById('purchaseSingleBtn');
+    if (purchaseSingleBtn) {
+        const span = purchaseSingleBtn.querySelector('span');
+        if (span) {
+            span.textContent = `Unlock This Judge – ${stripePrices.singleJudge.formatted}`;
+        }
+    }
+
+    const purchaseAllBtn = document.getElementById('purchaseAllBtn');
+    if (purchaseAllBtn) {
+        const span = purchaseAllBtn.querySelector('span');
+        if (span) {
+            const interval = formatInterval(stripePrices.allJudges.interval);
+            span.textContent = `Unlock ALL Judges – ${stripePrices.allJudges.formatted}${interval}`;
+        }
+    }
 }
 
 /**
@@ -810,6 +903,9 @@ function showToast(message, type = 'success') {
 document.addEventListener('DOMContentLoaded', () => {
     // Check authentication status
     checkAuth();
+
+    // Fetch Stripe prices and update UI
+    fetchStripePrices();
 
     // Render judge selection UI
     updateJudgeUI();
