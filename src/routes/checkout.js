@@ -61,8 +61,11 @@ router.post('/', async (req, res) => {
       return res.status(500).json({ error: 'Payment service not configured' });
     }
 
-    // Get base URL from environment
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080';
+    // Get base URL from environment (defaults to frontend origin)
+    const baseUrl =
+      process.env.FRONTEND_ORIGIN ||
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      'http://localhost:8080';
 
     let sessionConfig;
 
@@ -94,7 +97,7 @@ router.post('/', async (req, res) => {
         },
         // Allow promotion codes for better UX
         allow_promotion_codes: true,
-        success_url: `${baseUrl}/checkout/success?mode=single&judgeId=${encodeURIComponent(judgeId)}`,
+        success_url: `${baseUrl}/checkout/success?mode=single&judgeId=${encodeURIComponent(judgeId)}&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${baseUrl}/checkout/cancel`,
       };
     } else {
@@ -124,7 +127,7 @@ router.post('/', async (req, res) => {
         },
         // Allow promotion codes for better UX
         allow_promotion_codes: true,
-        success_url: `${baseUrl}/checkout/success?mode=subscription`,
+        success_url: `${baseUrl}/checkout/success?mode=subscription&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${baseUrl}/checkout/cancel`,
       };
     }

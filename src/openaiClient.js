@@ -1,6 +1,9 @@
 const axios = require('axios');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_BASE_URL = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+
 if (!OPENAI_API_KEY) {
   console.warn('OPENAI_API_KEY not set — OpenAI calls will fail.');
 }
@@ -8,6 +11,10 @@ if (!OPENAI_API_KEY) {
 async function callOpenAI({ context = '', optionA, optionB, judgePrompt = '', judgeName = 'Celebrity Judge' }) {
   if (!optionA || !optionB) {
     throw new Error('optionA and optionB are required');
+  }
+
+  if (!OPENAI_API_KEY) {
+    throw new Error('OpenAI API key is not configured');
   }
 
   const personaInstruction = judgePrompt
@@ -44,12 +51,10 @@ Option B: ${optionB}
 Return the JSON object described in the system instruction.
 `;
 
-  const model = 'gpt-4'; // change to a different model if you prefer
-
   const resp = await axios.post(
-    'https://api.openai.com/v1/chat/completions',
+    `${OPENAI_BASE_URL}/chat/completions`,
     {
-      model,
+      model: OPENAI_MODEL,
       messages: [
         { role: 'system', content: systemInstruction },
         { role: 'user', content: prompt },

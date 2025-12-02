@@ -82,6 +82,8 @@ This option runs Supabase locally using Docker, which is great for development.
    PORT=8080
    FRONTEND_ORIGIN=http://localhost:3000
    OPENAI_API_KEY=your_openai_key
+   OPENAI_MODEL=gpt-4o-mini
+   OPENAI_BASE_URL=https://api.openai.com/v1
    SUPABASE_URL=http://127.0.0.1:54321
    SUPABASE_ANON_KEY=your_local_anon_key
    SUPABASE_SERVICE_ROLE_KEY=your_local_service_role_key
@@ -131,6 +133,8 @@ Use this option if you prefer to connect to a hosted Supabase project.
 4. Update your `.env` file with the values:
    ```
    OPENAI_API_KEY=your_openai_key
+   OPENAI_MODEL=gpt-4o-mini
+   OPENAI_BASE_URL=https://api.openai.com/v1
    SUPABASE_URL=https://your-project-ref.supabase.co
    SUPABASE_ANON_KEY=your_anon_key_here
    SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
@@ -271,6 +275,8 @@ To enable Stripe payments:
    STRIPE_WEBHOOK_SECRET=whsec_...
    NEXT_PUBLIC_BASE_URL=https://your-domain.com
    ```
+
+   > Tip: `NEXT_PUBLIC_BASE_URL` (and `FRONTEND_ORIGIN`) should point to the URL that hosts your checkout success page so Stripe can redirect back with the `session_id` query string attached.
 
 ## Deploying to Vercel
 
