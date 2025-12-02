@@ -244,8 +244,9 @@
         const mode = urlParams.get('mode');
         const judgeId = urlParams.get('judgeId');
         const stripeSessionId = urlParams.get('session_id');
-        
+
         // Elements
+        const detailsBox = document.getElementById('detailsBox');
         const accessDetails = document.getElementById('accessDetails');
         const loggedInState = document.getElementById('loggedInState');
         const createAccountState = document.getElementById('createAccountState');
@@ -389,7 +390,18 @@
                 errorEl.classList.remove('hidden');
             }
         }
-        
+
+        // Block flow if the payment reference is missing
+        if (!stripeSessionId) {
+            accessDetails.textContent = 'We could not verify your payment. Please return to checkout and try again.';
+            if (detailsBox) {
+                detailsBox.classList.add('border', 'border-red-500/60', 'bg-red-900/30');
+            }
+            loggedInState.classList.add('hidden');
+            createAccountState.classList.add('hidden');
+            return;
+        }
+
         // Initialize page
         displayPurchaseDetails();
         storePendingPurchase();
