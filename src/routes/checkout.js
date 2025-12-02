@@ -82,6 +82,22 @@ router.post('/', optionalUser, async (req, res) => {
     const userId = req.auth?.user?.id || null;
     let sessionConfig;
 
+    // Build success URL with context for the success page
+    const successParams = new URLSearchParams();
+    successParams.set('mode', mode);
+    if (mode === 'single') {
+      successParams.set('judgeId', celebrityId);
+    }
+    successParams.set('session_id', '{CHECKOUT_SESSION_ID}');
+
+    // URLSearchParams encodes the placeholder braces, so decode them back
+    const successQuery = successParams
+      .toString()
+      .replace(/%7B/g, '{')
+      .replace(/%7D/g, '}');
+
+    const successUrl = `${baseUrl}/success?${successQuery}`;
+
     if (mode === 'single') {
       // =====================================================================
       // SINGLE JUDGE UNLOCK: One-time payment
@@ -111,7 +127,7 @@ router.post('/', optionalUser, async (req, res) => {
         },
         // Allow promotion codes for better UX
         allow_promotion_codes: true,
-        success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: successUrl,
         cancel_url: `${baseUrl}/cancel`,
       };
     } else {
@@ -142,7 +158,7 @@ router.post('/', optionalUser, async (req, res) => {
         },
         // Allow promotion codes for better UX
         allow_promotion_codes: true,
-        success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: successUrl,
         cancel_url: `${baseUrl}/cancel`,
       };
     }
