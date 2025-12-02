@@ -3,19 +3,29 @@ const router = express.Router();
 const { supabaseServiceRole } = require('../supabaseClient');
 const { optionalUser } = require('../middleware/auth');
 const { callOpenAI } = require('../openaiClient');
+const path = require('path');
+const { getJudgeById, normalJudge } = require(path.join(__dirname, '../../public/celebrityJudges'));
 
 // POST /api/judge
-// body: { context, optionA, optionB }
+// body: { context, optionA, optionB, judgeId }
 router.post('/', optionalUser, async (req, res, next) => {
   try {
-    const { context = '', optionA, optionB } = req.body || {};
+    const { context = '', optionA, optionB, judgeId = 'normal' } = req.body || {};
 
     if (!optionA || !optionB) {
       return res.status(400).json({ error: 'optionA and optionB are required.' });
     }
 
+    const judge = getJudgeById(judgeId) || normalJudge;
+
     // Call OpenAI
-    const ai = await callOpenAI({ context, optionA, optionB });
+    const ai = await callOpenAI({
+      context,
+      optionA,
+      optionB,
+      judgePrompt: judge.systemPrompt,
+      judgeName: judge.name,
+    });
 
     // Ensure "wrong" matches one of the options exactly.
     const wrongIsA = ai.wrong.trim() === optionA.trim();

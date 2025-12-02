@@ -346,8 +346,40 @@
                             class="w-full bg-gray-800/70 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all placeholder-gray-600">
                     </div>
 
+                    <!-- Judge Selector -->
+                    <div class="bg-gray-800/60 border border-gray-700 rounded-xl p-4 space-y-3" id="judgeSelector">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs uppercase text-gray-500 font-bold flex items-center gap-2">
+                                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500/10 text-red-400">⚖️</span>
+                                    Choose Your Judge
+                                </p>
+                                <p class="text-sm text-gray-400" id="judgeSelectionHint">Normal AI Judge selected</p>
+                            </div>
+                            <div class="text-xs text-gray-400 text-right">
+                                <div id="freeTriesLabel" class="font-semibold text-green-400">3 free tries left</div>
+                                <div class="text-[11px] text-gray-500">Celebrity judges</div>
+                            </div>
+                        </div>
+
+                        <div id="judgeChips" class="flex gap-3 overflow-x-auto pb-1" aria-label="Judge choices"></div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                            <button type="button" id="unlockSelectedJudge" class="w-full px-4 py-3 rounded-lg border border-gray-700 bg-gray-900/60 text-gray-200 hover:border-red-500 transition flex items-center justify-between">
+                                <span class="flex items-center gap-2"><i class="fas fa-lock-open text-red-400"></i><span>Unlock this judge</span></span>
+                                <span class="text-xs text-gray-400">$0.99</span>
+                            </button>
+                            <button type="button" id="unlockAllJudges" class="w-full px-4 py-3 rounded-lg border border-gray-700 bg-gray-900/60 text-gray-200 hover:border-blue-500 transition flex items-center justify-between">
+                                <span class="flex items-center gap-2"><i class="fas fa-star text-yellow-400"></i><span>Unlock All Monthly</span></span>
+                                <span class="text-xs text-gray-400">$3.99 / mo</span>
+                            </button>
+                        </div>
+
+                        <p class="text-[13px] text-gray-500">Free users can try up to 3 celebrity judges. Unlock to keep a favorite or get full access.</p>
+                    </div>
+
                     <!-- Submit Button -->
-                    <button type="submit" 
+                    <button type="submit"
                         class="btn-primary w-full mt-6 bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl text-xl uppercase tracking-wider shadow-lg flex items-center justify-center gap-3 pulse-glow">
                         <i class="fas fa-gavel"></i>
                         <span>Judge Now</span>
@@ -383,7 +415,9 @@
                         <div class="inline-block bg-red-600 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest mb-4">
                             <i class="fas fa-scroll mr-1"></i> Official Verdict
                         </div>
-                        
+
+                        <div id="resultJudgeLabel" class="text-sm text-gray-400 mb-4"></div>
+
                         <div class="relative mb-6">
                             <div class="text-gray-500 text-sm font-bold uppercase mb-2">Who is wrong?</div>
                             <h2 id="loserName" class="text-4xl md:text-5xl font-display font-bold text-red-500 uppercase leading-tight break-words">
@@ -655,7 +689,8 @@
         <i id="toastIcon" class="fas fa-check-circle text-green-400"></i>
         <span id="toastMessage">Success!</span>
     </div>
-    
+
+    <script src="/celebrityJudges.js"></script>
     <script src="/app.js"></script>
 </body>
 </html>

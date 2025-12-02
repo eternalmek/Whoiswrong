@@ -5,10 +5,14 @@ if (!OPENAI_API_KEY) {
   console.warn('OPENAI_API_KEY not set — OpenAI calls will fail.');
 }
 
-async function callOpenAI({ context = '', optionA, optionB }) {
+async function callOpenAI({ context = '', optionA, optionB, judgePrompt = '', judgeName = 'Celebrity Judge' }) {
   if (!optionA || !optionB) {
     throw new Error('optionA and optionB are required');
   }
+
+  const personaInstruction = judgePrompt
+    ? `\nCELEBRITY JUDGE MODE: ${judgeName}\n${judgePrompt}\n`
+    : '';
 
   const systemInstruction = `
 You are the SAVAGE AI judge of "Who Is Wrong?" — the King of Petty.
@@ -20,7 +24,7 @@ PERSONALITY RULES:
 - Be entertaining and decisive — this is for TikTok, not a courtroom
 - Your goal is to make people laugh or gasp
 - Keep it SHORT: 1-2 sentences MAX for each field
-
+${personaInstruction}
 You MUST return a JSON object only (no surrounding markdown) with exactly these keys:
 {
   "wrong": "The EXACT text of Option A or Option B that is WRONG",

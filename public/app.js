@@ -18,6 +18,43 @@ const userMenu = document.getElementById('userMenu');
 const authButtons = document.getElementById('authButtons');
 const signupPrompt = document.getElementById('signupPrompt');
 
+// --- Judge State ---
+const JUDGE_SELECTED_KEY = 'selectedJudgeId';
+const FREE_TRIES_KEY = 'freeCelebrityTriesLeft';
+const UNLOCKED_KEY = 'unlockedJudgeIds';
+const TRIED_KEY = 'triedCelebrityJudgeIds';
+const ALL_ACCESS_KEY = 'hasAllJudgeAccess';
+
+const availableJudges = Array.isArray(window.celebrityJudges) && window.celebrityJudges.length
+    ? window.celebrityJudges
+    : [{ id: 'normal', name: 'Normal AI Judge', emoji: '🤖', description: 'Decisive and balanced.', category: 'Default', systemPrompt: '' }];
+
+function safeParseArray(value, fallback = []) {
+    if (!value) return fallback;
+    try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : fallback;
+    } catch (e) {
+        return fallback;
+    }
+}
+
+let selectedJudgeId = localStorage.getItem(JUDGE_SELECTED_KEY) || 'normal';
+if (!availableJudges.find((j) => j.id === selectedJudgeId)) {
+    selectedJudgeId = 'normal';
+}
+
+let freeCelebrityTriesLeft = parseInt(localStorage.getItem(FREE_TRIES_KEY) || '3', 10);
+if (Number.isNaN(freeCelebrityTriesLeft) || freeCelebrityTriesLeft < 0) freeCelebrityTriesLeft = 3;
+
+let unlockedJudgeIds = safeParseArray(localStorage.getItem(UNLOCKED_KEY), ['normal']);
+if (!unlockedJudgeIds.includes('normal')) {
+    unlockedJudgeIds.push('normal');
+}
+
+let triedCelebrityJudgeIds = safeParseArray(localStorage.getItem(TRIED_KEY), []);
+let hasAllAccess = localStorage.getItem(ALL_ACCESS_KEY) === 'true';
+
 // ==========================================
 // State Management
 // ==========================================
@@ -37,7 +74,13 @@ function showResult(data) {
     document.getElementById('loserName').innerText = data.wrong || "Unknown";
     document.getElementById('winnerName').innerText = data.right || "The Other One";
     document.getElementById('explanationText').innerText = `"${data.reason}"`;
-    
+
+    const judge = availableJudges.find((j) => j.id === selectedJudgeId) || availableJudges[0];
+    const judgeLabel = document.getElementById('resultJudgeLabel');
+    if (judgeLabel) {
+        judgeLabel.innerText = `${judge.emoji || '🤖'} Verdict by ${judge.name}`;
+    }
+
     // Hide signup prompt if user is logged in
     if (signupPrompt) {
         signupPrompt.style.display = currentUser ? 'none' : 'block';
@@ -64,6 +107,158 @@ function resetApp() {
     document.getElementById('optionA').value = '';
     document.getElementById('optionB').value = '';
     showInput();
+}
+
+function persistJudgeState() {
+    localStorage.setItem(JUDGE_SELECTED_KEY, selectedJudgeId);
+    localStorage.setItem(FREE_TRIES_KEY, String(freeCelebrityTriesLeft));
+    localStorage.setItem(UNLOCKED_KEY, JSON.stringify(unlockedJudgeIds));
+    localStorage.setItem(TRIED_KEY, JSON.stringify(triedCelebrityJudgeIds));
+    localStorage.setItem(ALL_ACCESS_KEY, hasAllAccess ? 'true' : 'false');
+}
+
+function getJudgeAccessInfo(judgeId) {
+    const judge = availableJudges.find((j) => j.id === judgeId) || availableJudges[0];
+    const isNormal = judge.id === 'normal';
+    const unlocked = hasAllAccess || unlockedJudgeIds.includes(judge.id) || isNormal;
+    const alreadyTried = triedCelebrityJudgeIds.includes(judge.id);
+    const freeAvailable = freeCelebrityTriesLeft > 0 && !alreadyTried;
+
+    let label = 'Free';
+    if (hasAllAccess || unlocked) label = 'Unlocked';
+    else if (alreadyTried) label = 'Tried';
+    else if (freeAvailable) label = `Try (${freeCelebrityTriesLeft} left)`;
+    else label = '$0.99';
+
+    return { judge, isNormal, unlocked, alreadyTried, freeAvailable, label };
+}
+
+function ensureJudgeAccess() {
+    const info = getJudgeAccessInfo(selectedJudgeId);
+    if (info.unlocked) {
+        return { allowed: true };
+    }
+
+    if (info.freeAvailable) {
+        freeCelebrityTriesLeft -= 1;
+        triedCelebrityJudgeIds.push(info.judge.id);
+        persistJudgeState();
+        updateJudgeUI();
+        showToast(`${info.judge.name} unlocked for this session. ${freeCelebrityTriesLeft} free tries left.`, 'info');
+        return { allowed: true, usedTrial: true };
+    }
+
+    if (info.alreadyTried) {
+        return { allowed: true };
+    }
+
+    return { allowed: false, reason: 'Unlock this judge or choose a free option.' };
+}
+
+function updateJudgeHint() {
+    const hintEl = document.getElementById('judgeSelectionHint');
+    const info = getJudgeAccessInfo(selectedJudgeId);
+    if (hintEl) {
+        hintEl.innerText = `${info.judge.emoji || '🤖'} ${info.judge.name} selected`;
+    }
+}
+
+function updateFreeTriesLabel() {
+    const label = document.getElementById('freeTriesLabel');
+    if (!label) return;
+
+    if (hasAllAccess) {
+        label.innerText = 'All judges unlocked';
+        label.classList.remove('text-green-400');
+        label.classList.add('text-yellow-300');
+        return;
+    }
+
+    label.innerText = `${Math.max(freeCelebrityTriesLeft, 0)} free tries left`;
+    label.classList.toggle('text-green-400', freeCelebrityTriesLeft > 0);
+    label.classList.toggle('text-red-400', freeCelebrityTriesLeft <= 0);
+}
+
+function renderJudgeChips() {
+    const container = document.getElementById('judgeChips');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    availableJudges.forEach((judge) => {
+        const info = getJudgeAccessInfo(judge.id);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `flex-shrink-0 min-w-[180px] text-left p-3 rounded-xl border transition ${judge.id === selectedJudgeId ? 'border-red-500 bg-red-500/10' : 'border-gray-700 bg-gray-900/60 hover:border-red-500/60'}`;
+        btn.addEventListener('click', () => {
+            selectedJudgeId = judge.id;
+            persistJudgeState();
+            updateJudgeUI();
+        });
+
+        const title = document.createElement('div');
+        title.className = 'flex items-center justify-between gap-2 mb-1';
+        title.innerHTML = `<span class="font-semibold text-white flex items-center gap-2">${judge.emoji || '🤖'} ${judge.name}</span><span class="text-[11px] px-2 py-1 rounded-full ${info.unlocked ? 'bg-green-500/20 text-green-300' : info.freeAvailable ? 'bg-blue-500/20 text-blue-200' : 'bg-gray-700 text-gray-300'}">${info.label}</span>`;
+
+        const desc = document.createElement('p');
+        desc.className = 'text-sm text-gray-400';
+        desc.innerText = judge.description || '';
+
+        const category = document.createElement('div');
+        category.className = 'text-[11px] uppercase tracking-wide text-gray-500 mt-1';
+        category.innerText = judge.category || '';
+
+        btn.appendChild(title);
+        btn.appendChild(desc);
+        btn.appendChild(category);
+        container.appendChild(btn);
+    });
+}
+
+function updateUnlockButtons() {
+    const unlockOneBtn = document.getElementById('unlockSelectedJudge');
+    const unlockAllBtn = document.getElementById('unlockAllJudges');
+    const info = getJudgeAccessInfo(selectedJudgeId);
+
+    if (unlockOneBtn) {
+        unlockOneBtn.disabled = info.unlocked;
+        unlockOneBtn.classList.toggle('opacity-50', info.unlocked);
+        const label = unlockOneBtn.querySelector('span span');
+        if (label) {
+            label.innerText = info.unlocked ? 'Already unlocked' : 'Unlock this judge';
+        }
+    }
+
+    if (unlockAllBtn) {
+        unlockAllBtn.disabled = hasAllAccess;
+        unlockAllBtn.classList.toggle('opacity-50', hasAllAccess);
+    }
+}
+
+function updateJudgeUI() {
+    renderJudgeChips();
+    updateJudgeHint();
+    updateFreeTriesLabel();
+    updateUnlockButtons();
+}
+
+function unlockSelectedJudge() {
+    const info = getJudgeAccessInfo(selectedJudgeId);
+    if (info.unlocked) {
+        showToast('Judge already unlocked', 'info');
+        return;
+    }
+    unlockedJudgeIds.push(info.judge.id);
+    persistJudgeState();
+    updateJudgeUI();
+    showToast(`${info.judge.name} unlocked!`, 'success');
+}
+
+function unlockAllJudges() {
+    hasAllAccess = true;
+    persistJudgeState();
+    updateJudgeUI();
+    showToast('All celebrity judges unlocked! (mock subscription active)', 'success');
 }
 
 // ==========================================
@@ -195,13 +390,19 @@ function logout() {
 
 async function judgeNow(e) {
     if (e) e.preventDefault();
-    
+
     const context = document.getElementById('contextInput').value.trim();
     const optionA = document.getElementById('optionA').value.trim();
     const optionB = document.getElementById('optionB').value.trim();
 
     if (!optionA || !optionB) {
         showToast("Please enter both Option A and Option B!", 'error');
+        return;
+    }
+
+    const accessCheck = ensureJudgeAccess();
+    if (!accessCheck.allowed) {
+        showToast(accessCheck.reason || 'Unlock this judge to continue.', 'error');
         return;
     }
 
@@ -215,11 +416,11 @@ async function judgeNow(e) {
         if (accessToken) {
             headers['Authorization'] = `Bearer ${accessToken}`;
         }
-        
+
         const response = await fetch(`${API_BASE}/api/judge`, {
             method: 'POST',
             headers,
-            body: JSON.stringify({ context, optionA, optionB })
+            body: JSON.stringify({ context, optionA, optionB, judgeId: selectedJudgeId })
         });
 
         if (!response.ok) {
@@ -367,7 +568,20 @@ function showToast(message, type = 'success') {
 document.addEventListener('DOMContentLoaded', () => {
     // Check authentication status
     checkAuth();
-    
+
+    // Render judge selection UI
+    updateJudgeUI();
+
+    const unlockSelectedJudgeBtn = document.getElementById('unlockSelectedJudge');
+    if (unlockSelectedJudgeBtn) {
+        unlockSelectedJudgeBtn.addEventListener('click', unlockSelectedJudge);
+    }
+
+    const unlockAllJudgesBtn = document.getElementById('unlockAllJudges');
+    if (unlockAllJudgesBtn) {
+        unlockAllJudgesBtn.addEventListener('click', unlockAllJudges);
+    }
+
     // Judge form submission
     const judgeForm = document.getElementById('judgeForm');
     if (judgeForm) {
