@@ -14,7 +14,7 @@ const receiptRouter = require('./routes/receipt');
 const loadingMessagesRouter = require('./routes/loadingMessages');
 const checkoutRouter = require('./routes/checkout');
 const purchasesRouter = require('./routes/purchases');
-const webhookRouter = require('./routes/webhook');
+const stripeWebhookRouter = require('./routes/stripeWebhook');
 const pricesRouter = require('./routes/prices');
 const paymentStatusRouter = require('./routes/paymentStatus');
 
@@ -39,7 +39,8 @@ app.use(helmet({
 
 // IMPORTANT: Webhook route must be registered BEFORE express.json() middleware
 // because Stripe webhooks require the raw body for signature verification
-app.use('/api/webhook', webhookRouter);
+app.use('/api/stripe-webhook', stripeWebhookRouter);
+app.use('/api/webhook', stripeWebhookRouter); // legacy alias
 
 app.use(express.json({ limit: '64kb' })); // keep payloads small
 app.use(express.urlencoded({ extended: false }));
@@ -94,7 +95,7 @@ app.get('/api', (req, res) => {
       'POST /api/checkout': 'Create Stripe checkout session (body: { mode: "single"|"subscription", judgeId? })',
       'GET /api/prices': 'Get current prices from Stripe for judge unlocks',
       'GET /api/payments/status': 'Check payment-related configuration and route availability',
-      'POST /api/webhook': 'Stripe webhook endpoint (called by Stripe, not for direct use)',
+      'POST /api/stripe-webhook': 'Stripe webhook endpoint (called by Stripe, not for direct use)',
       'GET /health': 'Health check endpoint'
     },
     features: {

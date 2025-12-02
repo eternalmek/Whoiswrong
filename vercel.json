@@ -32,8 +32,16 @@
       "dest": "/public/checkout/success/index.html"
     },
     {
+      "src": "/success",
+      "dest": "/public/success/index.html"
+    },
+    {
       "src": "/checkout/cancel",
       "dest": "/public/checkout/cancel/index.html"
+    },
+    {
+      "src": "/cancel",
+      "dest": "/public/cancel/index.html"
     },
     {
       "src": "/(.*)",
