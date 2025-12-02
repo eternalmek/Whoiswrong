@@ -87,6 +87,7 @@ app.get('/api', (req, res) => {
       'GET /api/auth/me': 'Get current user info (requires Authorization header)',
       'DELETE /api/auth/me': 'Delete current user account (requires Authorization header)',
       'POST /api/checkout': 'Create Stripe checkout session (body: { mode: "single"|"subscription", judgeId? })',
+      'GET /api/prices': 'Get current prices from Stripe for judge unlocks',
       'POST /api/webhook': 'Stripe webhook endpoint (called by Stripe, not for direct use)',
       'GET /health': 'Health check endpoint'
     },
