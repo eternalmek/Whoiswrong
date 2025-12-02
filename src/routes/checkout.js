@@ -11,6 +11,7 @@
 
 const express = require('express');
 const Stripe = require('stripe');
+const { optionalUser } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -35,15 +36,15 @@ function requireStringEnv(name) {
  * 
  * Request body:
  *   - mode: "single" | "subscription"
- *   - judgeId: string (required for "single" mode)
+ *   - celebrityId: string (required for "single" mode)
  * 
  * Response:
  *   - { url: string } on success (Stripe checkout session URL)
  *   - { error: string } on failure
  */
-router.post('/', async (req, res) => {
+router.post('/', optionalUser, async (req, res) => {
   try {
-    const { mode, judgeId } = req.body;
+    const { mode, celebrityId } = req.body;
 
     // Validate mode first (client input validation)
     if (!mode || (mode !== 'single' && mode !== 'subscription')) {
@@ -52,16 +53,16 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // For single mode, judgeId is required and must not be "normal"
+    // For single mode, celebrityId is required and must not be "normal"
     if (mode === 'single') {
-      if (!judgeId) {
-        return res.status(400).json({ 
-          error: 'judgeId is required for single mode' 
+      if (!celebrityId) {
+        return res.status(400).json({
+          error: 'celebrityId is required for single mode'
         });
       }
-      if (judgeId === 'normal') {
-        return res.status(400).json({ 
-          error: 'The normal judge is free and does not require purchase' 
+      if (celebrityId === 'normal') {
+        return res.status(400).json({
+          error: 'The normal judge is free and does not require purchase'
         });
       }
     }
@@ -78,6 +79,7 @@ router.post('/', async (req, res) => {
       process.env.NEXT_PUBLIC_BASE_URL ||
       'http://localhost:8080';
 
+    const userId = req.auth?.user?.id || null;
     let sessionConfig;
 
     if (mode === 'single') {
@@ -103,13 +105,14 @@ router.post('/', async (req, res) => {
           },
         ],
         metadata: {
-          purchaseType: 'single',
-          judgeId: judgeId, // Store judgeId in metadata for reference
+          userId,
+          mode: 'single',
+          celebrityId,
         },
         // Allow promotion codes for better UX
         allow_promotion_codes: true,
-        success_url: `${baseUrl}/checkout/success?mode=single&judgeId=${encodeURIComponent(judgeId)}&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/checkout/cancel`,
+        success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/cancel`,
       };
     } else {
       // =====================================================================
@@ -134,12 +137,13 @@ router.post('/', async (req, res) => {
           },
         ],
         metadata: {
-          purchaseType: 'subscription',
+          userId,
+          mode: 'subscription',
         },
         // Allow promotion codes for better UX
         allow_promotion_codes: true,
-        success_url: `${baseUrl}/checkout/success?mode=subscription&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/checkout/cancel`,
+        success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/cancel`,
       };
     }
 

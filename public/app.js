@@ -515,6 +515,12 @@ async function handleUnlockSingle(judgeId) {
         return;
     }
 
+    if (!accessToken || !currentUser) {
+        showToast('Please log in to unlock judges.', 'info');
+        showModal('loginModal');
+        return;
+    }
+
     const info = getJudgeAccessInfo(judgeId);
     if (info.unlocked) {
         showToast('This judge is already unlocked', 'info');
@@ -528,10 +534,11 @@ async function handleUnlockSingle(judgeId) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
             },
             body: JSON.stringify({
                 mode: 'single',
-                judgeId: judgeId,
+                celebrityId: judgeId,
             }),
         });
 
@@ -574,6 +581,12 @@ async function handleUnlockAll() {
         return;
     }
 
+    if (!accessToken || !currentUser) {
+        showToast('Please log in to unlock judges.', 'info');
+        showModal('loginModal');
+        return;
+    }
+
     try {
         showToast('Redirecting to checkout...', 'info');
 
@@ -581,6 +594,7 @@ async function handleUnlockAll() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
             },
             body: JSON.stringify({
                 mode: 'subscription',
