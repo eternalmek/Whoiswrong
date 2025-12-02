@@ -25,7 +25,7 @@ const ALL_ACCESS_KEY = 'hasAllJudgeAccess';
 
 // Priority order for judges (most viral/TikTok-friendly first)
 const JUDGE_PRIORITY = [
-    'normal',           // Always first - free
+    'normal',           // First 3 are free by default
     'don_t',            // Political Tycoon
     'tech_billionaire', // Tech Billionaire
     'pop_superstar',    // Global Pop Superstar
@@ -57,6 +57,9 @@ function safeParseArray(value, fallback = []) {
         return fallback;
     }
 }
+
+// Number of judges that are free by default
+const FREE_JUDGES_COUNT = 3;
 
 let selectedJudgeId = localStorage.getItem(JUDGE_SELECTED_KEY) || 'normal';
 if (!availableJudges.find((j) => j.id === selectedJudgeId)) {
@@ -218,11 +221,12 @@ function persistJudgeState() {
 
 function getJudgeAccessInfo(judgeId) {
     const judge = availableJudges.find((j) => j.id === judgeId) || availableJudges[0];
-    const isNormal = judge.id === 'normal';
-    const unlocked = hasAllAccess || unlockedJudgeIds.includes(judge.id) || isNormal;
+    const judgeIndex = availableJudges.findIndex((j) => j.id === judgeId);
+    const isFreeByDefault = judgeIndex >= 0 && judgeIndex < FREE_JUDGES_COUNT;
+    const unlocked = hasAllAccess || unlockedJudgeIds.includes(judge.id) || isFreeByDefault;
 
     let label = 'Free';
-    if (isNormal) label = 'Free';
+    if (isFreeByDefault) label = 'Free';
     else if (hasAllAccess || unlocked) label = '✓ Unlocked';
     else label = '$0.99';
 
@@ -276,8 +280,11 @@ function updateFreeJudgesLabel() {
         return;
     }
 
-    // Show count of unlocked judges
-    const unlockedCount = unlockedJudgeIds.length + 1; // +1 for the normal judge
+    // Show count of unlocked judges (free by default + individually unlocked)
+    const unlockedCount = FREE_JUDGES_COUNT + unlockedJudgeIds.filter(id => {
+        const idx = availableJudges.findIndex(j => j.id === id);
+        return idx >= FREE_JUDGES_COUNT; // Only count those not already free
+    }).length;
     label.textContent = `${unlockedCount} judge${unlockedCount > 1 ? 's' : ''} unlocked`;
     label.classList.remove('text-yellow-300', 'text-red-400');
     label.classList.add('text-green-400');
