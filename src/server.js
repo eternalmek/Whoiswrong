@@ -16,6 +16,7 @@ const checkoutRouter = require('./routes/checkout');
 const purchasesRouter = require('./routes/purchases');
 const webhookRouter = require('./routes/webhook');
 const pricesRouter = require('./routes/prices');
+const paymentStatusRouter = require('./routes/paymentStatus');
 
 const PORT = process.env.PORT || 8080;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
@@ -66,6 +67,7 @@ app.use('/api/loading-messages', loadingMessagesRouter);
 app.use('/api/checkout', checkoutRouter);
 app.use('/api/purchases', purchasesRouter);
 app.use('/api/prices', pricesRouter);
+app.use('/api/payments', paymentStatusRouter);
 
 // Health
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
@@ -91,6 +93,7 @@ app.get('/api', (req, res) => {
       'DELETE /api/auth/me': 'Delete current user account (requires Authorization header)',
       'POST /api/checkout': 'Create Stripe checkout session (body: { mode: "single"|"subscription", judgeId? })',
       'GET /api/prices': 'Get current prices from Stripe for judge unlocks',
+      'GET /api/payments/status': 'Check payment-related configuration and route availability',
       'POST /api/webhook': 'Stripe webhook endpoint (called by Stripe, not for direct use)',
       'GET /health': 'Health check endpoint'
     },
