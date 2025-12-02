@@ -18,14 +18,15 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@vercel/analytics": "file:vendor/vercel-analytics",
     "@supabase/supabase-js": "^2.30.0",
+    "@vercel/analytics": "file:vendor/vercel-analytics",
     "axios": "^1.4.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "express-rate-limit": "^6.7.0",
-    "helmet": "^7.0.0"
+    "helmet": "^7.0.0",
+    "stripe": "^20.0.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"

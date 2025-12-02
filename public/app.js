@@ -242,23 +242,117 @@ function updateJudgeUI() {
     updateUnlockButtons();
 }
 
-function unlockSelectedJudge() {
-    const info = getJudgeAccessInfo(selectedJudgeId);
-    if (info.unlocked) {
-        showToast('Judge already unlocked', 'info');
+/**
+ * Handle unlocking a single judge via Stripe checkout
+ * 
+ * @param {string} judgeId - The ID of the judge to unlock (must not be "normal")
+ * 
+ * This function:
+ * 1. Validates the judgeId is not "normal" (free) and the judge is not already unlocked
+ * 2. Calls /api/checkout with mode: "single" and the judgeId
+ * 3. Redirects to the Stripe checkout session
+ * 
+ * The actual unlock happens on the success page after payment completion.
+ */
+async function handleUnlockSingle(judgeId) {
+    // Validate judgeId
+    if (!judgeId || judgeId === 'normal') {
+        showToast('The Normal AI Judge is free!', 'info');
         return;
     }
-    unlockedJudgeIds.push(info.judge.id);
-    persistJudgeState();
-    updateJudgeUI();
-    showToast(`${info.judge.name} unlocked!`, 'success');
+
+    const info = getJudgeAccessInfo(judgeId);
+    if (info.unlocked) {
+        showToast('This judge is already unlocked', 'info');
+        return;
+    }
+
+    try {
+        showToast('Redirecting to checkout...', 'info');
+
+        const response = await fetch(`${API_BASE}/api/checkout`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                mode: 'single',
+                judgeId: judgeId,
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to create checkout session');
+        }
+
+        if (data.url) {
+            // Redirect to Stripe checkout
+            window.location.href = data.url;
+        } else {
+            throw new Error('No checkout URL returned');
+        }
+    } catch (error) {
+        console.error('Checkout error:', error);
+        showToast(error.message || 'Failed to start checkout. Please try again.', 'error');
+    }
+}
+
+/**
+ * Handle unlocking all judges via Stripe subscription checkout
+ * 
+ * This function:
+ * 1. Checks if user already has all access
+ * 2. Calls /api/checkout with mode: "subscription"
+ * 3. Redirects to the Stripe checkout session
+ * 
+ * The actual unlock happens on the success page after payment completion.
+ */
+async function handleUnlockAll() {
+    if (hasAllAccess) {
+        showToast('You already have access to all judges!', 'info');
+        return;
+    }
+
+    try {
+        showToast('Redirecting to checkout...', 'info');
+
+        const response = await fetch(`${API_BASE}/api/checkout`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                mode: 'subscription',
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to create checkout session');
+        }
+
+        if (data.url) {
+            // Redirect to Stripe checkout
+            window.location.href = data.url;
+        } else {
+            throw new Error('No checkout URL returned');
+        }
+    } catch (error) {
+        console.error('Checkout error:', error);
+        showToast(error.message || 'Failed to start checkout. Please try again.', 'error');
+    }
+}
+
+// Legacy functions for backwards compatibility - now calls Stripe checkout
+function unlockSelectedJudge() {
+    handleUnlockSingle(selectedJudgeId);
 }
 
 function unlockAllJudges() {
-    hasAllAccess = true;
-    persistJudgeState();
-    updateJudgeUI();
-    showToast('All celebrity judges unlocked! (mock subscription active)', 'success');
+    handleUnlockAll();
 }
 
 // ==========================================
