@@ -220,17 +220,13 @@ function getJudgeAccessInfo(judgeId) {
     const judge = availableJudges.find((j) => j.id === judgeId) || availableJudges[0];
     const isNormal = judge.id === 'normal';
     const unlocked = hasAllAccess || unlockedJudgeIds.includes(judge.id) || isNormal;
-    const alreadyTried = triedCelebrityJudgeIds.includes(judge.id);
-    const freeAvailable = freeCelebrityTriesLeft > 0 && !alreadyTried && !isNormal;
 
     let label = 'Free';
     if (isNormal) label = 'Free';
     else if (hasAllAccess || unlocked) label = '✓ Unlocked';
-    else if (alreadyTried) label = 'Tried';
-    else if (freeAvailable) label = `Try Free`;
     else label = '$0.99';
 
-    return { judge, isFreeJudge, unlocked, label };
+    return { judge, unlocked, label };
 }
 
 function showPurchaseModal(judge) {
@@ -258,19 +254,6 @@ function ensureJudgeAccess() {
         return { allowed: true };
     }
 
-    if (info.freeAvailable) {
-        freeCelebrityTriesLeft -= 1;
-        triedCelebrityJudgeIds.push(info.judge.id);
-        persistJudgeState();
-        updateJudgeUI();
-        showToast(`${info.judge.name} unlocked! ${freeCelebrityTriesLeft} free tries left.`, 'success');
-        return { allowed: true, usedTrial: true };
-    }
-
-    if (info.alreadyTried) {
-        return { allowed: true };
-    }
-
     return { allowed: false, reason: 'Unlock this judge or choose a free option.' };
 }
 
@@ -293,11 +276,11 @@ function updateFreeJudgesLabel() {
         return;
     }
 
-    const triesLeft = Math.max(freeCelebrityTriesLeft, 0);
-    label.textContent = triesLeft > 0 ? `${triesLeft} free tries` : 'No free tries';
-    label.classList.remove('text-yellow-300');
-    label.classList.toggle('text-green-400', triesLeft > 0);
-    label.classList.toggle('text-red-400', triesLeft <= 0);
+    // Show count of unlocked judges
+    const unlockedCount = unlockedJudgeIds.length + 1; // +1 for the normal judge
+    label.textContent = `${unlockedCount} judge${unlockedCount > 1 ? 's' : ''} unlocked`;
+    label.classList.remove('text-yellow-300', 'text-red-400');
+    label.classList.add('text-green-400');
 }
 
 function renderJudgeChips() {
@@ -309,7 +292,7 @@ function renderJudgeChips() {
     availableJudges.forEach((judge) => {
         const info = getJudgeAccessInfo(judge.id);
         const isSelected = judge.id === selectedJudgeId;
-        const isLocked = !info.unlocked && !info.freeAvailable && !info.alreadyTried;
+        const isLocked = !info.unlocked;
         
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -351,11 +334,7 @@ function renderJudgeChips() {
         badge.className = `inline-block text-[10px] px-2 py-0.5 rounded-full font-medium mb-1 ${
             info.unlocked 
                 ? 'bg-green-500/20 text-green-300' 
-                : info.freeAvailable 
-                    ? 'bg-blue-500/20 text-blue-300' 
-                    : info.alreadyTried
-                        ? 'bg-gray-600/50 text-gray-300'
-                        : 'bg-gray-700 text-gray-400'
+                : 'bg-gray-700 text-gray-400'
         }`;
         badge.textContent = info.label;
         btn.appendChild(badge);
