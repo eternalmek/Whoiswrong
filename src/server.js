@@ -14,6 +14,7 @@ const receiptRouter = require('./routes/receipt');
 const loadingMessagesRouter = require('./routes/loadingMessages');
 const checkoutRouter = require('./routes/checkout');
 const purchasesRouter = require('./routes/purchases');
+const webhookRouter = require('./routes/webhook');
 
 const PORT = process.env.PORT || 8080;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
