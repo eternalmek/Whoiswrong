@@ -45,10 +45,25 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
       // Verify the webhook signature using the raw body
       event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
     } else {
-      // In development without webhook secret, parse the event directly
-      // WARNING: This is insecure for production - always use webhook secret
-      console.warn('STRIPE_WEBHOOK_SECRET not configured. Skipping signature verification.');
-      event = JSON.parse(req.body.toString());
+      // Webhook secret is required for security
+      // In production, this should never be reached
+      console.error('STRIPE_WEBHOOK_SECRET is not configured. Webhook verification disabled.');
+      console.error('This is a security risk. Configure STRIPE_WEBHOOK_SECRET in production.');
+      
+      // For development only: parse the event directly (no signature verification)
+      // This allows testing with tools like ngrok + Stripe CLI
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(500).json({ 
+          error: 'Webhook secret not configured. Cannot process webhook events.' 
+        });
+      }
+      
+      // Parse the raw body - already in try-catch block
+      const bodyString = req.body.toString();
+      if (!bodyString) {
+        return res.status(400).json({ error: 'Empty request body' });
+      }
+      event = JSON.parse(bodyString);
     }
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);
