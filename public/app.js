@@ -299,15 +299,17 @@ function updateFreeTriesLabel() {
     if (!label) return;
 
     if (hasAllAccess) {
-        label.innerText = 'All judges unlocked';
-        label.classList.remove('text-green-400');
+        label.textContent = '✓ All unlocked';
+        label.classList.remove('text-green-400', 'text-red-400');
         label.classList.add('text-yellow-300');
         return;
     }
 
-    label.innerText = `${Math.max(freeCelebrityTriesLeft, 0)} free tries left`;
-    label.classList.toggle('text-green-400', freeCelebrityTriesLeft > 0);
-    label.classList.toggle('text-red-400', freeCelebrityTriesLeft <= 0);
+    const triesLeft = Math.max(freeCelebrityTriesLeft, 0);
+    label.textContent = triesLeft > 0 ? `${triesLeft} free tries` : 'No free tries';
+    label.classList.remove('text-yellow-300');
+    label.classList.toggle('text-green-400', triesLeft > 0);
+    label.classList.toggle('text-red-400', triesLeft <= 0);
 }
 
 function renderJudgeChips() {
