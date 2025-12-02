@@ -92,6 +92,8 @@ router.post('/', async (req, res) => {
           purchaseType: 'single',
           judgeId: judgeId, // Store judgeId in metadata for reference
         },
+        // Allow promotion codes for better UX
+        allow_promotion_codes: true,
         success_url: `${baseUrl}/checkout/success?mode=single&judgeId=${encodeURIComponent(judgeId)}`,
         cancel_url: `${baseUrl}/checkout/cancel`,
       };
@@ -120,6 +122,8 @@ router.post('/', async (req, res) => {
         metadata: {
           purchaseType: 'subscription',
         },
+        // Allow promotion codes for better UX
+        allow_promotion_codes: true,
         success_url: `${baseUrl}/checkout/success?mode=subscription`,
         cancel_url: `${baseUrl}/checkout/cancel`,
       };
