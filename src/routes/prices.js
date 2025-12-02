@@ -35,7 +35,10 @@ router.get('/', async (req, res) => {
     // Check if Stripe is configured
     if (!stripe) {
       console.error('Stripe is not configured. STRIPE_SECRET_KEY is missing.');
-      return res.status(500).json({ error: 'Payment service not configured' });
+      return res.status(503).json({
+        error: 'Payment service not configured',
+        paymentServiceConfigured: false,
+      });
     }
 
     // Check cache
@@ -89,6 +92,7 @@ router.get('/', async (req, res) => {
     };
 
     const response = {
+      paymentServiceConfigured: true,
       singleJudge: formatPrice(singleJudgePrice),
       allJudges: formatPrice(allJudgesPrice),
     };

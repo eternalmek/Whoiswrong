@@ -80,6 +80,7 @@ let stripePrices = {
     allJudges: { formatted: '$3.99', amount: 3.99, currency: 'AUD', interval: 'month' }
 };
 let pricesLoaded = false;
+let paymentsEnabled = true;
 
 // Loading messages for variety
 const LOADING_MESSAGES = [
@@ -383,17 +384,27 @@ function updateUnlockButtons() {
     const info = getJudgeAccessInfo(selectedJudgeId);
 
     if (unlockOneBtn) {
-        unlockOneBtn.disabled = info.unlocked;
-        unlockOneBtn.classList.toggle('opacity-50', info.unlocked);
-        const label = unlockOneBtn.querySelector('span span');
+        const shouldDisableSingle = info.unlocked || !paymentsEnabled;
+        unlockOneBtn.disabled = shouldDisableSingle;
+        unlockOneBtn.classList.toggle('opacity-50', shouldDisableSingle);
+        const label = unlockOneBtn.querySelector('span');
         if (label) {
-            label.innerText = info.unlocked ? 'Already unlocked' : 'Unlock this judge';
+            if (!paymentsEnabled) {
+                label.innerText = 'Payments unavailable';
+            } else {
+                label.innerText = info.unlocked ? 'Already unlocked' : 'Unlock this judge';
+            }
         }
     }
 
     if (unlockAllBtn) {
-        unlockAllBtn.disabled = hasAllAccess;
-        unlockAllBtn.classList.toggle('opacity-50', hasAllAccess);
+        const shouldDisableAll = hasAllAccess || !paymentsEnabled;
+        unlockAllBtn.disabled = shouldDisableAll;
+        unlockAllBtn.classList.toggle('opacity-50', shouldDisableAll);
+        const label = unlockAllBtn.querySelector('span');
+        if (label && !paymentsEnabled) {
+            label.innerText = 'Payments unavailable';
+        }
     }
 }
 
@@ -415,14 +426,29 @@ function updateJudgeUI() {
 async function fetchStripePrices() {
     try {
         const response = await fetch(`${API_BASE}/api/prices`);
-        
+
+        if (response.status === 503) {
+            paymentsEnabled = false;
+            updateUnlockButtons();
+            showToast('Payments are temporarily unavailable. Please try again later.', 'error');
+            return;
+        }
+
         if (!response.ok) {
             console.warn('Failed to fetch Stripe prices, using defaults');
             return;
         }
 
         const data = await response.json();
-        
+
+        if (data.paymentServiceConfigured === false) {
+            paymentsEnabled = false;
+            updateUnlockButtons();
+            showToast('Payments are temporarily unavailable. Please try again later.', 'error');
+            return;
+        }
+
+        paymentsEnabled = true;
         if (data.singleJudge && data.allJudges) {
             stripePrices = data;
             pricesLoaded = true;
@@ -451,6 +477,8 @@ function formatInterval(interval) {
  * Update price displays in the UI with Stripe prices
  */
 function updatePriceUI() {
+    if (!paymentsEnabled) return;
+
     // Update unlock single button
     const unlockSelectedBtn = document.getElementById('unlockSelectedJudge');
     if (unlockSelectedBtn) {
@@ -508,6 +536,11 @@ async function handleUnlockSingle(judgeId) {
         return;
     }
 
+    if (!paymentsEnabled) {
+        showToast('Payments are temporarily unavailable. Please try again later.', 'error');
+        return;
+    }
+
     const info = getJudgeAccessInfo(judgeId);
     if (info.unlocked) {
         showToast('This judge is already unlocked', 'info');
@@ -559,6 +592,11 @@ async function handleUnlockSingle(judgeId) {
 async function handleUnlockAll() {
     if (hasAllAccess) {
         showToast('You already have access to all judges!', 'info');
+        return;
+    }
+
+    if (!paymentsEnabled) {
+        showToast('Payments are temporarily unavailable. Please try again later.', 'error');
         return;
     }
 
