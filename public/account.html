@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Account - Who Is Wrong?</title>
-    <meta name="description" content="Manage your Who Is Wrong? account">
+    <title>My Account – WhoIsWrong.io</title>
+    <meta name="description" content="Manage your WhoIsWrong.io account">
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#0a0a0a">
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
@@ -31,6 +34,7 @@
             font-family: 'Inter', sans-serif;
             background-color: #0a0a0a;
             color: white;
+            overflow-x: hidden;
         }
         
         h1, h2, h3, .font-display {
@@ -54,7 +58,8 @@
         
         /* Custom scrollbar */
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
+            height: 6px;
         }
         ::-webkit-scrollbar-track {
             background: #1a1a1a; 
@@ -62,6 +67,14 @@
         ::-webkit-scrollbar-thumb {
             background: #444; 
             border-radius: 4px;
+        }
+        
+        /* Mobile touch targets */
+        @media (max-width: 640px) {
+            button, input {
+                min-height: 48px;
+                font-size: 16px !important;
+            }
         }
     </style>
 </head>
@@ -72,18 +85,18 @@
         <div class="max-w-6xl mx-auto px-4 py-3">
             <div class="flex items-center justify-between">
                 <a href="/" class="flex items-center gap-2">
-                    <span class="text-2xl">⚖️</span>
-                    <span class="font-display text-xl font-bold">
+                    <span class="text-xl sm:text-2xl">⚖️</span>
+                    <span class="font-display text-lg sm:text-xl font-bold">
                         Who Is <span class="text-red-500">Wrong?</span>
                     </span>
                 </a>
                 
-                <div class="flex items-center gap-3">
-                    <a href="/" class="text-gray-400 hover:text-white transition text-sm">
-                        <i class="fas fa-gavel mr-1"></i> Judge
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <a href="/" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-1">
+                        <i class="fas fa-gavel"></i> <span class="hidden sm:inline">Judge</span>
                     </a>
-                    <button onclick="logout()" class="text-gray-400 hover:text-red-400 transition text-sm">
-                        <i class="fas fa-sign-out-alt mr-1"></i> Logout
+                    <button onclick="logout()" class="text-gray-400 hover:text-red-400 transition text-sm flex items-center gap-1">
+                        <i class="fas fa-sign-out-alt"></i> <span class="hidden sm:inline">Logout</span>
                     </button>
                 </div>
             </div>
@@ -91,21 +104,21 @@
     </nav>
     
     <!-- Loading State -->
-    <div id="loadingState" class="pt-24 pb-16 px-4 text-center">
+    <div id="loadingState" class="pt-20 sm:pt-24 pb-12 sm:pb-16 px-4 text-center">
         <div class="max-w-md mx-auto">
             <div class="animate-spin text-4xl mb-4">⚖️</div>
-            <p class="text-gray-400">Loading your account...</p>
+            <p class="text-gray-400 text-sm sm:text-base">Loading your account...</p>
         </div>
     </div>
     
     <!-- Login Required State -->
-    <div id="loginRequired" class="hidden pt-24 pb-16 px-4">
+    <div id="loginRequired" class="hidden pt-20 sm:pt-24 pb-12 sm:pb-16 px-4">
         <div class="max-w-md mx-auto text-center">
-            <div class="glass-panel p-8 rounded-2xl">
-                <div class="text-6xl mb-4">🔒</div>
-                <h1 class="font-display text-3xl font-bold mb-4">Login Required</h1>
-                <p class="text-gray-400 mb-6">You need to be logged in to access your account settings.</p>
-                <a href="/" class="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-xl transition">
+            <div class="glass-panel p-6 sm:p-8 rounded-2xl">
+                <div class="text-5xl sm:text-6xl mb-3 sm:mb-4">🔒</div>
+                <h1 class="font-display text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Login Required</h1>
+                <p class="text-gray-400 text-sm sm:text-base mb-4 sm:mb-6">You need to be logged in to access your account.</p>
+                <a href="/" class="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 sm:px-8 rounded-xl transition">
                     Go to Home & Login
                 </a>
             </div>
@@ -113,76 +126,76 @@
     </div>
     
     <!-- Account Content -->
-    <div id="accountContent" class="hidden pt-24 pb-16 px-4 fade-in">
+    <main id="accountContent" class="hidden pt-20 sm:pt-24 pb-12 sm:pb-16 px-4 fade-in">
         <div class="max-w-2xl mx-auto">
             
             <!-- Header -->
-            <div class="text-center mb-8">
-                <h1 class="font-display text-4xl font-bold mb-2">My Account</h1>
-                <p class="text-gray-400">Manage your account and view your history</p>
-            </div>
+            <header class="text-center mb-6 sm:mb-8">
+                <h1 class="font-display text-3xl sm:text-4xl font-bold mb-2">My Account</h1>
+                <p class="text-gray-400 text-sm sm:text-base">Manage your account and view history</p>
+            </header>
             
             <!-- Profile Section -->
-            <div class="glass-panel p-6 rounded-2xl mb-6">
-                <h2 class="font-display text-xl font-bold mb-4 flex items-center gap-2">
+            <section class="glass-panel p-4 sm:p-6 rounded-2xl mb-4 sm:mb-6">
+                <h2 class="font-display text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2">
                     <i class="fas fa-user text-red-500"></i>
                     Profile
                 </h2>
                 
-                <div class="space-y-4">
+                <div class="space-y-3 sm:space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
-                        <div id="userEmailDisplay" class="text-white text-lg">Loading...</div>
+                        <div id="userEmailDisplay" class="text-white text-base sm:text-lg break-all">Loading...</div>
                     </div>
                     
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Account Created</label>
-                        <div id="userCreatedAt" class="text-gray-300">Loading...</div>
+                        <div id="userCreatedAt" class="text-gray-300 text-sm sm:text-base">Loading...</div>
                     </div>
                 </div>
-            </div>
+            </section>
             
             <!-- History Section -->
-            <div class="glass-panel p-6 rounded-2xl mb-6">
-                <h2 class="font-display text-xl font-bold mb-4 flex items-center gap-2">
+            <section class="glass-panel p-4 sm:p-6 rounded-2xl mb-4 sm:mb-6">
+                <h2 class="font-display text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2">
                     <i class="fas fa-history text-red-500"></i>
                     My Verdicts
                 </h2>
                 
-                <div id="historyList" class="space-y-4">
-                    <div class="text-center text-gray-400 py-4">
+                <div id="historyList" class="space-y-3 sm:space-y-4">
+                    <div class="text-center text-gray-400 py-4 text-sm">
                         <i class="fas fa-spinner fa-spin mr-2"></i>
                         Loading your verdicts...
                     </div>
                 </div>
                 
-                <div id="noHistory" class="hidden text-center text-gray-400 py-8">
-                    <div class="text-4xl mb-4">📜</div>
-                    <p>You haven't judged any battles yet!</p>
-                    <a href="/" class="inline-block mt-4 text-red-400 hover:text-red-300">
+                <div id="noHistory" class="hidden text-center text-gray-400 py-6 sm:py-8">
+                    <div class="text-3xl sm:text-4xl mb-3 sm:mb-4">📜</div>
+                    <p class="text-sm sm:text-base">You haven't judged any battles yet!</p>
+                    <a href="/" class="inline-block mt-3 sm:mt-4 text-red-400 hover:text-red-300 text-sm">
                         Start judging now <i class="fas fa-arrow-right ml-1"></i>
                     </a>
                 </div>
-            </div>
+            </section>
             
             <!-- Danger Zone -->
-            <div class="glass-panel p-6 rounded-2xl border border-red-900/50">
-                <h2 class="font-display text-xl font-bold mb-4 flex items-center gap-2 text-red-400">
+            <section class="glass-panel p-4 sm:p-6 rounded-2xl border border-red-900/50">
+                <h2 class="font-display text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2 text-red-400">
                     <i class="fas fa-exclamation-triangle"></i>
                     Danger Zone
                 </h2>
                 
-                <p class="text-gray-400 text-sm mb-4">
-                    Once you delete your account, there is no going back. All your verdicts and data will be permanently removed.
+                <p class="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">
+                    Deleting your account is permanent. All your data will be removed.
                 </p>
                 
-                <button onclick="confirmDeleteAccount()" class="bg-red-900/50 hover:bg-red-800 text-red-400 hover:text-white font-bold py-3 px-6 rounded-xl transition border border-red-700/50">
+                <button onclick="confirmDeleteAccount()" class="bg-red-900/50 hover:bg-red-800 text-red-400 hover:text-white font-bold py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl transition border border-red-700/50 text-sm">
                     <i class="fas fa-trash-alt mr-2"></i>
                     Delete My Account
                 </button>
-            </div>
+            </section>
         </div>
-    </div>
+    </main>
     
     <!-- Delete Confirmation Modal -->
     <div id="deleteModal" class="fixed inset-0 z-50 hidden">
