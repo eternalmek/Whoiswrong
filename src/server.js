@@ -12,6 +12,7 @@ const historyRouter = require('./routes/history');
 const authRouter = require('./routes/auth');
 const receiptRouter = require('./routes/receipt');
 const loadingMessagesRouter = require('./routes/loadingMessages');
+const checkoutRouter = require('./routes/checkout');
 
 const PORT = process.env.PORT || 8080;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
@@ -54,6 +55,7 @@ app.use('/api/judgements', historyRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/receipt', receiptRouter);
 app.use('/api/loading-messages', loadingMessagesRouter);
+app.use('/api/checkout', checkoutRouter);
 
 // Health
 app.get('/health', (req, res) => res.json({ status: 'ok' }));

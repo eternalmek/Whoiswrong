@@ -20,10 +20,11 @@ const signupPrompt = document.getElementById('signupPrompt');
 
 // --- Judge State ---
 const JUDGE_SELECTED_KEY = 'selectedJudgeId';
-const FREE_TRIES_KEY = 'freeCelebrityTriesLeft';
 const UNLOCKED_KEY = 'unlockedJudgeIds';
-const TRIED_KEY = 'triedCelebrityJudgeIds';
 const ALL_ACCESS_KEY = 'hasAllJudgeAccess';
+
+// Free celebrity judges (permanently unlocked for everyone)
+const FREE_CELEBRITY_JUDGES = ['normal', 'taylor_swift', 'donald_trump', 'elon_musk'];
 
 const availableJudges = Array.isArray(window.celebrityJudges) && window.celebrityJudges.length
     ? window.celebrityJudges
@@ -44,15 +45,7 @@ if (!availableJudges.find((j) => j.id === selectedJudgeId)) {
     selectedJudgeId = 'normal';
 }
 
-let freeCelebrityTriesLeft = parseInt(localStorage.getItem(FREE_TRIES_KEY) || '3', 10);
-if (Number.isNaN(freeCelebrityTriesLeft) || freeCelebrityTriesLeft < 0) freeCelebrityTriesLeft = 3;
-
-let unlockedJudgeIds = safeParseArray(localStorage.getItem(UNLOCKED_KEY), ['normal']);
-if (!unlockedJudgeIds.includes('normal')) {
-    unlockedJudgeIds.push('normal');
-}
-
-let triedCelebrityJudgeIds = safeParseArray(localStorage.getItem(TRIED_KEY), []);
+let unlockedJudgeIds = safeParseArray(localStorage.getItem(UNLOCKED_KEY), []);
 let hasAllAccess = localStorage.getItem(ALL_ACCESS_KEY) === 'true';
 
 // ==========================================
@@ -111,44 +104,30 @@ function resetApp() {
 
 function persistJudgeState() {
     localStorage.setItem(JUDGE_SELECTED_KEY, selectedJudgeId);
-    localStorage.setItem(FREE_TRIES_KEY, String(freeCelebrityTriesLeft));
     localStorage.setItem(UNLOCKED_KEY, JSON.stringify(unlockedJudgeIds));
-    localStorage.setItem(TRIED_KEY, JSON.stringify(triedCelebrityJudgeIds));
     localStorage.setItem(ALL_ACCESS_KEY, hasAllAccess ? 'true' : 'false');
 }
 
 function getJudgeAccessInfo(judgeId) {
     const judge = availableJudges.find((j) => j.id === judgeId) || availableJudges[0];
-    const isNormal = judge.id === 'normal';
-    const unlocked = hasAllAccess || unlockedJudgeIds.includes(judge.id) || isNormal;
-    const alreadyTried = triedCelebrityJudgeIds.includes(judge.id);
-    const freeAvailable = freeCelebrityTriesLeft > 0 && !alreadyTried;
+    const isFreeJudge = FREE_CELEBRITY_JUDGES.includes(judge.id);
+    const unlocked = hasAllAccess || unlockedJudgeIds.includes(judge.id) || isFreeJudge;
 
-    let label = 'Free';
-    if (hasAllAccess || unlocked) label = 'Unlocked';
-    else if (alreadyTried) label = 'Tried';
-    else if (freeAvailable) label = `Try (${freeCelebrityTriesLeft} left)`;
-    else label = '$0.99';
+    let label;
+    if (isFreeJudge) {
+        label = 'Free';
+    } else if (hasAllAccess || unlockedJudgeIds.includes(judge.id)) {
+        label = 'Unlocked';
+    } else {
+        label = '$0.99';
+    }
 
-    return { judge, isNormal, unlocked, alreadyTried, freeAvailable, label };
+    return { judge, isFreeJudge, unlocked, label };
 }
 
 function ensureJudgeAccess() {
     const info = getJudgeAccessInfo(selectedJudgeId);
     if (info.unlocked) {
-        return { allowed: true };
-    }
-
-    if (info.freeAvailable) {
-        freeCelebrityTriesLeft -= 1;
-        triedCelebrityJudgeIds.push(info.judge.id);
-        persistJudgeState();
-        updateJudgeUI();
-        showToast(`${info.judge.name} unlocked for this session. ${freeCelebrityTriesLeft} free tries left.`, 'info');
-        return { allowed: true, usedTrial: true };
-    }
-
-    if (info.alreadyTried) {
         return { allowed: true };
     }
 
@@ -163,20 +142,12 @@ function updateJudgeHint() {
     }
 }
 
-function updateFreeTriesLabel() {
+function updateFreeJudgesLabel() {
     const label = document.getElementById('freeTriesLabel');
     if (!label) return;
 
-    if (hasAllAccess) {
-        label.innerText = 'All judges unlocked';
-        label.classList.remove('text-green-400');
-        label.classList.add('text-yellow-300');
-        return;
-    }
-
-    label.innerText = `${Math.max(freeCelebrityTriesLeft, 0)} free tries left`;
-    label.classList.toggle('text-green-400', freeCelebrityTriesLeft > 0);
-    label.classList.toggle('text-red-400', freeCelebrityTriesLeft <= 0);
+    // Keep the label hidden - do not display free judges count
+    label.classList.add('hidden');
 }
 
 function renderJudgeChips() {
@@ -198,7 +169,7 @@ function renderJudgeChips() {
 
         const title = document.createElement('div');
         title.className = 'flex items-center justify-between gap-2 mb-1';
-        title.innerHTML = `<span class="font-semibold text-white flex items-center gap-2">${judge.emoji || '🤖'} ${judge.name}</span><span class="text-[11px] px-2 py-1 rounded-full ${info.unlocked ? 'bg-green-500/20 text-green-300' : info.freeAvailable ? 'bg-blue-500/20 text-blue-200' : 'bg-gray-700 text-gray-300'}">${info.label}</span>`;
+        title.innerHTML = `<span class="font-semibold text-white flex items-center gap-2">${judge.emoji || '🤖'} ${judge.name}</span><span class="text-[11px] px-2 py-1 rounded-full ${info.unlocked ? 'bg-green-500/20 text-green-300' : 'bg-gray-700 text-gray-300'}">${info.label}</span>`;
 
         const desc = document.createElement('p');
         desc.className = 'text-sm text-gray-400';
@@ -238,27 +209,121 @@ function updateUnlockButtons() {
 function updateJudgeUI() {
     renderJudgeChips();
     updateJudgeHint();
-    updateFreeTriesLabel();
+    updateFreeJudgesLabel();
     updateUnlockButtons();
 }
 
-function unlockSelectedJudge() {
-    const info = getJudgeAccessInfo(selectedJudgeId);
-    if (info.unlocked) {
-        showToast('Judge already unlocked', 'info');
+/**
+ * Handle unlocking a single judge via Stripe checkout
+ * 
+ * @param {string} judgeId - The ID of the judge to unlock (must not be "normal")
+ * 
+ * This function:
+ * 1. Validates the judgeId is not "normal" (free) and the judge is not already unlocked
+ * 2. Calls /api/checkout with mode: "single" and the judgeId
+ * 3. Redirects to the Stripe checkout session
+ * 
+ * The actual unlock happens on the success page after payment completion.
+ */
+async function handleUnlockSingle(judgeId) {
+    // Validate judgeId
+    if (!judgeId || judgeId === 'normal') {
+        showToast('The Normal AI Judge is free!', 'info');
         return;
     }
-    unlockedJudgeIds.push(info.judge.id);
-    persistJudgeState();
-    updateJudgeUI();
-    showToast(`${info.judge.name} unlocked!`, 'success');
+
+    const info = getJudgeAccessInfo(judgeId);
+    if (info.unlocked) {
+        showToast('This judge is already unlocked', 'info');
+        return;
+    }
+
+    try {
+        showToast('Redirecting to checkout...', 'info');
+
+        const response = await fetch(`${API_BASE}/api/checkout`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                mode: 'single',
+                judgeId: judgeId,
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to create checkout session');
+        }
+
+        if (data.url) {
+            // Redirect to Stripe checkout
+            window.location.href = data.url;
+        } else {
+            throw new Error('No checkout URL returned');
+        }
+    } catch (error) {
+        console.error('Checkout error:', error);
+        showToast(error.message || 'Failed to start checkout. Please try again.', 'error');
+    }
+}
+
+/**
+ * Handle unlocking all judges via Stripe subscription checkout
+ * 
+ * This function:
+ * 1. Checks if user already has all access
+ * 2. Calls /api/checkout with mode: "subscription"
+ * 3. Redirects to the Stripe checkout session
+ * 
+ * The actual unlock happens on the success page after payment completion.
+ */
+async function handleUnlockAll() {
+    if (hasAllAccess) {
+        showToast('You already have access to all judges!', 'info');
+        return;
+    }
+
+    try {
+        showToast('Redirecting to checkout...', 'info');
+
+        const response = await fetch(`${API_BASE}/api/checkout`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                mode: 'subscription',
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to create checkout session');
+        }
+
+        if (data.url) {
+            // Redirect to Stripe checkout
+            window.location.href = data.url;
+        } else {
+            throw new Error('No checkout URL returned');
+        }
+    } catch (error) {
+        console.error('Checkout error:', error);
+        showToast(error.message || 'Failed to start checkout. Please try again.', 'error');
+    }
+}
+
+// Legacy functions for backwards compatibility - now calls Stripe checkout
+function unlockSelectedJudge() {
+    handleUnlockSingle(selectedJudgeId);
 }
 
 function unlockAllJudges() {
-    hasAllAccess = true;
-    persistJudgeState();
-    updateJudgeUI();
-    showToast('All celebrity judges unlocked! (mock subscription active)', 'success');
+    handleUnlockAll();
 }
 
 // ==========================================
