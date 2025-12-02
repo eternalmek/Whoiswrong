@@ -63,8 +63,17 @@ router.get('/', async (req, res) => {
       const amount = price.unit_amount / 100; // Convert cents to dollars
       const currency = price.currency.toUpperCase();
       
+      // Determine locale based on currency
+      const localeMap = {
+        'aud': 'en-AU',
+        'usd': 'en-US',
+        'eur': 'de-DE',
+        'gbp': 'en-GB',
+      };
+      const locale = localeMap[price.currency.toLowerCase()] || 'en-US';
+      
       // Format with currency symbol
-      const formatted = new Intl.NumberFormat('en-AU', {
+      const formatted = new Intl.NumberFormat(locale, {
         style: 'currency',
         currency: price.currency,
         minimumFractionDigits: 2,

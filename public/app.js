@@ -424,6 +424,17 @@ async function fetchStripePrices() {
 }
 
 /**
+ * Format interval string for display
+ * @param {string} interval - Stripe interval (e.g., 'month', 'year')
+ * @returns {string} Formatted interval string (e.g., '/mo', '/yr')
+ */
+function formatInterval(interval) {
+    if (interval === 'month') return '/mo';
+    if (interval === 'year') return '/yr';
+    return '';
+}
+
+/**
  * Update price displays in the UI with Stripe prices
  */
 function updatePriceUI() {
@@ -441,8 +452,7 @@ function updatePriceUI() {
     if (unlockAllBtn) {
         const priceSpan = unlockAllBtn.querySelector('span');
         if (priceSpan) {
-            const interval = stripePrices.allJudges.interval === 'month' ? '/mo' : 
-                            stripePrices.allJudges.interval === 'year' ? '/yr' : '';
+            const interval = formatInterval(stripePrices.allJudges.interval);
             priceSpan.textContent = `All ${stripePrices.allJudges.formatted}${interval}`;
         }
     }
@@ -460,8 +470,7 @@ function updatePriceUI() {
     if (purchaseAllBtn) {
         const span = purchaseAllBtn.querySelector('span');
         if (span) {
-            const interval = stripePrices.allJudges.interval === 'month' ? '/mo' : 
-                            stripePrices.allJudges.interval === 'year' ? '/yr' : '';
+            const interval = formatInterval(stripePrices.allJudges.interval);
             span.textContent = `Unlock ALL Judges – ${stripePrices.allJudges.formatted}${interval}`;
         }
     }
