@@ -24,7 +24,7 @@ const UNLOCKED_KEY = 'unlockedJudgeIds';
 const ALL_ACCESS_KEY = 'hasAllJudgeAccess';
 
 // Free celebrity judges (permanently unlocked for everyone)
-const FREE_CELEBRITY_JUDGES = ['normal', 'don_t', 'tech_billionaire'];
+const FREE_CELEBRITY_JUDGES = ['normal', 'taylor_swift', 'donald_trump', 'elon_musk'];
 
 const availableJudges = Array.isArray(window.celebrityJudges) && window.celebrityJudges.length
     ? window.celebrityJudges
