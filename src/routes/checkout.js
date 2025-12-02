@@ -69,7 +69,7 @@ router.post('/', async (req, res) => {
     // Validate Stripe is configured (server configuration check)
     if (!stripe) {
       console.error('Stripe is not configured. STRIPE_SECRET_KEY is missing.');
-      return res.status(500).json({ error: 'Payment service not configured' });
+      return res.status(503).json({ error: 'Payment service not configured' });
     }
 
     // Get base URL from environment (defaults to frontend origin)
