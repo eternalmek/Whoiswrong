@@ -287,31 +287,6 @@ function updateJudgeHint() {
     }
 }
 
-function updateFreeJudgesLabel() {
-    const label = document.getElementById('freeTriesLabel');
-    if (!label) return;
-
-    // Check if user has all access (local or server)
-    if (hasAllAccess || serverHasAllAccess) {
-        label.textContent = '✓ All unlocked';
-        label.classList.remove('text-green-400', 'text-red-400');
-        label.classList.add('text-yellow-300');
-        return;
-    }
-
-    // Combine local and server unlocked judges
-    const allUnlockedIds = [...new Set([...unlockedJudgeIds, ...serverUnlockedJudges])];
-    
-    // Show count of unlocked judges (free by default + individually unlocked)
-    const unlockedCount = FREE_JUDGES_COUNT + allUnlockedIds.filter(id => {
-        const idx = availableJudges.findIndex(j => j.id === id);
-        return idx >= FREE_JUDGES_COUNT; // Only count those not already free
-    }).length;
-    label.textContent = `${unlockedCount} judge${unlockedCount > 1 ? 's' : ''} unlocked`;
-    label.classList.remove('text-yellow-300', 'text-red-400');
-    label.classList.add('text-green-400');
-}
-
 function renderJudgeChips() {
     const container = document.getElementById('judgeChips');
     if (!container) return;
@@ -411,7 +386,6 @@ function updateUnlockButtons() {
 function updateJudgeUI() {
     renderJudgeChips();
     updateJudgeHint();
-    updateFreeJudgesLabel();
     updateUnlockButtons();
     updatePriceUI();
 }
