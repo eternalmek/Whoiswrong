@@ -13,6 +13,7 @@ const authRouter = require('./routes/auth');
 const receiptRouter = require('./routes/receipt');
 const loadingMessagesRouter = require('./routes/loadingMessages');
 const checkoutRouter = require('./routes/checkout');
+const webhookRouter = require('./routes/webhook');
 
 const PORT = process.env.PORT || 8080;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
@@ -28,10 +29,15 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://va.vercel-scripts.com", "https://vitals.vercel-insights.com"],
+      connectSrc: ["'self'", "https://va.vercel-scripts.com", "https://vitals.vercel-insights.com", "https://js.stripe.com"],
     },
   },
 }));
+
+// IMPORTANT: Webhook route must be registered BEFORE express.json() middleware
+// because Stripe webhooks require the raw body for signature verification
+app.use('/api/webhook', webhookRouter);
+
 app.use(express.json({ limit: '64kb' })); // keep payloads small
 app.use(express.urlencoded({ extended: false }));
 
@@ -79,13 +85,16 @@ app.get('/api', (req, res) => {
       'POST /api/auth/login': 'Log in to existing account (body: { email, password })',
       'GET /api/auth/me': 'Get current user info (requires Authorization header)',
       'DELETE /api/auth/me': 'Delete current user account (requires Authorization header)',
+      'POST /api/checkout': 'Create Stripe checkout session (body: { mode: "single"|"subscription", judgeId? })',
+      'POST /api/webhook': 'Stripe webhook endpoint (called by Stripe, not for direct use)',
       'GET /health': 'Health check endpoint'
     },
     features: {
       savageMode: 'AI roasts the loser with brutal, funny responses',
       noNeutrality: 'AI NEVER says "it depends" — always picks a side',
       receipts: 'Generate shareable receipt images of verdicts',
-      loadingMessages: 'Funny messages to show while waiting for verdict'
+      loadingMessages: 'Funny messages to show while waiting for verdict',
+      payments: 'Stripe payment integration for unlocking premium judges'
     },
     status: 'ok'
   });
