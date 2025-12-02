@@ -61,6 +61,10 @@ function safeParseArray(value, fallback = []) {
 // Number of judges that are free by default
 const FREE_JUDGES_COUNT = 3;
 
+// Server-synced purchases for logged-in users
+let serverUnlockedJudges = [];
+let serverHasAllAccess = false;
+
 let selectedJudgeId = localStorage.getItem(JUDGE_SELECTED_KEY) || 'normal';
 if (!availableJudges.find((j) => j.id === selectedJudgeId)) {
     selectedJudgeId = 'normal';
@@ -231,12 +235,17 @@ function getJudgeAccessInfo(judgeId) {
     const judge = availableJudges.find((j) => j.id === judgeId) || availableJudges[0];
     const judgeIndex = availableJudges.findIndex((j) => j.id === judgeId);
     const isFreeByDefault = judgeIndex >= 0 && judgeIndex < FREE_JUDGES_COUNT;
-    const unlocked = hasAllAccess || unlockedJudgeIds.includes(judge.id) || isFreeByDefault;
+    
+    // Check both local storage and server-synced purchases
+    // Server takes precedence for logged-in users
+    const localUnlocked = hasAllAccess || unlockedJudgeIds.includes(judge.id);
+    const serverUnlocked = serverHasAllAccess || serverUnlockedJudges.includes(judge.id);
+    const unlocked = isFreeByDefault || localUnlocked || serverUnlocked;
 
     let label = 'Free';
     if (isFreeByDefault) label = 'Free';
-    else if (hasAllAccess || unlocked) label = '✓ Unlocked';
-    else label = stripePrices.singleJudge.formatted;
+    else if (unlocked) label = '✓ Unlocked';
+    else label = '$0.99';
 
     return { judge, unlocked, label };
 }
@@ -281,15 +290,19 @@ function updateFreeJudgesLabel() {
     const label = document.getElementById('freeTriesLabel');
     if (!label) return;
 
-    if (hasAllAccess) {
+    // Check if user has all access (local or server)
+    if (hasAllAccess || serverHasAllAccess) {
         label.textContent = '✓ All unlocked';
         label.classList.remove('text-green-400', 'text-red-400');
         label.classList.add('text-yellow-300');
         return;
     }
 
+    // Combine local and server unlocked judges
+    const allUnlockedIds = [...new Set([...unlockedJudgeIds, ...serverUnlockedJudges])];
+    
     // Show count of unlocked judges (free by default + individually unlocked)
-    const unlockedCount = FREE_JUDGES_COUNT + unlockedJudgeIds.filter(id => {
+    const unlockedCount = FREE_JUDGES_COUNT + allUnlockedIds.filter(id => {
         const idx = availableJudges.findIndex(j => j.id === id);
         return idx >= FREE_JUDGES_COUNT; // Only count those not already free
     }).length;
@@ -610,6 +623,100 @@ function updateAuthUI() {
     }
 }
 
+/**
+ * Fetch user's purchases from the server
+ * Updates serverUnlockedJudges and serverHasAllAccess variables
+ */
+async function fetchUserPurchases() {
+    if (!accessToken) {
+        serverUnlockedJudges = [];
+        serverHasAllAccess = false;
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/api/purchases`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            serverUnlockedJudges = data.unlockedJudges || [];
+            serverHasAllAccess = data.hasAllAccess || false;
+            
+            // Sync server purchases to localStorage for offline access
+            if (serverUnlockedJudges.length > 0 || serverHasAllAccess) {
+                // Merge server unlocked judges with local
+                const mergedUnlocked = [...new Set([...unlockedJudgeIds, ...serverUnlockedJudges])];
+                unlockedJudgeIds = mergedUnlocked;
+                localStorage.setItem(UNLOCKED_KEY, JSON.stringify(mergedUnlocked));
+                
+                if (serverHasAllAccess) {
+                    hasAllAccess = true;
+                    localStorage.setItem(ALL_ACCESS_KEY, 'true');
+                }
+            }
+            
+            // Update the UI to reflect server purchases
+            updateJudgeUI();
+        } else {
+            console.warn('Failed to fetch purchases');
+            serverUnlockedJudges = [];
+            serverHasAllAccess = false;
+        }
+    } catch (error) {
+        console.error('Fetch purchases failed:', error);
+        serverUnlockedJudges = [];
+        serverHasAllAccess = false;
+    }
+}
+
+// Pending purchase expiry time (24 hours in milliseconds)
+const PENDING_PURCHASE_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Save any pending purchases that were made before account creation
+ */
+async function savePendingPurchase() {
+    const PENDING_PURCHASE_KEY = 'pendingPurchase';
+    const pendingPurchaseStr = localStorage.getItem(PENDING_PURCHASE_KEY);
+    
+    if (!pendingPurchaseStr || !accessToken) return;
+    
+    try {
+        const pendingPurchase = JSON.parse(pendingPurchaseStr);
+        
+        // Only save if purchase is recent (within 24 hours)
+        const ageMs = Date.now() - (pendingPurchase.timestamp || 0);
+        if (ageMs > PENDING_PURCHASE_EXPIRY_MS) {
+            localStorage.removeItem(PENDING_PURCHASE_KEY);
+            return;
+        }
+        
+        const response = await fetch(`${API_BASE}/api/purchases/save`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({
+                purchaseType: pendingPurchase.purchaseType,
+                judgeId: pendingPurchase.judgeId,
+                stripeSessionId: pendingPurchase.stripeSessionId
+            })
+        });
+        
+        if (response.ok) {
+            localStorage.removeItem(PENDING_PURCHASE_KEY);
+            console.log('Pending purchase saved successfully');
+        }
+    } catch (error) {
+        console.error('Failed to save pending purchase:', error);
+    }
+}
+
 async function checkAuth() {
     if (!accessToken) {
         updateAuthUI();
@@ -626,11 +733,19 @@ async function checkAuth() {
         if (response.ok) {
             const data = await response.json();
             currentUser = data.user;
+            
+            // Save any pending purchases from before account creation
+            await savePendingPurchase();
+            
+            // Fetch user's purchases from the server
+            await fetchUserPurchases();
         } else {
             // Token invalid/expired
             accessToken = null;
             localStorage.removeItem('accessToken');
             currentUser = null;
+            serverUnlockedJudges = [];
+            serverHasAllAccess = false;
         }
     } catch (error) {
         console.error('Auth check failed:', error);
@@ -660,6 +775,11 @@ async function signup(email, password) {
             accessToken = data.access_token;
             localStorage.setItem('accessToken', accessToken);
             currentUser = data.user;
+            
+            // Save any pending purchases and fetch user purchases
+            await savePendingPurchase();
+            await fetchUserPurchases();
+            
             updateAuthUI();
             hideModal('signupModal');
             showToast('Account created successfully!', 'success');
@@ -694,6 +814,11 @@ async function login(email, password) {
         accessToken = data.access_token;
         localStorage.setItem('accessToken', accessToken);
         currentUser = data.user;
+        
+        // Save any pending purchases and fetch user purchases
+        await savePendingPurchase();
+        await fetchUserPurchases();
+        
         updateAuthUI();
         hideModal('loginModal');
         showToast('Welcome back!', 'success');
@@ -707,8 +832,11 @@ async function login(email, password) {
 function logout() {
     accessToken = null;
     currentUser = null;
+    serverUnlockedJudges = [];
+    serverHasAllAccess = false;
     localStorage.removeItem('accessToken');
     updateAuthUI();
+    updateJudgeUI(); // Refresh judge UI to show only local/free access
     showToast('Logged out successfully', 'info');
 }
 
