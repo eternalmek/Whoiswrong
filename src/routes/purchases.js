@@ -107,7 +107,7 @@ router.post('/save', requireUser, async (req, res, next) => {
         .eq('user_id', userId)
         .eq('judge_id', judgeId)
         .eq('purchase_type', 'single')
-        .single();
+        .maybeSingle();
 
       if (existing) {
         return res.json({ 
@@ -123,7 +123,7 @@ router.post('/save', requireUser, async (req, res, next) => {
         .eq('user_id', userId)
         .eq('purchase_type', 'subscription')
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
       if (existing) {
         return res.json({ 

@@ -580,6 +580,9 @@ async function fetchUserPurchases() {
     }
 }
 
+// Pending purchase expiry time (24 hours in milliseconds)
+const PENDING_PURCHASE_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Save any pending purchases that were made before account creation
  */
@@ -594,7 +597,7 @@ async function savePendingPurchase() {
         
         // Only save if purchase is recent (within 24 hours)
         const ageMs = Date.now() - (pendingPurchase.timestamp || 0);
-        if (ageMs > 24 * 60 * 60 * 1000) {
+        if (ageMs > PENDING_PURCHASE_EXPIRY_MS) {
             localStorage.removeItem(PENDING_PURCHASE_KEY);
             return;
         }
