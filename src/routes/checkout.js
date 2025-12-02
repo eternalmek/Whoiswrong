@@ -19,6 +19,17 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
 
+// Helper to validate required env vars are present and strings
+function requireStringEnv(name) {
+  const value = process.env[name];
+
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    return { value: null, error: `${name} is not configured or is empty` };
+  }
+
+  return { value: value.trim(), error: null };
+}
+
 /**
  * POST /api/checkout
  * 
@@ -74,12 +85,12 @@ router.post('/', async (req, res) => {
       // SINGLE JUDGE UNLOCK: One-time payment
       // Uses STRIPE_PRICE_SINGLE_JUDGE from environment ($0.99 AUD one-time)
       // =====================================================================
-      const priceId = process.env.STRIPE_PRICE_SINGLE_JUDGE;
-      
-      if (!priceId) {
-        console.error('STRIPE_PRICE_SINGLE_JUDGE environment variable is not set');
-        return res.status(500).json({ 
-          error: 'Single judge price not configured' 
+      const { value: priceId, error: priceError } = requireStringEnv('STRIPE_PRICE_SINGLE_JUDGE');
+
+      if (priceError) {
+        console.error(priceError);
+        return res.status(500).json({
+          error: 'Single judge price not configured'
         });
       }
 
@@ -105,12 +116,12 @@ router.post('/', async (req, res) => {
       // ALL JUDGES SUBSCRIPTION: Monthly recurring payment
       // Uses STRIPE_PRICE_ALL_JUDGES from environment ($3.99 AUD/month)
       // =====================================================================
-      const priceId = process.env.STRIPE_PRICE_ALL_JUDGES;
-      
-      if (!priceId) {
-        console.error('STRIPE_PRICE_ALL_JUDGES environment variable is not set');
-        return res.status(500).json({ 
-          error: 'All judges subscription price not configured' 
+      const { value: priceId, error: priceError } = requireStringEnv('STRIPE_PRICE_ALL_JUDGES');
+
+      if (priceError) {
+        console.error(priceError);
+        return res.status(500).json({
+          error: 'All judges subscription price not configured'
         });
       }
 

@@ -15,6 +15,7 @@ const loadingMessagesRouter = require('./routes/loadingMessages');
 const checkoutRouter = require('./routes/checkout');
 const purchasesRouter = require('./routes/purchases');
 const webhookRouter = require('./routes/webhook');
+const pricesRouter = require('./routes/prices');
 
 const PORT = process.env.PORT || 8080;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
@@ -64,6 +65,7 @@ app.use('/api/receipt', receiptRouter);
 app.use('/api/loading-messages', loadingMessagesRouter);
 app.use('/api/checkout', checkoutRouter);
 app.use('/api/purchases', purchasesRouter);
+app.use('/api/prices', pricesRouter);
 
 // Health
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
