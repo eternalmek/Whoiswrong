@@ -20,10 +20,11 @@ const signupPrompt = document.getElementById('signupPrompt');
 
 // --- Judge State ---
 const JUDGE_SELECTED_KEY = 'selectedJudgeId';
-const FREE_TRIES_KEY = 'freeCelebrityTriesLeft';
 const UNLOCKED_KEY = 'unlockedJudgeIds';
-const TRIED_KEY = 'triedCelebrityJudgeIds';
 const ALL_ACCESS_KEY = 'hasAllJudgeAccess';
+
+// Free celebrity judges (permanently unlocked for everyone)
+const FREE_CELEBRITY_JUDGES = ['normal', 'don_t', 'tech_billionaire'];
 
 const availableJudges = Array.isArray(window.celebrityJudges) && window.celebrityJudges.length
     ? window.celebrityJudges
@@ -44,15 +45,7 @@ if (!availableJudges.find((j) => j.id === selectedJudgeId)) {
     selectedJudgeId = 'normal';
 }
 
-let freeCelebrityTriesLeft = parseInt(localStorage.getItem(FREE_TRIES_KEY) || '3', 10);
-if (Number.isNaN(freeCelebrityTriesLeft) || freeCelebrityTriesLeft < 0) freeCelebrityTriesLeft = 3;
-
-let unlockedJudgeIds = safeParseArray(localStorage.getItem(UNLOCKED_KEY), ['normal']);
-if (!unlockedJudgeIds.includes('normal')) {
-    unlockedJudgeIds.push('normal');
-}
-
-let triedCelebrityJudgeIds = safeParseArray(localStorage.getItem(TRIED_KEY), []);
+let unlockedJudgeIds = safeParseArray(localStorage.getItem(UNLOCKED_KEY), []);
 let hasAllAccess = localStorage.getItem(ALL_ACCESS_KEY) === 'true';
 
 // ==========================================
@@ -111,44 +104,30 @@ function resetApp() {
 
 function persistJudgeState() {
     localStorage.setItem(JUDGE_SELECTED_KEY, selectedJudgeId);
-    localStorage.setItem(FREE_TRIES_KEY, String(freeCelebrityTriesLeft));
     localStorage.setItem(UNLOCKED_KEY, JSON.stringify(unlockedJudgeIds));
-    localStorage.setItem(TRIED_KEY, JSON.stringify(triedCelebrityJudgeIds));
     localStorage.setItem(ALL_ACCESS_KEY, hasAllAccess ? 'true' : 'false');
 }
 
 function getJudgeAccessInfo(judgeId) {
     const judge = availableJudges.find((j) => j.id === judgeId) || availableJudges[0];
-    const isNormal = judge.id === 'normal';
-    const unlocked = hasAllAccess || unlockedJudgeIds.includes(judge.id) || isNormal;
-    const alreadyTried = triedCelebrityJudgeIds.includes(judge.id);
-    const freeAvailable = freeCelebrityTriesLeft > 0 && !alreadyTried;
+    const isFreeJudge = FREE_CELEBRITY_JUDGES.includes(judge.id);
+    const unlocked = hasAllAccess || unlockedJudgeIds.includes(judge.id) || isFreeJudge;
 
-    let label = 'Free';
-    if (hasAllAccess || unlocked) label = 'Unlocked';
-    else if (alreadyTried) label = 'Tried';
-    else if (freeAvailable) label = `Try (${freeCelebrityTriesLeft} left)`;
-    else label = '$0.99';
+    let label;
+    if (isFreeJudge) {
+        label = 'Free';
+    } else if (hasAllAccess || unlockedJudgeIds.includes(judge.id)) {
+        label = 'Unlocked';
+    } else {
+        label = '$0.99';
+    }
 
-    return { judge, isNormal, unlocked, alreadyTried, freeAvailable, label };
+    return { judge, isFreeJudge, unlocked, label };
 }
 
 function ensureJudgeAccess() {
     const info = getJudgeAccessInfo(selectedJudgeId);
     if (info.unlocked) {
-        return { allowed: true };
-    }
-
-    if (info.freeAvailable) {
-        freeCelebrityTriesLeft -= 1;
-        triedCelebrityJudgeIds.push(info.judge.id);
-        persistJudgeState();
-        updateJudgeUI();
-        showToast(`${info.judge.name} unlocked for this session. ${freeCelebrityTriesLeft} free tries left.`, 'info');
-        return { allowed: true, usedTrial: true };
-    }
-
-    if (info.alreadyTried) {
         return { allowed: true };
     }
 
@@ -163,7 +142,7 @@ function updateJudgeHint() {
     }
 }
 
-function updateFreeTriesLabel() {
+function updateFreeJudgesLabel() {
     const label = document.getElementById('freeTriesLabel');
     if (!label) return;
 
@@ -174,9 +153,10 @@ function updateFreeTriesLabel() {
         return;
     }
 
-    label.innerText = `${Math.max(freeCelebrityTriesLeft, 0)} free tries left`;
-    label.classList.toggle('text-green-400', freeCelebrityTriesLeft > 0);
-    label.classList.toggle('text-red-400', freeCelebrityTriesLeft <= 0);
+    const freeCount = FREE_CELEBRITY_JUDGES.length;
+    label.innerText = `${freeCount} judges free`;
+    label.classList.add('text-green-400');
+    label.classList.remove('text-red-400', 'text-yellow-300');
 }
 
 function renderJudgeChips() {
@@ -198,7 +178,7 @@ function renderJudgeChips() {
 
         const title = document.createElement('div');
         title.className = 'flex items-center justify-between gap-2 mb-1';
-        title.innerHTML = `<span class="font-semibold text-white flex items-center gap-2">${judge.emoji || '🤖'} ${judge.name}</span><span class="text-[11px] px-2 py-1 rounded-full ${info.unlocked ? 'bg-green-500/20 text-green-300' : info.freeAvailable ? 'bg-blue-500/20 text-blue-200' : 'bg-gray-700 text-gray-300'}">${info.label}</span>`;
+        title.innerHTML = `<span class="font-semibold text-white flex items-center gap-2">${judge.emoji || '🤖'} ${judge.name}</span><span class="text-[11px] px-2 py-1 rounded-full ${info.unlocked ? 'bg-green-500/20 text-green-300' : 'bg-gray-700 text-gray-300'}">${info.label}</span>`;
 
         const desc = document.createElement('p');
         desc.className = 'text-sm text-gray-400';
@@ -238,7 +218,7 @@ function updateUnlockButtons() {
 function updateJudgeUI() {
     renderJudgeChips();
     updateJudgeHint();
-    updateFreeTriesLabel();
+    updateFreeJudgesLabel();
     updateUnlockButtons();
 }
 
