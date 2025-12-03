@@ -1,4 +1,4 @@
-const { verifyAuthToken } = require('../supabaseClient');
+const { verifyAuthToken, supabaseConfigIssues } = require('../supabaseClient');
 
 function extractBearerToken(req) {
   const authHeader = req.headers?.authorization || '';
@@ -8,6 +8,13 @@ function extractBearerToken(req) {
 
 async function requireUser(req, res, next) {
   try {
+    if (supabaseConfigIssues?.length) {
+      return res.status(503).json({
+        error: 'Supabase auth not configured on server.',
+        details: supabaseConfigIssues,
+      });
+    }
+
     const token = extractBearerToken(req);
     if (!token) {
       return res.status(401).json({ error: 'Authorization header missing or malformed' });
@@ -27,6 +34,8 @@ async function requireUser(req, res, next) {
 
 async function optionalUser(req, res, next) {
   try {
+    if (supabaseConfigIssues?.length) return next();
+
     const token = extractBearerToken(req);
     if (!token) return next();
 
