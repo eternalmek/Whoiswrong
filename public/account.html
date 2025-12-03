@@ -367,7 +367,9 @@
 
     <script>
         const API_BASE = window.location.origin;
-        let accessToken = localStorage.getItem('accessToken') || null;
+        // Get token from localStorage and validate it's not a stringified null/undefined
+        const storedToken = localStorage.getItem('accessToken');
+        let accessToken = (storedToken && storedToken !== 'null' && storedToken !== 'undefined') ? storedToken : null;
         let currentUser = null;
         let profileData = null;
         let statsData = null;
@@ -404,6 +406,9 @@
                 });
 
                 if (!response.ok) {
+                    // Clear invalid token
+                    localStorage.removeItem('accessToken');
+                    accessToken = null;
                     showLoginRequired();
                     return;
                 }
@@ -422,6 +427,9 @@
                 loadFriends();
             } catch (error) {
                 console.error('Init error:', error);
+                // Clear potentially invalid token on error
+                localStorage.removeItem('accessToken');
+                accessToken = null;
                 showLoginRequired();
             }
         }

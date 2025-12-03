@@ -7,7 +7,9 @@ const API_BASE = window.location.origin;
 
 // --- Auth State ---
 let currentUser = null;
-let accessToken = localStorage.getItem('accessToken') || null;
+// Get token from localStorage and validate it's not a stringified null/undefined
+const storedToken = localStorage.getItem('accessToken');
+let accessToken = (storedToken && storedToken !== 'null' && storedToken !== 'undefined') ? storedToken : null;
 const voterFingerprintKey = 'voterFingerprint';
 const voterFingerprint = (() => {
     const existing = localStorage.getItem(voterFingerprintKey);
@@ -992,6 +994,10 @@ async function login(email, password) {
         
         if (!response.ok) {
             throw new Error(data.error || 'Login failed');
+        }
+        
+        if (!data.access_token) {
+            throw new Error('No access token received. Please try again.');
         }
         
         accessToken = data.access_token;
