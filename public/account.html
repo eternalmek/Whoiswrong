@@ -117,6 +117,21 @@
         </div>
     </div>
 
+    <div id="accountError" class="hidden pt-20 sm:pt-24 pb-12 sm:pb-16 px-4">
+        <div class="max-w-md mx-auto text-center">
+            <div class="glass-panel p-6 sm:p-8 rounded-2xl">
+                <div class="text-5xl sm:text-6xl mb-3 sm:mb-4">⚠️</div>
+                <h1 class="font-display text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Account Unavailable</h1>
+                <p id="accountErrorMessage" class="text-gray-400 text-sm sm:text-base mb-4 sm:mb-6">
+                    Something went wrong while loading your account. Please try again.
+                </p>
+                <button onclick="init()" class="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition">
+                    Retry
+                </button>
+            </div>
+        </div>
+    </div>
+
     <main id="accountContent" class="hidden pt-20 sm:pt-24 pb-16 px-4 fade-in">
         <div class="max-w-5xl mx-auto">
             <header class="text-center mb-8 sm:mb-10">
@@ -384,6 +399,8 @@
         const loadingState = document.getElementById('loadingState');
         const loginRequired = document.getElementById('loginRequired');
         const accountContent = document.getElementById('accountContent');
+        const accountError = document.getElementById('accountError');
+        const accountErrorMessage = document.getElementById('accountErrorMessage');
 
         function persistSessionTokens({ access_token, refresh_token }) {
             if (access_token) {
@@ -462,8 +479,7 @@
                         const refreshed = await refreshSession();
                         if (refreshed) return init(true);
                     }
-                    clearSessionTokens();
-                    showLoginRequired();
+                    handleAccountError(response);
                     return;
                 }
 
@@ -481,8 +497,7 @@
                 loadFriends();
             } catch (error) {
                 console.error('Init error:', error);
-                clearSessionTokens();
-                showLoginRequired();
+                showAccountError('We could not load your account. Please try again in a moment.');
             }
         }
 
@@ -490,12 +505,42 @@
             loadingState.classList.add('hidden');
             loginRequired.classList.remove('hidden');
             accountContent.classList.add('hidden');
+            accountError.classList.add('hidden');
         }
 
         function showAccountContent() {
             loadingState.classList.add('hidden');
             loginRequired.classList.add('hidden');
             accountContent.classList.remove('hidden');
+            accountError.classList.add('hidden');
+        }
+
+        function showAccountError(message) {
+            loadingState.classList.add('hidden');
+            loginRequired.classList.add('hidden');
+            accountContent.classList.add('hidden');
+            accountError.classList.remove('hidden');
+            accountErrorMessage.textContent = message || 'Something went wrong while loading your account.';
+        }
+
+        async function handleAccountError(response) {
+            if (response.status === 401) {
+                clearSessionTokens();
+                showLoginRequired();
+                return;
+            }
+
+            let message = 'Something went wrong while loading your account. Please try again later.';
+            try {
+                const data = await response.json();
+                if (data?.error) {
+                    message = data.error;
+                }
+            } catch (_) {
+                // Ignore JSON parse errors and fall back to default message
+            }
+
+            showAccountError(message);
         }
 
         function populateOverview(data) {
