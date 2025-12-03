@@ -260,18 +260,6 @@ function showResult(data) {
     // Reset button state
     resetSubmitButton();
 
-    // Keep the verdict in view on mobile
-    setTimeout(() => {
-        scrollToResultSection();
-    }, 100);
-}
-
-function scrollToResultSection() {
-    if (!resultSection) return;
-
-    // Scroll directly to the top of the verdict container
-    const yOffset = resultSection.getBoundingClientRect().top + window.scrollY - 16;
-    window.scrollTo({ top: yOffset, behavior: 'smooth' });
 }
 
 function showInput() {
@@ -1262,10 +1250,6 @@ function copyShareLink(customToastMessage) {
     }
 }
 
-function showReactionPrompt() {
-    showToast('Screen record your verdict reaction and tag @who.is.wrong1', 'info');
-}
-
 function getJudgeVisual(judgeId) {
     const judge = availableJudges.find((j) => j.id === judgeId) || availableJudges[0] || {};
     return {
@@ -1591,6 +1575,5 @@ window.copyResult = copyResult;
 window.shareOnTwitter = shareOnTwitter;
 window.shareDebate = shareDebate;
 window.copyShareLink = copyShareLink;
-window.showReactionPrompt = showReactionPrompt;
 window.unlockSelectedJudge = unlockSelectedJudge;
 window.unlockAllJudges = unlockAllJudges;
