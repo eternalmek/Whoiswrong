@@ -245,6 +245,11 @@ app.get('/debate/:slug', async (req, res) => {
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+// Direct routes to static pages (so /account works without the .html suffix)
+app.get(['/account', '/account/'], (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'account.html'));
+});
+
 // API documentation endpoint
 app.get('/api', (req, res) => {
   res.json({
