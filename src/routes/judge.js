@@ -22,7 +22,7 @@ router.post('/', optionalUser, async (req, res, next) => {
       context,
       optionA,
       optionB,
-      judgePrompt: judge.systemPrompt || judge.system_prompt,
+      judgePrompt: judge.personality_prompt || judge.systemPrompt || judge.system_prompt,
       judgeName: judge.name,
     });
 

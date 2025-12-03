@@ -18,6 +18,7 @@ const stripeWebhookRouter = require('./routes/stripeWebhook');
 const pricesRouter = require('./routes/prices');
 const paymentStatusRouter = require('./routes/paymentStatus');
 const accountRouter = require('./routes/account');
+const judgesRouter = require('./routes/judges');
 
 const PORT = process.env.PORT || 8080;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
@@ -71,6 +72,7 @@ app.use('/api/purchases', purchasesRouter);
 app.use('/api/prices', pricesRouter);
 app.use('/api/payments', paymentStatusRouter);
 app.use('/api/account', accountRouter);
+app.use('/api/judges', judgesRouter);
 
 // Health
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
