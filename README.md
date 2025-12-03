@@ -146,8 +146,16 @@ Use this option if you prefer to connect to a hosted Supabase project.
    npm install
    ```
 
-6. Create the table in Supabase:
-   - Run the SQL in `supabase/migrations/20240101000000_create_judgements.sql` using Supabase SQL editor.
+6. Apply all database migrations to Supabase:
+   - Run **all** SQL files in `supabase/migrations/` using the Supabase SQL editor (in order by filename):
+     - `20240101000000_create_judgements.sql` - Core judgements table
+     - `20240601000000_create_user_purchases.sql` - User purchases tracking
+     - `20240701000000_add_judges_and_votes.sql` - Judges catalogue and votes
+     - `20240901000000_account_friendships.sql` - User profiles and friendships
+     - `20241013000000_update_judges_avatar.sql` - Judge avatar updates
+     - `20241015000000_create_unlocked_judges_subscriptions.sql` - **Required for /api/purchases** (unlocked_judges and subscriptions tables)
+   
+   > ⚠️ **Important**: All migrations must be applied for the API to function correctly. Missing migrations will cause errors like "Could not find the table 'public.unlocked_judges' in the schema cache".
 
 7. Start the server:
    ```bash
