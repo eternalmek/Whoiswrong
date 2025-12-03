@@ -60,77 +60,104 @@ router.get('/profile', requireUser, async (req, res, next) => {
     const { user } = req.auth;
     const profile = await ensureProfile(user.id, user.email);
 
-    const [{ count: debatesCount, error: debatesError }] = await Promise.all([
+    const warnings = [];
+    const stats = {
+      debates: 0,
+      friends: 0,
+      unlockedJudges: 0,
+    };
+
+    const statsResults = await Promise.allSettled([
       supabaseServiceRole
         .from('judgements')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id),
+      supabaseServiceRole
+        .from('friendships')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'accepted')
+        .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`),
+      supabaseServiceRole
+        .from('user_purchases')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('status', 'active'),
     ]);
-    if (debatesError) throw debatesError;
 
-    const { count: friendsCount, error: friendsErr } = await supabaseServiceRole
-      .from('friendships')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'accepted')
-      .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`);
-    if (friendsErr) throw friendsErr;
+    const [debatesResult, friendsResult, purchasesResult] = statsResults;
 
-    const { count: unlockedJudges, error: purchasesErr } = await supabaseServiceRole
-      .from('user_purchases')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('status', 'active');
-    if (purchasesErr) throw purchasesErr;
+    if (debatesResult.status === 'fulfilled') {
+      stats.debates = debatesResult.value?.count || 0;
+    } else {
+      console.warn('Failed to load debates stats for account profile', debatesResult.reason);
+      warnings.push('Unable to load debate stats');
+    }
+
+    if (friendsResult.status === 'fulfilled') {
+      stats.friends = friendsResult.value?.count || 0;
+    } else {
+      console.warn('Failed to load friends stats for account profile', friendsResult.reason);
+      warnings.push('Unable to load friends stats');
+    }
+
+    if (purchasesResult.status === 'fulfilled') {
+      stats.unlockedJudges = purchasesResult.value?.count || 0;
+    } else {
+      console.warn('Failed to load purchases stats for account profile', purchasesResult.reason);
+      warnings.push('Unable to load judge unlock stats');
+    }
 
     // Fetch friends' latest debates
-    const friendships = await fetchFriendships(user.id);
-    const friendIds = friendships
-      .filter((f) => f.status === 'accepted')
-      .map((f) => (f.requester_id === user.id ? f.receiver_id : f.requester_id));
-
     let friendsDebates = [];
-    if (friendIds.length > 0) {
-      const { data: friendProfiles } = await supabaseServiceRole
-        .from('profiles')
-        .select('id, display_name, username, show_debates_on_wall, avatar_url')
-        .in('id', friendIds);
+    try {
+      const friendships = await fetchFriendships(user.id);
+      const friendIds = friendships
+        .filter((f) => f.status === 'accepted')
+        .map((f) => (f.requester_id === user.id ? f.receiver_id : f.requester_id));
 
-      const shareableIds = new Set(
-        (friendProfiles || [])
-          .filter((p) => p.show_debates_on_wall !== false)
-          .map((p) => p.id)
-      );
+      if (friendIds.length > 0) {
+        const { data: friendProfiles } = await supabaseServiceRole
+          .from('profiles')
+          .select('id, display_name, username, show_debates_on_wall, avatar_url')
+          .in('id', friendIds);
 
-      if (shareableIds.size > 0) {
-        const { data: debates, error } = await supabaseServiceRole
-          .from('judgements')
-          .select('id, context, option_a, option_b, wrong, right, reason, roast, user_id, created_at')
-          .in('user_id', Array.from(shareableIds))
-          .order('created_at', { ascending: false })
-          .limit(10);
-        if (error) throw error;
+        const shareableIds = new Set(
+          (friendProfiles || [])
+            .filter((p) => p.show_debates_on_wall !== false)
+            .map((p) => p.id)
+        );
 
-        const profileMap = new Map((friendProfiles || []).map((p) => [p.id, p]));
-        friendsDebates = (debates || []).map((item) => ({
-          ...item,
-          profile: profileMap.get(item.user_id) || null,
-        }));
+        if (shareableIds.size > 0) {
+          const { data: debates, error } = await supabaseServiceRole
+            .from('judgements')
+            .select('id, context, option_a, option_b, wrong, right, reason, roast, user_id, created_at')
+            .in('user_id', Array.from(shareableIds))
+            .order('created_at', { ascending: false })
+            .limit(10);
+          if (error) throw error;
+
+          const profileMap = new Map((friendProfiles || []).map((p) => [p.id, p]));
+          friendsDebates = (debates || []).map((item) => ({
+            ...item,
+            profile: profileMap.get(item.user_id) || null,
+          }));
+        }
       }
+    } catch (friendsError) {
+      console.warn('Failed to load friends list for account profile', friendsError);
+      warnings.push('Unable to load recent friend debates');
     }
 
     res.json({
       ok: true,
       profile,
-      stats: {
-        debates: debatesCount || 0,
-        friends: friendsCount || 0,
-        unlockedJudges: unlockedJudges || 0,
-      },
+      stats,
       friendsDebates,
       auth: {
         email: user.email,
         email_confirmed_at: user.email_confirmed_at,
       },
+      warnings,
     });
   } catch (err) {
     console.error('Account page error', err);
