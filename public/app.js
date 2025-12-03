@@ -25,6 +25,7 @@ const errorSection = document.getElementById('errorSection');
 const userMenu = document.getElementById('userMenu');
 const authButtons = document.getElementById('authButtons');
 const signupPrompt = document.getElementById('signupPrompt');
+const LAST_JUDGEMENT_KEY = 'lastJudgement';
 
 // --- Judge State ---
 const JUDGE_SELECTED_KEY = 'selectedJudgeId';
@@ -124,6 +125,25 @@ let serverHasAllAccess = false;
 
 let lastSavedJudgementId = null;
 let lastShareUrl = '';
+
+function persistLastJudgement(data) {
+    try {
+        localStorage.setItem(LAST_JUDGEMENT_KEY, JSON.stringify({ ...data, savedAt: Date.now() }));
+    } catch (error) {
+        console.warn('Unable to persist last judgement', error);
+    }
+}
+
+function loadPersistedJudgement() {
+    try {
+        const raw = localStorage.getItem(LAST_JUDGEMENT_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch (error) {
+        console.warn('Unable to load saved judgement', error);
+        return null;
+    }
+}
 
 let selectedJudgeId = localStorage.getItem(JUDGE_SELECTED_KEY) || 'normal';
 if (!availableJudges.find((j) => j.id === selectedJudgeId)) {
@@ -231,9 +251,14 @@ function showResult(data) {
     if (signupPrompt) {
         signupPrompt.style.display = currentUser ? 'none' : 'block';
     }
-    
+
     // Reset button state
     resetSubmitButton();
+
+    // Keep the verdict in view on mobile
+    setTimeout(() => {
+        resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
 }
 
 function showInput() {
@@ -253,6 +278,86 @@ function showError(msg) {
     errorSection.classList.remove('hidden');
     document.getElementById('errorMessage').innerText = msg;
     resetSubmitButton();
+}
+
+async function loadDebateById(id) {
+    if (!id) return;
+    showLoading();
+    try {
+        const res = await fetch(`${API_BASE}/api/judgements/${id}`);
+        const data = await res.json();
+        if (!res.ok || !data?.item) {
+            throw new Error(data?.error || 'Debate not found');
+        }
+
+        const item = data.item;
+        lastSavedJudgementId = item.id;
+        lastShareUrl = `${window.location.origin}/debate/${item.id}`;
+
+        if (item.judge_id) {
+            selectedJudgeId = item.judge_id;
+            persistJudgeState();
+            updateJudgeUI();
+        }
+
+        if (document.getElementById('contextInput')) {
+            document.getElementById('contextInput').value = item.context || '';
+        }
+        if (document.getElementById('optionA')) {
+            document.getElementById('optionA').value = item.option_a || '';
+        }
+        if (document.getElementById('optionB')) {
+            document.getElementById('optionB').value = item.option_b || '';
+        }
+
+        const judgementPayload = {
+            wrong: item.wrong || item.option_b,
+            right: item.right || item.option_a,
+            reason: item.reason || 'No reason provided.',
+            roast: item.roast || '',
+        };
+
+        persistLastJudgement({
+            context: item.context,
+            optionA: item.option_a,
+            optionB: item.option_b,
+            judgeId: selectedJudgeId,
+            savedId: item.id,
+            shareUrl: lastShareUrl,
+            judgement: judgementPayload,
+        });
+
+        showResult(judgementPayload);
+    } catch (error) {
+        showInput();
+        showToast(error.message || 'Unable to load debate', 'error');
+    }
+}
+
+function hydrateFromSavedJudgement() {
+    const saved = loadPersistedJudgement();
+    if (!saved?.judgement) return false;
+
+    if (saved.judgeId) {
+        selectedJudgeId = saved.judgeId;
+        persistJudgeState();
+        updateJudgeUI();
+    }
+
+    if (document.getElementById('contextInput')) {
+        document.getElementById('contextInput').value = saved.context || '';
+    }
+    if (document.getElementById('optionA')) {
+        document.getElementById('optionA').value = saved.optionA || '';
+    }
+    if (document.getElementById('optionB')) {
+        document.getElementById('optionB').value = saved.optionB || '';
+    }
+
+    lastSavedJudgementId = saved.savedId || null;
+    lastShareUrl = saved.shareUrl || '';
+    showResult(saved.judgement);
+    return true;
 }
 
 function setSubmitButtonLoading(loading) {
@@ -970,13 +1075,22 @@ async function judgeNow(e) {
         }
 
         const result = await response.json();
-        
+
         if (!result.ok || !result.judgement) {
             throw new Error("Invalid response from AI Judge.");
         }
 
         lastSavedJudgementId = result.saved?.id || null;
         lastShareUrl = lastSavedJudgementId ? `${window.location.origin}/debate/${lastSavedJudgementId}` : '';
+        persistLastJudgement({
+            context,
+            optionA,
+            optionB,
+            judgeId: selectedJudgeId,
+            savedId: lastSavedJudgementId,
+            shareUrl: lastShareUrl,
+            judgement: result.judgement,
+        });
         showResult(result.judgement);
 
     } catch (error) {
@@ -1033,20 +1147,55 @@ function showCopySuccess() {
     showToast('Copied to clipboard!', 'success');
 }
 
-function shareOnTwitter() {
-    const wrong = document.getElementById('loserName').innerText || 'someone';
-    const reason = document.getElementById('explanationText').innerText || 'No reason given.';
-    const text = encodeURIComponent(`The AI Judge says ${wrong} is WRONG! 😂\n\n${reason}\n\nSettle your debates at:`);
-    const url = encodeURIComponent(window.location.origin);
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+function getShareDetails() {
+    const wrong = document.getElementById('loserName')?.innerText || 'someone';
+    const reason = document.getElementById('explanationText')?.innerText || 'No reason given.';
+    const link = lastShareUrl || (lastSavedJudgementId ? `${window.location.origin}/debate/${lastSavedJudgementId}` : window.location.origin);
+    const text = `The AI Judge says ${wrong} is WRONG! 😂\n\n${reason}\n\nSettle your debates at:`;
+    return { wrong, reason, link, text };
 }
 
-function copyShareLink() {
-    const link = lastShareUrl || (lastSavedJudgementId ? `${window.location.origin}/debate/${lastSavedJudgementId}` : window.location.origin);
+function shareOnTwitter() {
+    const { text, link } = getShareDetails();
+    const encodedText = encodeURIComponent(text);
+    const encodedUrl = encodeURIComponent(link);
+    window.open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`, '_blank');
+}
+
+function shareDebate(platform) {
+    const { text, link } = getShareDetails();
+    const shareData = { title: 'Who Is Wrong? Verdict', text: text.replace(/\n/g, ' '), url: link };
+
+    if (platform === 'x') {
+        shareOnTwitter();
+        return;
+    }
+
+    if (navigator.share) {
+        navigator.share(shareData).catch(() => {
+            // Ignore cancellation
+        });
+    } else {
+        copyShareLink();
+    }
+
+    if (platform === 'tiktok') {
+        copyShareLink('Link copied for TikTok');
+        window.open('https://www.tiktok.com/upload?lang=en', '_blank');
+    } else if (platform === 'instagram') {
+        copyShareLink('Link copied for Instagram');
+        window.open('https://www.instagram.com/create/story/', '_blank');
+    }
+}
+
+function copyShareLink(customToastMessage) {
+    const { link } = getShareDetails();
+    const toastMessage = customToastMessage || 'Share link copied';
     if (navigator.clipboard?.writeText) {
-        navigator.clipboard.writeText(link).then(() => showToast('Share link copied', 'success'));
+        navigator.clipboard.writeText(link).then(() => showToast(toastMessage, 'success'));
     } else {
         fallbackCopy(link);
+        showToast(toastMessage, 'success');
     }
 }
 
@@ -1250,10 +1399,21 @@ function showToast(message, type = 'success') {
     }
     
     toast.classList.remove('hidden');
-    
+
     setTimeout(() => {
         toast.classList.add('hidden');
     }, 3000);
+}
+
+function hydrateInitialView() {
+    const params = new URLSearchParams(window.location.search);
+    const debateId = params.get('debate');
+    if (debateId) {
+        loadDebateById(debateId);
+        return;
+    }
+
+    hydrateFromSavedJudgement();
 }
 
 // ==========================================
@@ -1272,6 +1432,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadJudgesFromApi();
     loadFeed();
     renderSamples([]);
+    hydrateInitialView();
 
     const unlockSelectedJudgeBtn = document.getElementById('unlockSelectedJudge');
     if (unlockSelectedJudgeBtn) {
@@ -1365,6 +1526,7 @@ window.judgeNow = judgeNow;
 window.resetApp = resetApp;
 window.copyResult = copyResult;
 window.shareOnTwitter = shareOnTwitter;
+window.shareDebate = shareDebate;
 window.copyShareLink = copyShareLink;
 window.showReactionPrompt = showReactionPrompt;
 window.unlockSelectedJudge = unlockSelectedJudge;

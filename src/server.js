@@ -19,6 +19,8 @@ const pricesRouter = require('./routes/prices');
 const paymentStatusRouter = require('./routes/paymentStatus');
 const accountRouter = require('./routes/account');
 const judgesRouter = require('./routes/judges');
+const { supabaseServiceRole } = require('./supabaseClient');
+const { fetchJudges } = require('./services/judges');
 
 const PORT = process.env.PORT || 8080;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';

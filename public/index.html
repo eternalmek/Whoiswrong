@@ -550,12 +550,18 @@
                     </div>
 
                     <!-- Actions -->
-                    <div class="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
                         <button onclick="copyResult()" class="touch-target bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white p-3 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2" aria-label="Copy verdict to clipboard">
                             <i class="fas fa-copy"></i> <span class="hidden sm:inline">Copy</span>
                         </button>
-                        <button onclick="shareOnTwitter()" class="touch-target bg-blue-600 hover:bg-blue-700 active:bg-blue-500 text-white p-3 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2" aria-label="Share on Twitter">
-                            <i class="fab fa-twitter"></i> <span class="hidden sm:inline">Tweet</span>
+                        <button onclick="shareDebate('x')" class="touch-target bg-blue-600 hover:bg-blue-700 active:bg-blue-500 text-white p-3 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2" aria-label="Share on X">
+                            <i class="fab fa-twitter"></i> <span class="hidden sm:inline">Share on X</span>
+                        </button>
+                        <button onclick="shareDebate('tiktok')" class="touch-target bg-black border border-gray-700 hover:border-gray-500 text-white p-3 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2" aria-label="Share on TikTok">
+                            <i class="fab fa-tiktok"></i> <span class="hidden sm:inline">TikTok</span>
+                        </button>
+                        <button onclick="shareDebate('instagram')" class="touch-target bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white p-3 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2" aria-label="Share on Instagram">
+                            <i class="fab fa-instagram"></i> <span class="hidden sm:inline">Instagram</span>
                         </button>
                     </div>
 
@@ -567,7 +573,6 @@
                             <i class="fas fa-video"></i> Record your reaction
                         </button>
                     </div>
-                    
                     <button onclick="resetApp()" class="w-full bg-white text-black hover:bg-gray-200 active:bg-gray-300 p-3 sm:p-4 rounded-lg font-bold transition flex items-center justify-center gap-2" aria-label="Start new debate">
                         <i class="fas fa-redo"></i> New Battle
                     </button>
