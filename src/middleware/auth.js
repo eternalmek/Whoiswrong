@@ -2,6 +2,7 @@ const {
   verifyAuthToken,
   supabaseConfigIssues,
   supabaseServiceRole,
+  supabasePublic,
 } = require('../supabaseClient');
 
 function extractBearerToken(req) {
@@ -12,7 +13,7 @@ function extractBearerToken(req) {
 
 async function requireUser(req, res, next) {
   try {
-    if (!supabaseServiceRole) {
+    if (!supabaseServiceRole && !supabasePublic) {
       return res.status(503).json({
         error: 'Supabase auth not configured on server.',
         details: supabaseConfigIssues?.length ? supabaseConfigIssues : undefined,
@@ -38,7 +39,7 @@ async function requireUser(req, res, next) {
 
 async function optionalUser(req, res, next) {
   try {
-    if (!supabaseServiceRole) return next();
+    if (!supabaseServiceRole && !supabasePublic) return next();
 
     const token = extractBearerToken(req);
     if (!token) return next();

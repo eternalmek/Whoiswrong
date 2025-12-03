@@ -47,22 +47,27 @@ const supabasePublic = SUPABASE_URL && SUPABASE_ANON_KEY
     })
   : null;
 
+// Use the most privileged available client for auth so the API can still
+// validate tokens even when the service role key is missing.
+const supabaseAuthClient = supabaseServiceRole || supabasePublic || null;
+
 async function verifyAuthToken(token) {
   if (!token) {
     return { user: null, error: new Error('Missing token') };
   }
 
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !supabaseServiceRole) {
+  if (!SUPABASE_URL || !supabaseAuthClient) {
     return { user: null, error: new Error('Supabase not configured') };
   }
 
-  const { data, error } = await supabaseServiceRole.auth.getUser(token);
+  const { data, error } = await supabaseAuthClient.auth.getUser(token);
   return { user: data?.user || null, error };
 }
 
 module.exports = {
   supabaseServiceRole,
   supabasePublic,
+  supabaseAuthClient,
   verifyAuthToken,
   supabaseConfigIssues,
 };
