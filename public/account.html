@@ -370,6 +370,9 @@
         // Get token from localStorage and validate it's not a stringified null/undefined
         const storedToken = localStorage.getItem('accessToken');
         let accessToken = (storedToken && storedToken !== 'null' && storedToken !== 'undefined') ? storedToken : null;
+        const REFRESH_TOKEN_KEY = 'refreshToken';
+        const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+        let refreshToken = (storedRefreshToken && storedRefreshToken !== 'null' && storedRefreshToken !== 'undefined') ? storedRefreshToken : null;
         let currentUser = null;
         let profileData = null;
         let statsData = null;
@@ -381,6 +384,52 @@
         const loadingState = document.getElementById('loadingState');
         const loginRequired = document.getElementById('loginRequired');
         const accountContent = document.getElementById('accountContent');
+
+        function persistSessionTokens({ access_token, refresh_token }) {
+            if (access_token) {
+                accessToken = access_token;
+                localStorage.setItem('accessToken', accessToken);
+            }
+
+            if (refresh_token) {
+                refreshToken = refresh_token;
+                localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+            }
+        }
+
+        function clearSessionTokens() {
+            accessToken = null;
+            refreshToken = null;
+            currentUser = null;
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem(REFRESH_TOKEN_KEY);
+        }
+
+        async function refreshSession() {
+            if (!refreshToken) return false;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/refresh`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                });
+
+                if (!response.ok) {
+                    clearSessionTokens();
+                    return false;
+                }
+
+                const data = await response.json();
+                persistSessionTokens(data);
+                if (data.user) currentUser = data.user;
+                return true;
+            } catch (error) {
+                console.error('Session refresh failed:', error);
+                clearSessionTokens();
+                return false;
+            }
+        }
 
         function setAvatarPreview(url) {
             const el = document.getElementById('avatarPreview');
@@ -394,10 +443,13 @@
             }
         }
 
-        async function init() {
+        async function init(hasRefreshed = false) {
             if (!accessToken) {
-                showLoginRequired();
-                return;
+                const refreshed = await refreshSession();
+                if (!refreshed) {
+                    showLoginRequired();
+                    return;
+                }
             }
 
             try {
@@ -406,9 +458,11 @@
                 });
 
                 if (!response.ok) {
-                    // Clear invalid token
-                    localStorage.removeItem('accessToken');
-                    accessToken = null;
+                    if (response.status === 401 && !hasRefreshed) {
+                        const refreshed = await refreshSession();
+                        if (refreshed) return init(true);
+                    }
+                    clearSessionTokens();
                     showLoginRequired();
                     return;
                 }
@@ -427,9 +481,7 @@
                 loadFriends();
             } catch (error) {
                 console.error('Init error:', error);
-                // Clear potentially invalid token on error
-                localStorage.removeItem('accessToken');
-                accessToken = null;
+                clearSessionTokens();
                 showLoginRequired();
             }
         }
@@ -891,7 +943,7 @@
         }
 
         function logout() {
-            localStorage.removeItem('accessToken');
+            clearSessionTokens();
             window.location.href = '/';
         }
 
@@ -928,7 +980,7 @@
                     throw new Error(data.error || 'Failed to delete account');
                 }
 
-                localStorage.removeItem('accessToken');
+                clearSessionTokens();
                 showToast('Account deleted successfully', 'success');
                 setTimeout(() => { window.location.href = '/'; }, 1200);
             } catch (error) {

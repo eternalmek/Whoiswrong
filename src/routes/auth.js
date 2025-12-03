@@ -44,6 +44,7 @@ router.post('/signup', async (req, res, next) => {
       user: data.user,
       session: data.session,
       access_token: data.session?.access_token || null,
+      refresh_token: data.session?.refresh_token || null,
     });
   } catch (err) {
     next(err);
@@ -78,6 +79,38 @@ router.post('/login', async (req, res, next) => {
       user: data.user,
       session: data.session,
       access_token: data.session?.access_token || null,
+      refresh_token: data.session?.refresh_token || null,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/refresh
+router.post('/refresh', async (req, res, next) => {
+  try {
+    if (!supabasePublic) {
+      return res.status(500).json({ error: 'Supabase auth not configured on server.' });
+    }
+
+    const refreshToken = req.body?.refresh_token;
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'refresh_token is required' });
+    }
+
+    const { data, error } = await supabasePublic.auth.refreshSession({ refresh_token: refreshToken });
+    if (error || !data?.session) {
+      return res.status(401).json({ error: error?.message || 'Unable to refresh session' });
+    }
+
+    await ensureProfile(data.session.user);
+
+    res.json({
+      ok: true,
+      user: data.session.user,
+      session: data.session,
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
     });
   } catch (err) {
     next(err);
