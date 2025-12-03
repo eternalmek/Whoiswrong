@@ -1,11 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { supabaseServiceRole } = require('../supabaseClient');
+const { supabaseServiceRole, supabaseConfigIssues } = require('../supabaseClient');
 const { requireUser } = require('../middleware/auth');
 
 function ensureSupabase(res) {
   if (!supabaseServiceRole) {
-    res.status(500).json({ error: 'Supabase not configured on server.' });
+    res.status(503).json({
+      error: 'Supabase not configured on server.',
+      details: supabaseConfigIssues || undefined,
+    });
     return false;
   }
   return true;

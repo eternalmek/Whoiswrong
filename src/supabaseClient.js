@@ -20,12 +20,15 @@ const SUPABASE_SERVICE_ROLE_KEY =
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set — Supabase operations will fail.');
-}
+const supabaseConfigIssues = [];
+if (!SUPABASE_URL) supabaseConfigIssues.push('SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) is missing');
+if (!SUPABASE_SERVICE_ROLE_KEY)
+  supabaseConfigIssues.push('SUPABASE_SERVICE_ROLE_KEY is missing on the server');
+if (!SUPABASE_ANON_KEY)
+  supabaseConfigIssues.push('SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY) is missing');
 
-if (!SUPABASE_ANON_KEY) {
-  console.warn('SUPABASE_ANON_KEY not set — user auth endpoints will fail.');
+if (supabaseConfigIssues.length) {
+  console.warn('Supabase configuration issues detected:', supabaseConfigIssues.join('; '));
 }
 
 const supabaseServiceRole = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
@@ -61,4 +64,5 @@ module.exports = {
   supabaseServiceRole,
   supabasePublic,
   verifyAuthToken,
+  supabaseConfigIssues,
 };
