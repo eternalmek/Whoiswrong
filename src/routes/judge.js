@@ -3,8 +3,7 @@ const router = express.Router();
 const { supabaseServiceRole } = require('../supabaseClient');
 const { optionalUser } = require('../middleware/auth');
 const { callOpenAI } = require('../openaiClient');
-const path = require('path');
-const { getJudgeById, normalJudge } = require(path.join(__dirname, '../../public/celebrityJudges'));
+const { getJudgeById, getLocalJudges } = require('../services/judges');
 
 // POST /api/judge
 // body: { context, optionA, optionB, judgeId }
@@ -16,14 +15,14 @@ router.post('/', optionalUser, async (req, res, next) => {
       return res.status(400).json({ error: 'optionA and optionB are required.' });
     }
 
-    const judge = getJudgeById(judgeId) || normalJudge;
+    const judge = (await getJudgeById(judgeId)) || getLocalJudges()[0];
 
     // Call OpenAI
     const ai = await callOpenAI({
       context,
       optionA,
       optionB,
-      judgePrompt: judge.systemPrompt,
+      judgePrompt: judge.systemPrompt || judge.system_prompt,
       judgeName: judge.name,
     });
 
@@ -54,7 +53,8 @@ router.post('/', optionalUser, async (req, res, next) => {
       reason: ai.reason,
       roast: ai.roast || null,
       user_id: req.auth?.user?.id || null,
-      raw_model_response: ai.raw
+      raw_model_response: ai.raw,
+      judge_id: judge.id,
     };
 
     let saved = null;
