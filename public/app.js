@@ -262,8 +262,16 @@ function showResult(data) {
 
     // Keep the verdict in view on mobile
     setTimeout(() => {
-        resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        scrollToResultSection();
     }, 100);
+}
+
+function scrollToResultSection() {
+    if (!resultSection) return;
+
+    // Scroll directly to the top of the verdict container
+    const yOffset = resultSection.getBoundingClientRect().top + window.scrollY - 16;
+    window.scrollTo({ top: yOffset, behavior: 'smooth' });
 }
 
 function showInput() {
