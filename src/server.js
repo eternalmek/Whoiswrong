@@ -17,6 +17,9 @@ const purchasesRouter = require('./routes/purchases');
 const stripeWebhookRouter = require('./routes/stripeWebhook');
 const pricesRouter = require('./routes/prices');
 const paymentStatusRouter = require('./routes/paymentStatus');
+const judgesRouter = require('./routes/judges');
+const { supabaseServiceRole } = require('./supabaseClient');
+const { fetchJudges } = require('./services/judges');
 
 const PORT = process.env.PORT || 8080;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
@@ -69,9 +72,79 @@ app.use('/api/checkout', checkoutRouter);
 app.use('/api/purchases', purchasesRouter);
 app.use('/api/prices', pricesRouter);
 app.use('/api/payments', paymentStatusRouter);
+app.use('/api/judges', judgesRouter);
 
 // Health
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+function escapeHtml(str = '') {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+app.get('/debate/:id', async (req, res) => {
+  const shareUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+  let judgement = null;
+  let judgeLabel = 'AI Judge';
+
+  if (supabaseServiceRole) {
+    const { data } = await supabaseServiceRole
+      .from('judgements')
+      .select('*')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (data) {
+      judgement = data;
+
+      const judges = await fetchJudges();
+      const judgeMap = judges.reduce((acc, j) => {
+        acc[j.id] = j;
+        acc[j.slug] = j;
+        return acc;
+      }, {});
+      const judge = judgeMap[data.judge_id];
+      if (judge) judgeLabel = judge.name;
+    }
+  }
+
+  const title = judgement
+    ? `Verdict: ${judgement.wrong || 'Someone'} was wrong`
+    : 'WhoIsWrong.io – Let AI decide your debates';
+  const description = judgement
+    ? `${judgeLabel} decided between ${judgement.option_a} and ${judgement.option_b}. See the verdict.`
+    : 'Post your argument and let our AI + celebrity judges pick a side.';
+
+  const html = `<!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>${escapeHtml(title)}</title>
+      <meta property="og:title" content="${escapeHtml(title)}" />
+      <meta property="og:description" content="${escapeHtml(description)}" />
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content="${escapeHtml(shareUrl)}" />
+      <meta property="og:image" content="/og-image.png" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="${escapeHtml(title)}" />
+      <meta name="twitter:description" content="${escapeHtml(description)}" />
+      <meta name="twitter:image" content="/og-image.png" />
+    </head>
+    <body>
+      <p>Loading verdict...</p>
+      <script>
+        window.location.href = '/?debate=${encodeURIComponent(req.params.id)}';
+      </script>
+    </body>
+  </html>`;
+
+  res.setHeader('Content-Type', 'text/html');
+  res.send(html);
+});
 
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '..', 'public')));
