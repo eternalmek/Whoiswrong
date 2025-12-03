@@ -156,6 +156,7 @@ Use this option if you prefer to connect to a hosted Supabase project.
      - `20240901000000_account_friendships.sql` - User profiles and friendships
      - `20241013000000_update_judges_avatar.sql` - Judge avatar updates
      - `20241015000000_create_unlocked_judges_subscriptions.sql` - **Required for /api/purchases** (unlocked_judges and subscriptions tables)
+     - `20241101000000_create_public_debates.sql` - Public debates table for SEO-friendly pages
    
    > ⚠️ **Important**: All migrations must be applied for the API to function correctly. Missing migrations will cause errors like "Could not find the table 'public.unlocked_judges' in the schema cache".
 
