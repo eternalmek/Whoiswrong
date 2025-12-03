@@ -4,12 +4,20 @@ const { supabaseServiceRole } = require('../supabaseClient');
 const { optionalUser } = require('../middleware/auth');
 const { callOpenAI } = require('../openaiClient');
 const { getJudgeById, getLocalJudges } = require('../services/judges');
+const { createPublicDebate } = require('../services/debates');
 
 // POST /api/judge
 // body: { context, optionA, optionB, judgeId }
 router.post('/', optionalUser, async (req, res, next) => {
   try {
-    const { context = '', optionA, optionB, judgeId = 'normal' } = req.body || {};
+    const {
+      context = '',
+      optionA,
+      optionB,
+      judgeId = 'normal',
+      makePublic = true,
+      allowIndexing = true,
+    } = req.body || {};
 
     if (!optionA || !optionB) {
       return res.status(400).json({ error: 'optionA and optionB are required.' });
@@ -65,6 +73,28 @@ router.post('/', optionalUser, async (req, res, next) => {
       } else {
         saved = data?.[0] || null;
       }
+    }
+
+    // Create public debate entry for SEO-friendly sharing when enabled
+    if (makePublic && saved) {
+      const derivedTitle = context?.trim()
+        ? context.trim()
+        : `${optionA} vs ${optionB} — Who is wrong?`;
+
+      const verdictSummary = [ai.reason, ai.roast].filter(Boolean).join('\n\n');
+
+      createPublicDebate({
+        title: derivedTitle,
+        content: context || `Option A: ${optionA}\nOption B: ${optionB}`,
+        judgeId: judge.id,
+        verdict: verdictSummary,
+        userId: req.auth?.user?.id || null,
+        isPublic: true,
+        isIndexable: !!allowIndexing,
+        judgementId: saved?.id,
+      }).catch((err) => {
+        console.warn('Failed to create public debate entry', err);
+      });
     }
 
     res.json({
