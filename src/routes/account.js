@@ -3,6 +3,19 @@ const router = express.Router();
 const { supabaseServiceRole, supabaseConfigIssues } = require('../supabaseClient');
 const { requireUser } = require('../middleware/auth');
 
+/**
+ * Utilities
+ */
+const ACCOUNT_TEXT_LIMITS = {
+  displayName: 120,
+  bio: 500,
+  country: 80,
+  avatarUrl: 400,
+  search: 64,
+};
+
+const FRIEND_REQUEST_COOLDOWN_MS = 15 * 1000;
+
 function ensureSupabase(res) {
   if (!supabaseServiceRole) {
     res.status(503).json({
@@ -14,17 +27,16 @@ function ensureSupabase(res) {
   return true;
 }
 
-function sanitizeText(value, maxLength = 280) {
+function sanitizeText(value, maxLength) {
   if (value === null || value === undefined) return null;
-  let cleaned = String(value).trim();
-  if (cleaned.length === 0) return null;
-  if (cleaned.length > maxLength) cleaned = cleaned.slice(0, maxLength);
+  const cleaned = String(value).trim();
+  if (!cleaned) return null;
+  if (maxLength && cleaned.length > maxLength) return cleaned.slice(0, maxLength);
   return cleaned;
 }
 
 function validateUsername(username) {
-  if (!username) return false;
-  return /^[a-zA-Z0-9_]{3,20}$/.test(username);
+  return /^[a-zA-Z0-9_]{3,20}$/.test(username || '');
 }
 
 async function ensureProfile(userId, email) {
@@ -36,13 +48,46 @@ async function ensureProfile(userId, email) {
 
   if (existing) return existing;
 
-  const displayName = email ? email.split('@')[0] : 'New User';
+  const display_name = email ? email.split('@')[0] : 'New User';
   const { data } = await supabaseServiceRole
     .from('profiles')
-    .insert({ id: userId, display_name: displayName })
+    .insert({ id: userId, display_name })
     .select()
     .single();
+
   return data;
+}
+
+async function fetchStats(userId) {
+  const [debates, friends, purchases] = await Promise.allSettled([
+    supabaseServiceRole
+      .from('judgements')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId),
+    supabaseServiceRole
+      .from('friendships')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'accepted')
+      .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`),
+    supabaseServiceRole
+      .from('user_purchases')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'active'),
+  ]);
+
+  const stats = {
+    debates: debates.status === 'fulfilled' ? debates.value?.count || 0 : 0,
+    friends: friends.status === 'fulfilled' ? friends.value?.count || 0 : 0,
+    unlockedJudges: purchases.status === 'fulfilled' ? purchases.value?.count || 0 : 0,
+  };
+
+  const warnings = [];
+  if (debates.status === 'rejected') warnings.push('Unable to load debate stats');
+  if (friends.status === 'rejected') warnings.push('Unable to load friends stats');
+  if (purchases.status === 'rejected') warnings.push('Unable to load judge unlock stats');
+
+  return { stats, warnings };
 }
 
 async function fetchFriendships(userId) {
@@ -54,99 +99,114 @@ async function fetchFriendships(userId) {
   return data || [];
 }
 
-router.get('/profile', requireUser, async (req, res, next) => {
+async function fetchFriendsDebates(userId) {
+  const warnings = [];
+  try {
+    const friendships = await fetchFriendships(userId);
+    const friendIds = friendships
+      .filter((f) => f.status === 'accepted')
+      .map((f) => (f.requester_id === userId ? f.receiver_id : f.requester_id));
+
+    if (friendIds.length === 0) return { debates: [], warnings };
+
+    const { data: friendProfiles } = await supabaseServiceRole
+      .from('profiles')
+      .select('id, display_name, username, show_debates_on_wall, avatar_url')
+      .in('id', friendIds);
+
+    const shareableIds = new Set(
+      (friendProfiles || [])
+        .filter((p) => p.show_debates_on_wall !== false)
+        .map((p) => p.id)
+    );
+
+    if (shareableIds.size === 0) return { debates: [], warnings };
+
+    const { data: debates, error } = await supabaseServiceRole
+      .from('judgements')
+      .select('id, context, option_a, option_b, wrong, right, reason, roast, user_id, created_at')
+      .in('user_id', Array.from(shareableIds))
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) throw error;
+
+    const profileMap = new Map((friendProfiles || []).map((p) => [p.id, p]));
+    const formatted = (debates || []).map((item) => ({
+      ...item,
+      profile: profileMap.get(item.user_id) || null,
+    }));
+
+    return { debates: formatted, warnings };
+  } catch (err) {
+    console.warn('Failed to load friends list for account profile', err);
+    warnings.push('Unable to load recent friend debates');
+    return { debates: [], warnings };
+  }
+}
+
+async function assertUsernameAvailable(userId, username) {
+  const { data: existing } = await supabaseServiceRole
+    .from('profiles')
+    .select('id')
+    .eq('username', username)
+    .neq('id', userId)
+    .maybeSingle();
+
+  if (existing) {
+    const error = new Error('Username is already taken.');
+    error.status = 409;
+    throw error;
+  }
+}
+
+function buildFriendshipLists(userId, friendships, profileMap) {
+  const incoming = [];
+  const outgoing = [];
+  const friends = [];
+
+  (friendships || []).forEach((f) => {
+    const otherId = f.requester_id === userId ? f.receiver_id : f.requester_id;
+    const profile = profileMap.get(otherId) || null;
+    const item = { ...f, other_user: profile };
+
+    if (f.status === 'pending') {
+      if (f.receiver_id === userId) incoming.push(item);
+      else outgoing.push(item);
+    } else if (f.status === 'accepted') {
+      friends.push(item);
+    }
+  });
+
+  return { incoming, outgoing, friends };
+}
+
+async function loadFriendProfiles(friendships, userId) {
+  const relatedIds = Array.from(
+    new Set((friendships || []).map((f) => (f.requester_id === userId ? f.receiver_id : f.requester_id)))
+  );
+
+  if (relatedIds.length === 0) return new Map();
+
+  const { data } = await supabaseServiceRole
+    .from('profiles')
+    .select('id, username, display_name, avatar_url')
+    .in('id', relatedIds);
+
+  return new Map((data || []).map((p) => [p.id, p]));
+}
+
+/**
+ * Routes
+ */
+router.get('/profile', requireUser, async (req, res) => {
   try {
     if (!ensureSupabase(res)) return;
     const { user } = req.auth;
+
     const profile = await ensureProfile(user.id, user.email);
-
-    const warnings = [];
-    const stats = {
-      debates: 0,
-      friends: 0,
-      unlockedJudges: 0,
-    };
-
-    const statsResults = await Promise.allSettled([
-      supabaseServiceRole
-        .from('judgements')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id),
-      supabaseServiceRole
-        .from('friendships')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'accepted')
-        .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`),
-      supabaseServiceRole
-        .from('user_purchases')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('status', 'active'),
-    ]);
-
-    const [debatesResult, friendsResult, purchasesResult] = statsResults;
-
-    if (debatesResult.status === 'fulfilled') {
-      stats.debates = debatesResult.value?.count || 0;
-    } else {
-      console.warn('Failed to load debates stats for account profile', debatesResult.reason);
-      warnings.push('Unable to load debate stats');
-    }
-
-    if (friendsResult.status === 'fulfilled') {
-      stats.friends = friendsResult.value?.count || 0;
-    } else {
-      console.warn('Failed to load friends stats for account profile', friendsResult.reason);
-      warnings.push('Unable to load friends stats');
-    }
-
-    if (purchasesResult.status === 'fulfilled') {
-      stats.unlockedJudges = purchasesResult.value?.count || 0;
-    } else {
-      console.warn('Failed to load purchases stats for account profile', purchasesResult.reason);
-      warnings.push('Unable to load judge unlock stats');
-    }
-
-    // Fetch friends' latest debates
-    let friendsDebates = [];
-    try {
-      const friendships = await fetchFriendships(user.id);
-      const friendIds = friendships
-        .filter((f) => f.status === 'accepted')
-        .map((f) => (f.requester_id === user.id ? f.receiver_id : f.requester_id));
-
-      if (friendIds.length > 0) {
-        const { data: friendProfiles } = await supabaseServiceRole
-          .from('profiles')
-          .select('id, display_name, username, show_debates_on_wall, avatar_url')
-          .in('id', friendIds);
-
-        const shareableIds = new Set(
-          (friendProfiles || [])
-            .filter((p) => p.show_debates_on_wall !== false)
-            .map((p) => p.id)
-        );
-
-        if (shareableIds.size > 0) {
-          const { data: debates, error } = await supabaseServiceRole
-            .from('judgements')
-            .select('id, context, option_a, option_b, wrong, right, reason, roast, user_id, created_at')
-            .in('user_id', Array.from(shareableIds))
-            .order('created_at', { ascending: false })
-            .limit(10);
-          if (error) throw error;
-
-          const profileMap = new Map((friendProfiles || []).map((p) => [p.id, p]));
-          friendsDebates = (debates || []).map((item) => ({
-            ...item,
-            profile: profileMap.get(item.user_id) || null,
-          }));
-        }
-      }
-    } catch (friendsError) {
-      console.warn('Failed to load friends list for account profile', friendsError);
-      warnings.push('Unable to load recent friend debates');
-    }
+    const { stats, warnings: statsWarnings } = await fetchStats(user.id);
+    const { debates: friendsDebates, warnings: friendWarnings } = await fetchFriendsDebates(user.id);
 
     res.json({
       ok: true,
@@ -157,7 +217,7 @@ router.get('/profile', requireUser, async (req, res, next) => {
         email: user.email,
         email_confirmed_at: user.email_confirmed_at,
       },
-      warnings,
+      warnings: [...statsWarnings, ...friendWarnings],
     });
   } catch (err) {
     console.error('Account page error', err);
@@ -169,49 +229,26 @@ router.put('/profile', requireUser, async (req, res, next) => {
   try {
     if (!ensureSupabase(res)) return;
     const { user } = req.auth;
+    const body = req.body || {};
 
     const updates = {};
-    const {
-      display_name,
-      username,
-      avatar_url,
-      bio,
-      country,
-      is_public_profile,
-      allow_friend_requests,
-      show_debates_on_wall,
-      dark_mode_preference,
-      allow_notifications,
-    } = req.body || {};
+    if (body.display_name !== undefined) updates.display_name = sanitizeText(body.display_name, ACCOUNT_TEXT_LIMITS.displayName);
+    if (body.bio !== undefined) updates.bio = sanitizeText(body.bio, ACCOUNT_TEXT_LIMITS.bio);
+    if (body.country !== undefined) updates.country = sanitizeText(body.country, ACCOUNT_TEXT_LIMITS.country);
+    if (body.avatar_url !== undefined) updates.avatar_url = sanitizeText(body.avatar_url, ACCOUNT_TEXT_LIMITS.avatarUrl);
 
-    if (display_name !== undefined) updates.display_name = sanitizeText(display_name, 120);
-    if (bio !== undefined) updates.bio = sanitizeText(bio, 500);
-    if (country !== undefined) updates.country = sanitizeText(country, 80);
-    if (avatar_url !== undefined) updates.avatar_url = sanitizeText(avatar_url, 400);
+    if (typeof body.is_public_profile === 'boolean') updates.is_public_profile = body.is_public_profile;
+    if (typeof body.allow_friend_requests === 'boolean') updates.allow_friend_requests = body.allow_friend_requests;
+    if (typeof body.show_debates_on_wall === 'boolean') updates.show_debates_on_wall = body.show_debates_on_wall;
+    if (typeof body.dark_mode_preference === 'boolean') updates.dark_mode_preference = body.dark_mode_preference;
+    if (typeof body.allow_notifications === 'boolean') updates.allow_notifications = body.allow_notifications;
 
-    if (typeof is_public_profile === 'boolean') updates.is_public_profile = is_public_profile;
-    if (typeof allow_friend_requests === 'boolean') updates.allow_friend_requests = allow_friend_requests;
-    if (typeof show_debates_on_wall === 'boolean') updates.show_debates_on_wall = show_debates_on_wall;
-    if (typeof dark_mode_preference === 'boolean') updates.dark_mode_preference = dark_mode_preference;
-    if (typeof allow_notifications === 'boolean') updates.allow_notifications = allow_notifications;
-
-    if (username !== undefined) {
-      if (username && !validateUsername(username)) {
+    if (body.username !== undefined) {
+      if (body.username && !validateUsername(body.username)) {
         return res.status(400).json({ error: 'Username must be 3-20 chars (letters, numbers, underscores).' });
       }
-
-      if (username) {
-        const { data: existing } = await supabaseServiceRole
-          .from('profiles')
-          .select('id')
-          .eq('username', username)
-          .neq('id', user.id)
-          .maybeSingle();
-        if (existing) {
-          return res.status(409).json({ error: 'Username is already taken.' });
-        }
-      }
-      updates.username = username || null;
+      if (body.username) await assertUsernameAvailable(user.id, body.username);
+      updates.username = body.username || null;
     }
 
     const { data, error } = await supabaseServiceRole
@@ -222,9 +259,9 @@ router.put('/profile', requireUser, async (req, res, next) => {
       .single();
 
     if (error) throw error;
-
     res.json({ ok: true, profile: data });
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);
   }
 });
@@ -233,7 +270,7 @@ router.get('/username-check', requireUser, async (req, res, next) => {
   try {
     if (!ensureSupabase(res)) return;
     const { user } = req.auth;
-    const username = String(req.query.username || '').trim();
+    const username = sanitizeText(req.query.username || '', ACCOUNT_TEXT_LIMITS.search);
 
     if (!validateUsername(username)) {
       return res.status(400).json({ error: 'Invalid username format.' });
@@ -256,7 +293,7 @@ router.get('/search', requireUser, async (req, res, next) => {
   try {
     if (!ensureSupabase(res)) return;
     const { user } = req.auth;
-    const term = sanitizeText(req.query.query || '', 64);
+    const term = sanitizeText(req.query.query || '', ACCOUNT_TEXT_LIMITS.search);
 
     let query = supabaseServiceRole
       .from('profiles')
@@ -265,9 +302,7 @@ router.get('/search', requireUser, async (req, res, next) => {
       .or('is_public_profile.eq.true,allow_friend_requests.eq.true')
       .limit(20);
 
-    if (term) {
-      query = query.or(`username.ilike.%${term}%,display_name.ilike.%${term}%`);
-    }
+    if (term) query = query.or(`username.ilike.%${term}%,display_name.ilike.%${term}%`);
 
     const { data: profiles, error } = await query;
     if (error) throw error;
@@ -312,42 +347,13 @@ router.get('/friends', requireUser, async (req, res, next) => {
       .select('*')
       .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order('created_at', { ascending: false });
+
     if (error) throw error;
 
-    const relatedIds = Array.from(
-      new Set(
-        (friendships || []).map((f) => (f.requester_id === user.id ? f.receiver_id : f.requester_id))
-      )
-    );
+    const profileMap = await loadFriendProfiles(friendships, user.id);
+    const lists = buildFriendshipLists(user.id, friendships, profileMap);
 
-    let profiles = [];
-    if (relatedIds.length > 0) {
-      const { data } = await supabaseServiceRole
-        .from('profiles')
-        .select('id, username, display_name, avatar_url')
-        .in('id', relatedIds);
-      profiles = data || [];
-    }
-
-    const profileMap = new Map(profiles.map((p) => [p.id, p]));
-
-    const incoming = [];
-    const outgoing = [];
-    const friends = [];
-
-    (friendships || []).forEach((f) => {
-      const otherId = f.requester_id === user.id ? f.receiver_id : f.requester_id;
-      const profile = profileMap.get(otherId) || null;
-      const item = { ...f, other_user: profile };
-      if (f.status === 'pending') {
-        if (f.receiver_id === user.id) incoming.push(item);
-        else outgoing.push(item);
-      } else if (f.status === 'accepted') {
-        friends.push(item);
-      }
-    });
-
-    res.json({ ok: true, incoming, outgoing, friends });
+    res.json({ ok: true, ...lists });
   } catch (err) {
     next(err);
   }
@@ -359,12 +365,8 @@ router.post('/friends/request', requireUser, async (req, res, next) => {
     const { user } = req.auth;
     const receiver_id = req.body?.receiver_id;
 
-    if (!receiver_id) {
-      return res.status(400).json({ error: 'receiver_id is required' });
-    }
-    if (receiver_id === user.id) {
-      return res.status(400).json({ error: 'You cannot friend yourself.' });
-    }
+    if (!receiver_id) return res.status(400).json({ error: 'receiver_id is required' });
+    if (receiver_id === user.id) return res.status(400).json({ error: 'You cannot friend yourself.' });
 
     const { data: receiverProfile } = await supabaseServiceRole
       .from('profiles')
@@ -372,10 +374,7 @@ router.post('/friends/request', requireUser, async (req, res, next) => {
       .eq('id', receiver_id)
       .maybeSingle();
 
-    if (!receiverProfile) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
+    if (!receiverProfile) return res.status(404).json({ error: 'User not found' });
     if (receiverProfile.allow_friend_requests === false) {
       return res.status(403).json({ error: 'This user is not accepting friend requests.' });
     }
@@ -386,10 +385,10 @@ router.post('/friends/request', requireUser, async (req, res, next) => {
       .eq('id', user.id)
       .maybeSingle();
 
-    const now = new Date();
+    const now = Date.now();
     if (requesterProfile?.last_friend_request_at) {
-      const last = new Date(requesterProfile.last_friend_request_at);
-      if (now - last < 15 * 1000) {
+      const last = new Date(requesterProfile.last_friend_request_at).getTime();
+      if (now - last < FRIEND_REQUEST_COOLDOWN_MS) {
         return res.status(429).json({ error: 'Please wait before sending another request.' });
       }
     }
@@ -397,16 +396,15 @@ router.post('/friends/request', requireUser, async (req, res, next) => {
     const { data: existing } = await supabaseServiceRole
       .from('friendships')
       .select('*')
-      .or(`and(requester_id.eq.${user.id},receiver_id.eq.${receiver_id}),and(requester_id.eq.${receiver_id},receiver_id.eq.${user.id})`)
+      .or(
+        `and(requester_id.eq.${user.id},receiver_id.eq.${receiver_id}),` +
+          `and(requester_id.eq.${receiver_id},receiver_id.eq.${user.id})`
+      )
       .maybeSingle();
 
     if (existing) {
-      if (existing.status === 'pending') {
-        return res.json({ ok: true, status: 'pending', friendship: existing });
-      }
-      if (existing.status === 'accepted') {
-        return res.json({ ok: true, status: 'accepted', friendship: existing });
-      }
+      if (existing.status === 'pending') return res.json({ ok: true, status: 'pending', friendship: existing });
+      if (existing.status === 'accepted') return res.json({ ok: true, status: 'accepted', friendship: existing });
     }
 
     const { data, error } = await supabaseServiceRole
@@ -419,11 +417,12 @@ router.post('/friends/request', requireUser, async (req, res, next) => {
       })
       .select()
       .single();
+
     if (error) throw error;
 
     await supabaseServiceRole
       .from('profiles')
-      .update({ last_friend_request_at: now.toISOString() })
+      .update({ last_friend_request_at: new Date(now).toISOString() })
       .eq('id', user.id);
 
     res.status(201).json({ ok: true, friendship: data });
@@ -438,9 +437,7 @@ router.post('/friends/respond', requireUser, async (req, res, next) => {
     const { user } = req.auth;
     const { friendship_id, action } = req.body || {};
 
-    if (!friendship_id || !action) {
-      return res.status(400).json({ error: 'friendship_id and action are required' });
-    }
+    if (!friendship_id || !action) return res.status(400).json({ error: 'friendship_id and action are required' });
 
     const { data: friendship } = await supabaseServiceRole
       .from('friendships')
@@ -464,6 +461,7 @@ router.post('/friends/respond', requireUser, async (req, res, next) => {
       .eq('id', friendship_id)
       .select()
       .single();
+
     if (error) throw error;
 
     res.json({ ok: true, friendship: data });
@@ -496,6 +494,7 @@ router.post('/friends/cancel', requireUser, async (req, res, next) => {
       .eq('id', friendship_id)
       .select()
       .single();
+
     if (error) throw error;
 
     res.json({ ok: true, friendship: data });
@@ -528,6 +527,7 @@ router.post('/friends/remove', requireUser, async (req, res, next) => {
       .eq('id', friendship_id)
       .select()
       .single();
+
     if (error) throw error;
 
     res.json({ ok: true, friendship: data });
