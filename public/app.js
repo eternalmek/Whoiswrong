@@ -10,6 +10,9 @@ let currentUser = null;
 // Get token from localStorage and validate it's not a stringified null/undefined
 const storedToken = localStorage.getItem('accessToken');
 let accessToken = (storedToken && storedToken !== 'null' && storedToken !== 'undefined') ? storedToken : null;
+const REFRESH_TOKEN_KEY = 'refreshToken';
+const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+let refreshToken = (storedRefreshToken && storedRefreshToken !== 'null' && storedRefreshToken !== 'undefined') ? storedRefreshToken : null;
 const voterFingerprintKey = 'voterFingerprint';
 const voterFingerprint = (() => {
     const existing = localStorage.getItem(voterFingerprintKey);
@@ -808,6 +811,54 @@ function updateAuthUI() {
     }
 }
 
+function persistSessionTokens({ access_token, refresh_token }) {
+    if (access_token) {
+        accessToken = access_token;
+        localStorage.setItem('accessToken', accessToken);
+    }
+
+    if (refresh_token) {
+        refreshToken = refresh_token;
+        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    }
+}
+
+function clearSessionTokens() {
+    accessToken = null;
+    refreshToken = null;
+    currentUser = null;
+    serverUnlockedJudges = [];
+    serverHasAllAccess = false;
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+async function refreshSession() {
+    if (!refreshToken) return false;
+
+    try {
+        const response = await fetch(`${API_BASE}/api/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: refreshToken })
+        });
+
+        if (!response.ok) {
+            clearSessionTokens();
+            return false;
+        }
+
+        const data = await response.json();
+        persistSessionTokens(data);
+        if (data.user) currentUser = data.user;
+        return true;
+    } catch (error) {
+        console.error('Session refresh failed:', error);
+        clearSessionTokens();
+        return false;
+    }
+}
+
 /**
  * Fetch user's purchases from the server
  * Updates serverUnlockedJudges and serverHasAllAccess variables
@@ -902,41 +953,45 @@ async function savePendingPurchase() {
     }
 }
 
-async function checkAuth() {
+async function checkAuth(hasRefreshed = false) {
     if (!accessToken) {
-        updateAuthUI();
-        return;
+        const refreshed = await refreshSession();
+        if (!refreshed) {
+            updateAuthUI();
+            return;
+        }
     }
-    
+
     try {
         const response = await fetch(`${API_BASE}/api/auth/me`, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`
             }
         });
-        
+
         if (response.ok) {
             const data = await response.json();
             currentUser = data.user;
-            
+
             // Save any pending purchases from before account creation
             await savePendingPurchase();
-            
+
             // Fetch user's purchases from the server
             await fetchUserPurchases();
+        } else if (response.status === 401 && !hasRefreshed) {
+            const refreshed = await refreshSession();
+            if (refreshed) {
+                return checkAuth(true);
+            }
+            clearSessionTokens();
         } else {
-            // Token invalid/expired
-            accessToken = null;
-            localStorage.removeItem('accessToken');
-            currentUser = null;
-            serverUnlockedJudges = [];
-            serverHasAllAccess = false;
+            clearSessionTokens();
         }
     } catch (error) {
         console.error('Auth check failed:', error);
-        currentUser = null;
+        clearSessionTokens();
     }
-    
+
     updateAuthUI();
 }
 
@@ -957,14 +1012,13 @@ async function signup(email, password) {
         }
         
         if (data.access_token) {
-            accessToken = data.access_token;
-            localStorage.setItem('accessToken', accessToken);
+            persistSessionTokens(data);
             currentUser = data.user;
-            
+
             // Save any pending purchases and fetch user purchases
             await savePendingPurchase();
             await fetchUserPurchases();
-            
+
             updateAuthUI();
             hideModal('signupModal');
             showToast('Account created successfully!', 'success');
@@ -1000,8 +1054,7 @@ async function login(email, password) {
             throw new Error('No access token received. Please try again.');
         }
         
-        accessToken = data.access_token;
-        localStorage.setItem('accessToken', accessToken);
+        persistSessionTokens(data);
         currentUser = data.user;
         
         // Save any pending purchases and fetch user purchases
@@ -1019,11 +1072,7 @@ async function login(email, password) {
 }
 
 function logout() {
-    accessToken = null;
-    currentUser = null;
-    serverUnlockedJudges = [];
-    serverHasAllAccess = false;
-    localStorage.removeItem('accessToken');
+    clearSessionTokens();
     updateAuthUI();
     updateJudgeUI(); // Refresh judge UI to show only local/free access
     showToast('Logged out successfully', 'info');
