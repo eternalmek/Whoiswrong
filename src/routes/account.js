@@ -130,7 +130,8 @@ router.get('/profile', requireUser, async (req, res, next) => {
       },
     });
   } catch (err) {
-    next(err);
+    console.error('Account page error', err);
+    res.status(500).json({ error: 'Unable to load account profile right now.' });
   }
 });
 
