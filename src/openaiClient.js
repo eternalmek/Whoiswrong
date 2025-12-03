@@ -18,7 +18,7 @@ async function callOpenAI({ context = '', optionA, optionB, judgePrompt = '', ju
   }
 
   const personaInstruction = judgePrompt
-    ? `\nCELEBRITY JUDGE MODE: ${judgeName}\n${judgePrompt}\n`
+    ? `${judgePrompt}\nStay in character.\nAnalyze the argument.\nDeliver a decisive verdict in your celebrity voice.`
     : '';
 
   const systemInstruction = `
@@ -60,7 +60,7 @@ Return the JSON object described in the system instruction.
         { role: 'user', content: prompt },
       ],
       temperature: 0.2,
-      max_tokens: 200
+      max_tokens: 200,
     },
     {
       headers: {

@@ -31,6 +31,9 @@ const JUDGE_SELECTED_KEY = 'selectedJudgeId';
 const UNLOCKED_KEY = 'unlockedJudgeIds';
 const ALL_ACCESS_KEY = 'hasAllJudgeAccess';
 
+const baseAvatar = (name) =>
+    `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name || 'Judge')}&radius=50&backgroundColor=f8fafc`;
+
 // Priority order for judges (most viral/TikTok-friendly first)
 const JUDGE_PRIORITY = [
     'normal',
@@ -40,7 +43,7 @@ const JUDGE_PRIORITY = [
     'donald-trump',
     'elon-musk',
     'barack-obama',
-    'mr-beast',
+    'mrbeast',
     'kim-kardashian',
     'andrew-tate',
     'gordon-ramsay',
@@ -56,6 +59,20 @@ const FALLBACK_JUDGES = (Array.isArray(window.celebrityJudges) && window.celebri
     ? window.celebrityJudges
     : [{ id: 'normal', name: 'Default AI Judge', emoji: '🤖', description: 'Decisive and balanced.', category: 'Default', systemPrompt: '' }];
 
+function normalizeJudge(judge) {
+    return {
+        ...judge,
+        emoji: judge.emoji || '⭐',
+        systemPrompt: judge.personality_prompt || judge.system_prompt || judge.systemPrompt,
+        avatar_url: judge.photo_url || judge.avatar_url || judge.avatar_placeholder || baseAvatar(judge.name),
+        id: judge.id || judge.slug,
+    };
+}
+
+function getAvatarUrl(judge) {
+    return (judge && (judge.avatar_url || judge.photo_url || judge.avatar_placeholder)) || baseAvatar(judge?.name || 'Judge');
+}
+
 function sortJudges(list) {
     return [...list].sort((a, b) => {
         const aIndex = JUDGE_PRIORITY.indexOf(a.id);
@@ -67,7 +84,7 @@ function sortJudges(list) {
     });
 }
 
-let availableJudges = sortJudges(FALLBACK_JUDGES);
+let availableJudges = sortJudges(FALLBACK_JUDGES.map(normalizeJudge));
 
 function safeParseArray(value, fallback = []) {
     if (!value) return fallback;
@@ -85,11 +102,7 @@ async function loadJudgesFromApi() {
         const data = await response.json();
 
         if (data?.judges?.length) {
-            availableJudges = sortJudges(data.judges.map((judge) => ({
-                ...judge,
-                emoji: judge.emoji || '⭐',
-                systemPrompt: judge.system_prompt || judge.systemPrompt,
-            })));
+            availableJudges = sortJudges(data.judges.map(normalizeJudge));
             if (!availableJudges.find((j) => j.id === selectedJudgeId)) {
                 selectedJudgeId = 'normal';
             }
@@ -97,7 +110,7 @@ async function loadJudgesFromApi() {
         }
     } catch (error) {
         console.warn('Falling back to local judges', error);
-        availableJudges = sortJudges(FALLBACK_JUDGES);
+        availableJudges = sortJudges(FALLBACK_JUDGES.map(normalizeJudge));
         updateJudgeUI();
     }
 }
@@ -155,9 +168,9 @@ const SAMPLE_DEBATES = [
     },
     {
         title: 'Is TikTok better than YouTube?',
-        judge: 'Mr. Beast',
-        judgeId: 'mr-beast',
-        summary: 'Mr Beast picks YouTube for depth, but dares you to prove him wrong with a viral TikTok.'
+        judge: 'MrBeast',
+        judgeId: 'mrbeast',
+        summary: 'MrBeast picks YouTube for depth, but dares you to prove him wrong with a viral TikTok.'
     },
     {
         title: 'Should you text back immediately?',
@@ -405,7 +418,7 @@ function renderJudgeChips() {
         header.className = 'flex items-center gap-2 mb-1';
         const avatar = document.createElement('div');
         avatar.className = 'w-9 h-9 rounded-full overflow-hidden bg-gray-800 flex-shrink-0';
-        avatar.innerHTML = `<img src="${judge.avatar_url || ''}" alt="${judge.name}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=AnimeJudge'" />`;
+        avatar.innerHTML = `<img src="${getAvatarUrl(judge)}" alt="${judge.name}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=AnimeJudge'" />`;
         const meta = document.createElement('div');
         meta.className = 'flex-1';
         meta.innerHTML = `<p class="font-semibold text-white text-sm leading-tight truncate">${judge.name}</p><p class="text-[11px] text-gray-400 truncate">${judge.description || 'Celebrity AI judge'}</p>`;
@@ -1045,7 +1058,7 @@ function getJudgeVisual(judgeId) {
     const judge = availableJudges.find((j) => j.id === judgeId) || availableJudges[0] || {};
     return {
         name: judge.name || 'AI Judge',
-        avatar: judge.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(judge.name || 'Judge')}`,
+        avatar: getAvatarUrl(judge),
     };
 }
 

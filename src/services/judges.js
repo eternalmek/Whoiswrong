@@ -1,42 +1,81 @@
 const { supabaseServiceRole } = require('../supabaseClient');
 const { celebrityJudges } = require('../data/judges');
+const { ensureJudgeAvatars } = require('./judgeAvatars');
 
 function getLocalJudges() {
   return celebrityJudges;
 }
 
-async function seedJudgesIfEmpty() {
+async function seedJudgesIfMissing() {
   if (!supabaseServiceRole) return getLocalJudges();
 
-  const { count, error } = await supabaseServiceRole
+  const { data: existing, error } = await supabaseServiceRole
     .from('judges')
-    .select('id', { head: true, count: 'exact' });
+    .select('id, slug, personality_prompt, photo_url, category');
 
   if (error) {
     console.warn('Unable to check judges table, using fallback list.', error);
     return getLocalJudges();
   }
 
-  if ((count || 0) === 0) {
+  const existingSlugs = new Set((existing || []).map((j) => j.slug));
+  const existingBySlug = new Map((existing || []).map((row) => [row.slug, row]));
+  const missing = celebrityJudges.filter((judge) => !existingSlugs.has(judge.slug));
+
+  const needsPatch = celebrityJudges.filter((judge) => {
+    const current = existingBySlug.get(judge.slug);
+    if (!current) return false;
+    return !current.personality_prompt || !current.category;
+  });
+
+  if (missing.length > 0) {
     const { error: insertError } = await supabaseServiceRole
       .from('judges')
       .upsert(
-        celebrityJudges.map((judge) => ({
+        missing.map((judge) => ({
           id: judge.id,
           slug: judge.slug,
           name: judge.name,
+          category: judge.category,
           is_celebrity: judge.is_celebrity,
           is_default_free: judge.is_default_free,
-          avatar_url: judge.avatar_url,
+          photo_url: judge.photo_url,
           description: judge.description,
-          system_prompt: judge.system_prompt,
+          personality_prompt: judge.personality_prompt,
           is_active: judge.is_active,
         })),
-        { onConflict: 'id' }
+        { onConflict: 'slug' }
       );
 
     if (insertError) {
       console.warn('Unable to seed judges table, using fallback list.', insertError);
+    }
+  }
+
+  if (needsPatch.length > 0) {
+    const { error: patchError } = await supabaseServiceRole
+      .from('judges')
+      .upsert(
+        needsPatch.map((judge) => {
+          const current = existingBySlug.get(judge.slug) || {};
+          return {
+            id: judge.id,
+            slug: judge.slug,
+            name: judge.name,
+            category: judge.category,
+            is_celebrity: judge.is_celebrity,
+            is_default_free: judge.is_default_free,
+            photo_url: current.photo_url || judge.photo_url,
+            description: judge.description,
+            personality_prompt: judge.personality_prompt,
+            is_active: judge.is_active,
+          };
+        }),
+        { onConflict: 'slug' }
+      );
+
+    if (patchError) {
+      console.warn('Unable to patch judges fields', patchError);
     }
   }
 
@@ -48,7 +87,8 @@ async function fetchJudges() {
 
   if (!supabaseServiceRole) return fallback;
 
-  await seedJudgesIfEmpty();
+  await seedJudgesIfMissing();
+  await ensureJudgeAvatars();
 
   const { data, error } = await supabaseServiceRole
     .from('judges')
@@ -62,7 +102,11 @@ async function fetchJudges() {
     return fallback;
   }
 
-  return data;
+  return data.map((judge) => ({
+    ...judge,
+    photo_url: judge.photo_url || judge.avatar_url || null,
+    personality_prompt: judge.personality_prompt || judge.system_prompt,
+  }));
 }
 
 async function getJudgeById(id) {
@@ -76,6 +120,6 @@ async function getJudgeById(id) {
 module.exports = {
   getJudgeById,
   fetchJudges,
-  seedJudgesIfEmpty,
+  seedJudgesIfMissing,
   getLocalJudges,
 };

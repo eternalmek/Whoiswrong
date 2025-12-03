@@ -2,7 +2,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 /**
  * Supabase Configuration
- * 
+ *
  * To get these values from your Supabase project:
  * 1. Go to https://supabase.com and open your project
  * 2. Navigate to: Settings → API

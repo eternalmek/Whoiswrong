@@ -12,7 +12,8 @@
     "db:reset": "npx supabase db reset",
     "db:migrate": "npx supabase migration up",
     "db:diff": "npx supabase db diff",
-    "db:push": "npx supabase db push"
+    "db:push": "npx supabase db push",
+    "generate:avatars": "node src/scripts/generateAvatars.js"
   },
   "engines": {
     "node": ">=18"
