@@ -128,6 +128,8 @@ Use this option if you prefer to connect to a hosted Supabase project.
    | `SUPABASE_ANON_KEY` | **anon public** key under "Project API keys" |
    | `SUPABASE_SERVICE_ROLE_KEY` | **service_role** key under "Project API keys" |
 
+   > If your hosting platform restricts environment variable names ending with `_KEY`, you can set `SUPABASE_SERVICE_ROLE` instead; the server will use either name.
+
    > ⚠️ **Security Note**: The `service_role` key has elevated privileges. Never expose it in client-side code or commit it to version control!
 
 4. Update your `.env` file with the values:
