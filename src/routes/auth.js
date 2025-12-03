@@ -3,6 +3,19 @@ const router = express.Router();
 const { supabasePublic, supabaseServiceRole } = require('../supabaseClient');
 const { requireUser } = require('../middleware/auth');
 
+async function ensureProfile(user) {
+  if (!supabaseServiceRole || !user?.id) return;
+  await supabaseServiceRole
+    .from('profiles')
+    .upsert(
+      { id: user.id, display_name: user.email ? user.email.split('@')[0] : null },
+      { onConflict: 'id' }
+    )
+    .select()
+    .single()
+    .catch(() => {});
+}
+
 // POST /api/auth/signup
 router.post('/signup', async (req, res, next) => {
   try {
@@ -23,6 +36,8 @@ router.post('/signup', async (req, res, next) => {
     if (error) {
       return res.status(400).json({ error: error.message });
     }
+
+    await ensureProfile(data.user);
 
     return res.status(201).json({
       ok: true,
@@ -55,6 +70,8 @@ router.post('/login', async (req, res, next) => {
     if (error) {
       return res.status(401).json({ error: error.message });
     }
+
+    await ensureProfile(data.user);
 
     return res.json({
       ok: true,

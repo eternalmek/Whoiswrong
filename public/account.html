@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Account – WhoIsWrong.io</title>
-    <meta name="description" content="Manage your WhoIsWrong.io account">
-    
+    <meta name="description" content="Manage your WhoIsWrong.io account, privacy, and friends.">
+
     <!-- Theme Color -->
     <meta name="theme-color" content="#0a0a0a">
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <script>
         tailwind.config = {
             theme: {
@@ -23,12 +23,19 @@
                     fontFamily: {
                         'display': ['Oswald', 'sans-serif'],
                         'sans': ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'brand': {
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                        }
                     }
                 }
             }
         }
     </script>
-    
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -36,51 +43,39 @@
             color: white;
             overflow-x: hidden;
         }
-        
+
         h1, h2, h3, .font-display {
             font-family: 'Oswald', sans-serif;
         }
-        
+
         .glass-panel {
             background: rgba(20, 20, 20, 0.9);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        
+
         .fade-in {
-            animation: fadeIn 0.4s ease-out forwards;
+            animation: fadeIn 0.3s ease-out forwards;
         }
-        
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
-        /* Custom scrollbar */
+
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
         }
-        ::-webkit-scrollbar-track {
-            background: #1a1a1a; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #444; 
-            border-radius: 4px;
-        }
-        
-        /* Mobile touch targets */
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+
         @media (max-width: 640px) {
-            button, input {
-                min-height: 48px;
-                font-size: 16px !important;
-            }
+            button, input, textarea { min-height: 44px; font-size: 16px !important; }
         }
     </style>
 </head>
 <body class="min-h-screen">
-    
-    <!-- Navigation -->
     <nav class="fixed top-0 left-0 right-0 z-50 glass-panel">
         <div class="max-w-6xl mx-auto px-4 py-3">
             <div class="flex items-center justify-between">
@@ -90,7 +85,6 @@
                         Who Is <span class="text-red-500">Wrong?</span>
                     </span>
                 </a>
-                
                 <div class="flex items-center gap-2 sm:gap-3">
                     <a href="/" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-1">
                         <i class="fas fa-gavel"></i> <span class="hidden sm:inline">Judge</span>
@@ -102,102 +96,245 @@
             </div>
         </div>
     </nav>
-    
-    <!-- Loading State -->
+
     <div id="loadingState" class="pt-20 sm:pt-24 pb-12 sm:pb-16 px-4 text-center">
         <div class="max-w-md mx-auto">
             <div class="animate-spin text-4xl mb-4">⚖️</div>
             <p class="text-gray-400 text-sm sm:text-base">Loading your account...</p>
         </div>
     </div>
-    
-    <!-- Login Required State -->
+
     <div id="loginRequired" class="hidden pt-20 sm:pt-24 pb-12 sm:pb-16 px-4">
         <div class="max-w-md mx-auto text-center">
             <div class="glass-panel p-6 sm:p-8 rounded-2xl">
                 <div class="text-5xl sm:text-6xl mb-3 sm:mb-4">🔒</div>
                 <h1 class="font-display text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Login Required</h1>
                 <p class="text-gray-400 text-sm sm:text-base mb-4 sm:mb-6">You need to be logged in to access your account.</p>
-                <a href="/" class="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 sm:px-8 rounded-xl transition">
-                    Go to Home & Login
+                <a href="/" class="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition">
+                    Go to Home
                 </a>
             </div>
         </div>
     </div>
-    
-    <!-- Account Content -->
-    <main id="accountContent" class="hidden pt-20 sm:pt-24 pb-12 sm:pb-16 px-4 fade-in">
-        <div class="max-w-2xl mx-auto">
-            
-            <!-- Header -->
-            <header class="text-center mb-6 sm:mb-8">
+
+    <main id="accountContent" class="hidden pt-20 sm:pt-24 pb-16 px-4 fade-in">
+        <div class="max-w-5xl mx-auto">
+            <header class="text-center mb-8 sm:mb-10">
                 <h1 class="font-display text-3xl sm:text-4xl font-bold mb-2">My Account</h1>
-                <p class="text-gray-400 text-sm sm:text-base">Manage your account and view history</p>
+                <p class="text-gray-400 text-sm sm:text-base">Manage your profile, privacy, and friends.</p>
             </header>
-            
-            <!-- Profile Section -->
-            <section class="glass-panel p-4 sm:p-6 rounded-2xl mb-4 sm:mb-6">
-                <h2 class="font-display text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2">
-                    <i class="fas fa-user text-red-500"></i>
-                    Profile
-                </h2>
-                
-                <div class="space-y-3 sm:space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
-                        <div id="userEmailDisplay" class="text-white text-base sm:text-lg break-all">Loading...</div>
+
+            <div class="glass-panel rounded-2xl p-4 sm:p-6 mb-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 rounded-full bg-gray-800 flex items-center justify-center text-2xl" id="avatarPreview">🧑</div>
+                        <div>
+                            <div class="text-sm text-gray-400" id="emailPreview"></div>
+                            <div class="text-xl font-bold" id="displayNamePreview">Loading...</div>
+                            <div class="text-gray-400 text-sm" id="usernamePreview"></div>
+                        </div>
                     </div>
-                    
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Account Created</label>
-                        <div id="userCreatedAt" class="text-gray-300 text-sm sm:text-base">Loading...</div>
+                    <div class="flex gap-3 text-center">
+                        <div>
+                            <div class="text-xl font-bold" id="statDebates">0</div>
+                            <div class="text-xs text-gray-400">Debates</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold" id="statFriends">0</div>
+                            <div class="text-xs text-gray-400">Friends</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold" id="statJudges">0</div>
+                            <div class="text-xs text-gray-400">Judges</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6" id="tabButtons">
+                <button data-tab="overview" class="tab-btn bg-red-600 text-white rounded-xl py-2 text-sm font-semibold">Overview</button>
+                <button data-tab="profile" class="tab-btn bg-gray-800 hover:bg-gray-700 rounded-xl py-2 text-sm font-semibold">Profile</button>
+                <button data-tab="friends" class="tab-btn bg-gray-800 hover:bg-gray-700 rounded-xl py-2 text-sm font-semibold">Friends</button>
+                <button data-tab="security" class="tab-btn bg-gray-800 hover:bg-gray-700 rounded-xl py-2 text-sm font-semibold">Security</button>
+            </div>
+
+            <section id="tab-overview" class="tab-panel space-y-6">
+                <div class="grid gap-4 lg:grid-cols-2">
+                    <div class="glass-panel p-4 sm:p-6 rounded-2xl space-y-4">
+                        <div class="flex items-center gap-2 text-lg font-display font-bold">
+                            <i class="fas fa-chart-line text-red-500"></i> Account Overview
+                        </div>
+                        <div class="grid sm:grid-cols-2 gap-3 text-sm text-gray-300">
+                            <div>
+                                <div class="text-gray-500 uppercase text-xs">Email</div>
+                                <div id="overviewEmail" class="break-all"></div>
+                            </div>
+                            <div>
+                                <div class="text-gray-500 uppercase text-xs">Created</div>
+                                <div id="overviewCreated">-</div>
+                            </div>
+                            <div>
+                                <div class="text-gray-500 uppercase text-xs">Profile Visibility</div>
+                                <div id="overviewVisibility">-</div>
+                            </div>
+                            <div>
+                                <div class="text-gray-500 uppercase text-xs">Friend Requests</div>
+                                <div id="overviewRequests">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-4 sm:p-6 rounded-2xl">
+                        <div class="flex items-center gap-2 text-lg font-display font-bold mb-3">
+                            <i class="fas fa-users text-red-500"></i> Friends' Latest Debates
+                        </div>
+                        <div id="friendsDebates" class="space-y-3 text-sm text-gray-300">
+                            <div class="text-gray-500">No friend activity yet.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 sm:p-6 rounded-2xl">
+                    <div class="flex items-center gap-2 text-lg font-display font-bold mb-3">
+                        <i class="fas fa-history text-red-500"></i> My Verdicts
+                    </div>
+                    <div id="historyList" class="space-y-3"></div>
+                    <div id="noHistory" class="hidden text-center text-gray-400 py-6 sm:py-8">
+                        <div class="text-3xl sm:text-4xl mb-3 sm:mb-4">📜</div>
+                        <p class="text-sm sm:text-base">You haven't judged any battles yet!</p>
+                        <a href="/" class="inline-block mt-3 sm:mt-4 text-red-400 hover:text-red-300 text-sm">Start judging now <i class="fas fa-arrow-right ml-1"></i></a>
                     </div>
                 </div>
             </section>
-            
-            <!-- History Section -->
-            <section class="glass-panel p-4 sm:p-6 rounded-2xl mb-4 sm:mb-6">
-                <h2 class="font-display text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2">
-                    <i class="fas fa-history text-red-500"></i>
-                    My Verdicts
-                </h2>
-                
-                <div id="historyList" class="space-y-3 sm:space-y-4">
-                    <div class="text-center text-gray-400 py-4 text-sm">
-                        <i class="fas fa-spinner fa-spin mr-2"></i>
-                        Loading your verdicts...
+
+            <section id="tab-profile" class="tab-panel hidden space-y-6">
+                <div class="glass-panel p-4 sm:p-6 rounded-2xl space-y-4">
+                    <div class="flex items-center gap-2 text-lg font-display font-bold">
+                        <i class="fas fa-user text-red-500"></i> Profile Settings
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Display Name</label>
+                            <input id="displayNameInput" type="text" maxlength="120" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition placeholder-gray-600" placeholder="How should we show you?">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Username</label>
+                            <input id="usernameInput" type="text" maxlength="20" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition placeholder-gray-600" placeholder="user_name">
+                            <div id="usernameHint" class="text-xs mt-1 text-gray-500">3-20 characters, letters/numbers/underscores only.</div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Avatar URL</label>
+                            <input id="avatarInput" type="url" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition placeholder-gray-600" placeholder="https://...">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Country</label>
+                            <input id="countryInput" type="text" maxlength="80" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition placeholder-gray-600" placeholder="Country or region">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Bio</label>
+                        <textarea id="bioInput" rows="3" maxlength="500" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition placeholder-gray-600" placeholder="Tell the world about you (keep it classy)"></textarea>
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-4 text-sm">
+                        <label class="flex items-center gap-3 bg-gray-900/50 p-3 rounded-lg border border-gray-800">
+                            <input id="publicToggle" type="checkbox" class="h-4 w-4 text-red-500 focus:ring-red-500 rounded">
+                            <div>
+                                <div class="font-semibold">Public profile</div>
+                                <div class="text-gray-400 text-xs">Allow others to view your profile card.</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 bg-gray-900/50 p-3 rounded-lg border border-gray-800">
+                            <input id="requestsToggle" type="checkbox" class="h-4 w-4 text-red-500 focus:ring-red-500 rounded">
+                            <div>
+                                <div class="font-semibold">Allow friend requests</div>
+                                <div class="text-gray-400 text-xs">Let people send you friend requests.</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 bg-gray-900/50 p-3 rounded-lg border border-gray-800">
+                            <input id="wallToggle" type="checkbox" class="h-4 w-4 text-red-500 focus:ring-red-500 rounded">
+                            <div>
+                                <div class="font-semibold">Show debates on wall</div>
+                                <div class="text-gray-400 text-xs">Share debates with friends.</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 bg-gray-900/50 p-3 rounded-lg border border-gray-800">
+                            <input id="notificationsToggle" type="checkbox" class="h-4 w-4 text-red-500 focus:ring-red-500 rounded">
+                            <div>
+                                <div class="font-semibold">Notifications</div>
+                                <div class="text-gray-400 text-xs">Save preference for future alerts.</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div id="profileStatus" class="text-sm text-gray-400"></div>
+                        <button id="saveProfileBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-5 rounded-xl transition text-sm">Save Changes</button>
                     </div>
                 </div>
-                
-                <div id="noHistory" class="hidden text-center text-gray-400 py-6 sm:py-8">
-                    <div class="text-3xl sm:text-4xl mb-3 sm:mb-4">📜</div>
-                    <p class="text-sm sm:text-base">You haven't judged any battles yet!</p>
-                    <a href="/" class="inline-block mt-3 sm:mt-4 text-red-400 hover:text-red-300 text-sm">
-                        Start judging now <i class="fas fa-arrow-right ml-1"></i>
-                    </a>
+            </section>
+
+            <section id="tab-friends" class="tab-panel hidden space-y-6">
+                <div class="glass-panel p-4 sm:p-6 rounded-2xl space-y-4">
+                    <div class="flex items-center gap-2 text-lg font-display font-bold">
+                        <i class="fas fa-user-friends text-red-500"></i> Find Friends
+                    </div>
+                    <div class="relative">
+                        <input id="searchInput" type="text" placeholder="Search by username or display name" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition placeholder-gray-600">
+                        <i class="fas fa-search absolute right-3 top-3 text-gray-500"></i>
+                    </div>
+                    <div id="searchResults" class="space-y-3 text-sm"></div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="glass-panel p-4 sm:p-6 rounded-2xl">
+                        <div class="flex items-center gap-2 text-lg font-display font-bold mb-3">
+                            <i class="fas fa-inbox text-red-500"></i> Incoming Requests
+                        </div>
+                        <div id="incomingList" class="space-y-3 text-sm text-gray-200"></div>
+                    </div>
+                    <div class="glass-panel p-4 sm:p-6 rounded-2xl">
+                        <div class="flex items-center gap-2 text-lg font-display font-bold mb-3">
+                            <i class="fas fa-paper-plane text-red-500"></i> Outgoing Requests
+                        </div>
+                        <div id="outgoingList" class="space-y-3 text-sm text-gray-200"></div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 sm:p-6 rounded-2xl">
+                    <div class="flex items-center gap-2 text-lg font-display font-bold mb-3">
+                        <i class="fas fa-heart text-red-500"></i> Friends
+                    </div>
+                    <div id="friendsList" class="space-y-3 text-sm text-gray-200"></div>
                 </div>
             </section>
-            
-            <!-- Danger Zone -->
-            <section class="glass-panel p-4 sm:p-6 rounded-2xl border border-red-900/50">
-                <h2 class="font-display text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2 text-red-400">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    Danger Zone
-                </h2>
-                
-                <p class="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">
-                    Deleting your account is permanent. All your data will be removed.
-                </p>
-                
-                <button onclick="confirmDeleteAccount()" class="bg-red-900/50 hover:bg-red-800 text-red-400 hover:text-white font-bold py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl transition border border-red-700/50 text-sm">
-                    <i class="fas fa-trash-alt mr-2"></i>
-                    Delete My Account
-                </button>
+
+            <section id="tab-security" class="tab-panel hidden space-y-6">
+                <div class="glass-panel p-4 sm:p-6 rounded-2xl space-y-4">
+                    <div class="flex items-center gap-2 text-lg font-display font-bold">
+                        <i class="fas fa-shield-alt text-red-500"></i> Security
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-4 text-sm">
+                        <div class="bg-gray-900/40 p-3 rounded-lg">
+                            <div class="text-gray-500 uppercase text-xs">Email</div>
+                            <div id="securityEmail" class="break-all"></div>
+                        </div>
+                        <div class="bg-gray-900/40 p-3 rounded-lg">
+                            <div class="text-gray-500 uppercase text-xs">Email Verified</div>
+                            <div id="securityVerified">-</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="logout()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-5 rounded-xl transition text-sm flex items-center gap-2">
+                            <i class="fas fa-sign-out-alt"></i> Log out
+                        </button>
+                        <button onclick="confirmDeleteAccount()" class="bg-red-900/50 hover:bg-red-800 text-red-300 hover:text-white font-bold py-3 px-5 rounded-xl transition text-sm border border-red-800 flex items-center gap-2">
+                            <i class="fas fa-trash"></i> Delete my account
+                        </button>
+                    </div>
+                </div>
             </section>
         </div>
     </main>
-    
-    <!-- Delete Confirmation Modal -->
+
     <div id="deleteModal" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="hideDeleteModal()"></div>
         <div class="flex items-center justify-center min-h-screen p-4">
@@ -207,302 +344,633 @@
                     <h3 class="font-display text-2xl font-bold text-red-400">Delete Account?</h3>
                     <p class="text-gray-400 text-sm mt-2">This action cannot be undone. All your data will be permanently deleted.</p>
                 </div>
-                
+
                 <div class="mb-6">
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-2">
-                        Type "DELETE" to confirm
-                    </label>
-                    <input type="text" id="deleteConfirmInput" placeholder="DELETE"
-                        class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition placeholder-gray-600">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Type "DELETE" to confirm</label>
+                    <input type="text" id="deleteConfirmInput" placeholder="DELETE" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition placeholder-gray-600">
                 </div>
-                
+
                 <div id="deleteError" class="hidden text-red-400 text-sm text-center p-2 bg-red-900/30 rounded mb-4"></div>
-                
+
                 <div class="flex gap-3">
-                    <button onclick="hideDeleteModal()" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition">
-                        Cancel
-                    </button>
-                    <button onclick="deleteAccount()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition">
-                        Delete Forever
-                    </button>
+                    <button onclick="hideDeleteModal()" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition">Cancel</button>
+                    <button onclick="deleteAccount()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition">Delete Forever</button>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Toast Notification -->
+
     <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg hidden z-50 flex items-center gap-3">
         <i id="toastIcon" class="fas fa-check-circle text-green-400"></i>
         <span id="toastMessage">Success!</span>
     </div>
-    
+
     <script>
-        // --- Configuration ---
         const API_BASE = window.location.origin;
-        
-        // --- Auth State ---
-        let currentUser = null;
         let accessToken = localStorage.getItem('accessToken') || null;
-        
-        // --- DOM Elements ---
+        let currentUser = null;
+        let profileData = null;
+        let statsData = null;
+        let friendsData = { incoming: [], outgoing: [], friends: [] };
+        let friendsDebates = [];
+        let usernameCheckTimeout = null;
+        let searchTimeout = null;
+
         const loadingState = document.getElementById('loadingState');
         const loginRequired = document.getElementById('loginRequired');
         const accountContent = document.getElementById('accountContent');
-        
-        // ==========================================
-        // Initialization
-        // ==========================================
-        
+
+        function setAvatarPreview(url) {
+            const el = document.getElementById('avatarPreview');
+            if (url) {
+                el.style.backgroundImage = `url(${url})`;
+                el.style.backgroundSize = 'cover';
+                el.textContent = '';
+            } else {
+                el.style.backgroundImage = '';
+                el.textContent = '🧑';
+            }
+        }
+
         async function init() {
             if (!accessToken) {
                 showLoginRequired();
                 return;
             }
-            
+
             try {
-                // Fetch user info
-                const response = await fetch(`${API_BASE}/api/auth/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`
-                    }
+                const response = await fetch(`${API_BASE}/api/account/profile`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
-                
+
                 if (!response.ok) {
                     showLoginRequired();
                     return;
                 }
-                
+
                 const data = await response.json();
-                currentUser = data.user;
-                
+                currentUser = { id: data.profile.id, email: data.auth?.email, created_at: data.profile.created_at };
+                profileData = data.profile;
+                statsData = data.stats;
+                friendsDebates = data.friendsDebates || [];
+
                 showAccountContent();
-                await loadHistory();
-                
+                populateOverview(data);
+                populateProfileForm();
+                renderFriendsDebates();
+                loadHistory();
+                loadFriends();
             } catch (error) {
                 console.error('Init error:', error);
                 showLoginRequired();
             }
         }
-        
+
         function showLoginRequired() {
             loadingState.classList.add('hidden');
             loginRequired.classList.remove('hidden');
             accountContent.classList.add('hidden');
         }
-        
+
         function showAccountContent() {
             loadingState.classList.add('hidden');
             loginRequired.classList.add('hidden');
             accountContent.classList.remove('hidden');
-            
-            // Populate user info
-            document.getElementById('userEmailDisplay').innerText = currentUser.email || 'Unknown';
-            
-            const createdAt = currentUser.created_at ? 
-                new Date(currentUser.created_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                }) : 'Unknown';
-            document.getElementById('userCreatedAt').innerText = createdAt;
         }
-        
-        // ==========================================
-        // History
-        // ==========================================
-        
+
+        function populateOverview(data) {
+            document.getElementById('emailPreview').textContent = data.auth?.email || 'Unknown';
+            document.getElementById('overviewEmail').textContent = data.auth?.email || 'Unknown';
+            document.getElementById('securityEmail').textContent = data.auth?.email || 'Unknown';
+            document.getElementById('securityVerified').textContent = data.auth?.email_confirmed_at ? 'Yes' : 'No';
+
+            document.getElementById('displayNamePreview').textContent = profileData.display_name || 'New User';
+            document.getElementById('usernamePreview').textContent = profileData.username ? `@${profileData.username}` : 'No username set';
+            document.getElementById('statDebates').textContent = data.stats?.debates || 0;
+            document.getElementById('statFriends').textContent = data.stats?.friends || 0;
+            document.getElementById('statJudges').textContent = data.stats?.unlockedJudges || 0;
+
+            document.getElementById('overviewVisibility').textContent = profileData.is_public_profile ? 'Public' : 'Private';
+            document.getElementById('overviewRequests').textContent = profileData.allow_friend_requests === false ? 'Disabled' : 'Allowed';
+
+            if (currentUser?.id && currentUser?.created_at) {
+                document.getElementById('overviewCreated').textContent = new Date(currentUser.created_at).toLocaleDateString();
+            } else if (data.profile?.created_at) {
+                document.getElementById('overviewCreated').textContent = new Date(data.profile.created_at).toLocaleDateString();
+            }
+
+            setAvatarPreview(profileData.avatar_url);
+        }
+
+        function populateProfileForm() {
+            document.getElementById('displayNameInput').value = profileData.display_name || '';
+            document.getElementById('usernameInput').value = profileData.username || '';
+            document.getElementById('avatarInput').value = profileData.avatar_url || '';
+            document.getElementById('countryInput').value = profileData.country || '';
+            document.getElementById('bioInput').value = profileData.bio || '';
+            document.getElementById('publicToggle').checked = profileData.is_public_profile !== false;
+            document.getElementById('requestsToggle').checked = profileData.allow_friend_requests !== false;
+            document.getElementById('wallToggle').checked = profileData.show_debates_on_wall !== false;
+            document.getElementById('notificationsToggle').checked = profileData.allow_notifications !== false;
+        }
+
+        function debounceUsernameCheck() {
+            const username = document.getElementById('usernameInput').value.trim();
+            const hint = document.getElementById('usernameHint');
+            if (!username) {
+                hint.textContent = 'Username is optional. 3-20 characters, letters/numbers/underscores only.';
+                hint.className = 'text-xs mt-1 text-gray-500';
+                return;
+            }
+
+            if (usernameCheckTimeout) clearTimeout(usernameCheckTimeout);
+            usernameCheckTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(`${API_BASE}/api/account/username-check?username=${encodeURIComponent(username)}`, {
+                        headers: { 'Authorization': `Bearer ${accessToken}` }
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                        hint.textContent = data.error || 'Invalid username';
+                        hint.className = 'text-xs mt-1 text-red-400';
+                        return;
+                    }
+                    if (data.available) {
+                        hint.textContent = 'Username available!';
+                        hint.className = 'text-xs mt-1 text-green-400';
+                    } else {
+                        hint.textContent = 'Username already taken.';
+                        hint.className = 'text-xs mt-1 text-red-400';
+                    }
+                } catch (err) {
+                    hint.textContent = 'Unable to check availability right now.';
+                    hint.className = 'text-xs mt-1 text-red-400';
+                }
+            }, 400);
+        }
+
+        async function saveProfile() {
+            const payload = {
+                display_name: document.getElementById('displayNameInput').value.trim(),
+                username: document.getElementById('usernameInput').value.trim(),
+                avatar_url: document.getElementById('avatarInput').value.trim(),
+                country: document.getElementById('countryInput').value.trim(),
+                bio: document.getElementById('bioInput').value.trim(),
+                is_public_profile: document.getElementById('publicToggle').checked,
+                allow_friend_requests: document.getElementById('requestsToggle').checked,
+                show_debates_on_wall: document.getElementById('wallToggle').checked,
+                allow_notifications: document.getElementById('notificationsToggle').checked,
+            };
+
+            const statusEl = document.getElementById('profileStatus');
+            statusEl.textContent = 'Saving...';
+            statusEl.className = 'text-sm text-gray-400';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/account/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to save profile');
+
+                profileData = data.profile;
+                populateOverview({ profile: profileData, stats: statsData, auth: { email: currentUser?.email } });
+                populateProfileForm();
+                showToast('Profile updated');
+                statusEl.textContent = 'Saved';
+                statusEl.className = 'text-sm text-green-400';
+                renderFriendsDebates();
+            } catch (err) {
+                statusEl.textContent = err.message;
+                statusEl.className = 'text-sm text-red-400';
+            }
+        }
+
+        async function loadFriends() {
+            try {
+                const res = await fetch(`${API_BASE}/api/account/friends`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to load friends');
+                friendsData = data;
+                renderFriends();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function renderFriends() {
+            const incomingList = document.getElementById('incomingList');
+            const outgoingList = document.getElementById('outgoingList');
+            const friendsList = document.getElementById('friendsList');
+
+            const friendsCount = friendsData.friends?.length || 0;
+            document.getElementById('statFriends').textContent = friendsCount;
+            if (statsData) statsData.friends = friendsCount;
+
+            incomingList.innerHTML = friendsData.incoming.length ? '' : '<div class="text-gray-500">No incoming requests.</div>';
+            outgoingList.innerHTML = friendsData.outgoing.length ? '' : '<div class="text-gray-500">No outgoing requests.</div>';
+            friendsList.innerHTML = friendsData.friends.length ? '' : '<div class="text-gray-500">No friends yet.</div>';
+
+            const renderCard = (item, actions) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex items-center justify-between bg-gray-900/50 p-3 rounded-lg border border-gray-800';
+                const left = document.createElement('div');
+                left.className = 'flex items-center gap-3';
+                const avatar = document.createElement('div');
+                avatar.className = 'w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-lg';
+                if (item.other_user?.avatar_url) {
+                    avatar.style.backgroundImage = `url(${item.other_user.avatar_url})`;
+                    avatar.style.backgroundSize = 'cover';
+                    avatar.textContent = '';
+                } else {
+                    avatar.textContent = '🧑';
+                }
+                const info = document.createElement('div');
+                info.innerHTML = `<div class="font-semibold">${item.other_user?.display_name || 'User'}</div><div class="text-xs text-gray-400">${item.other_user?.username ? '@' + item.other_user.username : 'No username'}</div>`;
+                left.appendChild(avatar);
+                left.appendChild(info);
+                wrapper.appendChild(left);
+
+                const actionWrap = document.createElement('div');
+                actionWrap.className = 'flex gap-2';
+                actions.forEach((btn) => actionWrap.appendChild(btn));
+                wrapper.appendChild(actionWrap);
+                return wrapper;
+            };
+
+            friendsData.incoming.forEach((item) => {
+                const acceptBtn = document.createElement('button');
+                acceptBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-xs';
+                acceptBtn.textContent = 'Accept';
+                acceptBtn.onclick = () => respondRequest(item.id, 'accept');
+
+                const declineBtn = document.createElement('button');
+                declineBtn.className = 'bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-xs';
+                declineBtn.textContent = 'Decline';
+                declineBtn.onclick = () => respondRequest(item.id, 'decline');
+
+                incomingList.appendChild(renderCard(item, [acceptBtn, declineBtn]));
+            });
+
+            friendsData.outgoing.forEach((item) => {
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-xs';
+                cancelBtn.textContent = 'Cancel';
+                cancelBtn.onclick = () => cancelRequest(item.id);
+                outgoingList.appendChild(renderCard(item, [cancelBtn]));
+            });
+
+            friendsData.friends.forEach((item) => {
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg text-xs';
+                removeBtn.textContent = 'Remove';
+                removeBtn.onclick = () => removeFriend(item.id);
+                friendsList.appendChild(renderCard(item, [removeBtn]));
+            });
+        }
+
+        async function searchUsers() {
+            const term = document.getElementById('searchInput').value.trim();
+            const list = document.getElementById('searchResults');
+            if (!term) {
+                list.innerHTML = '<div class="text-gray-500">Type to search for users.</div>';
+                return;
+            }
+
+            list.innerHTML = '<div class="text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Searching...</div>';
+            try {
+                const res = await fetch(`${API_BASE}/api/account/search?query=${encodeURIComponent(term)}`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Search failed');
+
+                if (!data.results.length) {
+                    list.innerHTML = '<div class="text-gray-500">No users found.</div>';
+                    return;
+                }
+
+                list.innerHTML = '';
+                data.results.forEach((user) => {
+                    const card = document.createElement('div');
+                    card.className = 'flex items-center justify-between bg-gray-900/50 p-3 rounded-lg border border-gray-800';
+
+                    const left = document.createElement('div');
+                    left.className = 'flex items-center gap-3';
+                    const avatar = document.createElement('div');
+                    avatar.className = 'w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-lg';
+                    if (user.avatar_url) {
+                        avatar.style.backgroundImage = `url(${user.avatar_url})`;
+                        avatar.style.backgroundSize = 'cover';
+                        avatar.textContent = '';
+                    } else {
+                        avatar.textContent = '🧑';
+                    }
+                    const info = document.createElement('div');
+                    info.innerHTML = `<div class="font-semibold">${user.display_name || 'User'}</div><div class="text-xs text-gray-400">${user.username ? '@' + user.username : 'No username'}</div>`;
+                    left.appendChild(avatar);
+                    left.appendChild(info);
+                    card.appendChild(left);
+
+                    const btn = document.createElement('button');
+                    btn.className = 'bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-xs';
+
+                    if (user.status === 'accepted') {
+                        btn.textContent = 'Friends';
+                        btn.disabled = true;
+                        btn.className = 'bg-green-700 text-white px-3 py-2 rounded-lg text-xs opacity-80';
+                    } else if (user.status === 'pending') {
+                        btn.textContent = user.is_requester ? 'Pending (sent)' : 'Pending';
+                        btn.disabled = true;
+                        btn.className = 'bg-gray-700 text-white px-3 py-2 rounded-lg text-xs opacity-80';
+                    } else {
+                        btn.textContent = 'Add Friend';
+                        btn.onclick = () => sendRequest(user.id);
+                    }
+
+                    card.appendChild(btn);
+                    list.appendChild(card);
+                });
+            } catch (err) {
+                list.innerHTML = `<div class="text-red-400">${err.message}</div>`;
+            }
+        }
+
+        async function sendRequest(receiverId) {
+            try {
+                const res = await fetch(`${API_BASE}/api/account/friends/request`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({ receiver_id: receiverId })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Could not send request');
+                showToast('Friend request sent');
+                loadFriends();
+                searchUsers();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function respondRequest(id, action) {
+            try {
+                const res = await fetch(`${API_BASE}/api/account/friends/respond`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({ friendship_id: id, action })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to update request');
+                showToast('Updated request');
+                loadFriends();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function cancelRequest(id) {
+            try {
+                const res = await fetch(`${API_BASE}/api/account/friends/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({ friendship_id: id })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to cancel');
+                showToast('Request cancelled');
+                loadFriends();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function removeFriend(id) {
+            try {
+                const res = await fetch(`${API_BASE}/api/account/friends/remove`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({ friendship_id: id })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to remove');
+                showToast('Friend removed');
+                loadFriends();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        function renderFriendsDebates() {
+            const container = document.getElementById('friendsDebates');
+            if (!friendsDebates || friendsDebates.length === 0) {
+                container.innerHTML = '<div class="text-gray-500">No friend activity yet.</div>';
+                return;
+            }
+            container.innerHTML = '';
+            friendsDebates.forEach((item) => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-900/50 p-3 rounded-lg border border-gray-800 text-sm';
+                const name = item.profile?.display_name || 'Friend';
+                const username = item.profile?.username ? '@' + item.profile.username : '';
+                const header = document.createElement('div');
+                header.className = 'flex items-center justify-between text-gray-300';
+                header.innerHTML = `<div class="font-semibold">${name} <span class="text-gray-500 text-xs">${username}</span></div><div class="text-xs text-gray-500">${new Date(item.created_at).toLocaleDateString()}</div>`;
+                card.appendChild(header);
+
+                const body = document.createElement('div');
+                body.className = 'mt-2 text-gray-200';
+                body.textContent = `${item.option_a || 'Option A'} vs ${item.option_b || 'Option B'} — winner: ${item.right}`;
+                card.appendChild(body);
+
+                if (item.reason) {
+                    const reason = document.createElement('div');
+                    reason.className = 'text-xs text-gray-400 mt-1 italic';
+                    reason.textContent = item.reason;
+                    card.appendChild(reason);
+                }
+                container.appendChild(card);
+            });
+        }
+
         async function loadHistory() {
             const historyList = document.getElementById('historyList');
             const noHistory = document.getElementById('noHistory');
-            
+            historyList.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i>Loading your verdicts...</div>';
+
             try {
-                const response = await fetch(`${API_BASE}/api/judgements?mine=true&limit=20`, {
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`
-                    }
+                const response = await fetch(`${API_BASE}/api/judgements?mine=true&limit=10`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to load history');
-                }
-                
+                if (!response.ok) throw new Error('Failed to load history');
                 const data = await response.json();
                 const items = data.items || [];
-                
+
                 if (items.length === 0) {
                     historyList.classList.add('hidden');
                     noHistory.classList.remove('hidden');
                     return;
                 }
-                
-                // Clear existing content
+
+                noHistory.classList.add('hidden');
+                historyList.classList.remove('hidden');
                 historyList.innerHTML = '';
-                
-                // Build items using DOM manipulation for better XSS protection
+
                 items.forEach(item => {
                     const itemDiv = document.createElement('div');
-                    itemDiv.className = 'bg-gray-800/50 p-4 rounded-lg border-l-4 border-red-500';
-                    
-                    // Date row
+                    itemDiv.className = 'bg-gray-800/50 p-4 rounded-lg border border-gray-800';
+
                     const dateDiv = document.createElement('div');
                     dateDiv.className = 'flex items-center gap-2 mb-2 text-sm text-gray-400';
                     dateDiv.innerHTML = '<i class="fas fa-calendar"></i>';
-                    const dateText = document.createTextNode(' ' + new Date(item.created_at).toLocaleDateString());
-                    dateDiv.appendChild(dateText);
+                    dateDiv.appendChild(document.createTextNode(' ' + new Date(item.created_at).toLocaleDateString()));
                     itemDiv.appendChild(dateDiv);
-                    
-                    // Options row
+
                     const optionsDiv = document.createElement('div');
                     optionsDiv.className = 'flex items-center gap-2 mb-2';
-                    
                     const optionA = document.createElement('span');
                     optionA.className = 'text-blue-400';
                     optionA.textContent = item.option_a || '';
-                    optionsDiv.appendChild(optionA);
-                    
                     const vs = document.createElement('span');
-                    vs.className = 'text-gray-500';
+                    vs.className = 'text-gray-500 text-sm';
                     vs.textContent = 'vs';
-                    optionsDiv.appendChild(vs);
-                    
                     const optionB = document.createElement('span');
-                    optionB.className = 'text-red-400';
+                    optionB.className = 'text-purple-400';
                     optionB.textContent = item.option_b || '';
+                    optionsDiv.appendChild(optionA);
+                    optionsDiv.appendChild(vs);
                     optionsDiv.appendChild(optionB);
-                    
                     itemDiv.appendChild(optionsDiv);
-                    
-                    // Wrong row
-                    const wrongDiv = document.createElement('div');
-                    wrongDiv.className = 'text-sm';
-                    const wrongLabel = document.createElement('span');
-                    wrongLabel.className = 'text-red-400 font-bold';
-                    wrongLabel.textContent = '❌ Wrong: ';
-                    wrongDiv.appendChild(wrongLabel);
-                    wrongDiv.appendChild(document.createTextNode(item.wrong || ''));
-                    itemDiv.appendChild(wrongDiv);
-                    
-                    // Reason row
-                    const reasonDiv = document.createElement('div');
-                    reasonDiv.className = 'text-sm text-gray-400 mt-1 italic';
-                    reasonDiv.textContent = '"' + (item.reason || '') + '"';
-                    itemDiv.appendChild(reasonDiv);
-                    
+
+                    const resultDiv = document.createElement('div');
+                    resultDiv.className = 'text-sm';
+                    resultDiv.innerHTML = `<span class="text-gray-400">Winner:</span> <span class="text-green-400 font-semibold">${item.right}</span>`;
+                    itemDiv.appendChild(resultDiv);
+
+                    if (item.reason) {
+                        const reasonDiv = document.createElement('div');
+                        reasonDiv.className = 'text-sm text-gray-400 mt-1 italic';
+                        reasonDiv.textContent = '"' + (item.reason || '') + '"';
+                        itemDiv.appendChild(reasonDiv);
+                    }
+
                     historyList.appendChild(itemDiv);
                 });
-                
+
             } catch (error) {
-                console.error('Load history error:', error);
-                historyList.innerHTML = `
-                    <div class="text-center text-red-400 py-4">
-                        <i class="fas fa-exclamation-circle mr-2"></i>
-                        Failed to load history
-                    </div>
-                `;
+                historyList.innerHTML = '<div class="text-center text-red-400 py-4">Failed to load history</div>';
             }
         }
-        
-        // ==========================================
-        // Account Deletion
-        // ==========================================
-        
+
+        function logout() {
+            localStorage.removeItem('accessToken');
+            window.location.href = '/';
+        }
+
         function confirmDeleteAccount() {
             document.getElementById('deleteModal').classList.remove('hidden');
             document.getElementById('deleteConfirmInput').value = '';
             document.getElementById('deleteError').classList.add('hidden');
             document.body.style.overflow = 'hidden';
         }
-        
+
         function hideDeleteModal() {
             document.getElementById('deleteModal').classList.add('hidden');
             document.body.style.overflow = '';
         }
-        
+
         async function deleteAccount() {
             const confirmInput = document.getElementById('deleteConfirmInput');
             const errorEl = document.getElementById('deleteError');
-            
+
             if (confirmInput.value !== 'DELETE') {
                 errorEl.innerText = 'Please type DELETE to confirm';
                 errorEl.classList.remove('hidden');
                 return;
             }
-            
+
             try {
                 const response = await fetch(`${API_BASE}/api/auth/me`, {
                     method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`
-                    }
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
-                
+
                 if (!response.ok) {
                     const data = await response.json().catch(() => ({}));
                     throw new Error(data.error || 'Failed to delete account');
                 }
-                
-                // Clear local storage and redirect
+
                 localStorage.removeItem('accessToken');
                 showToast('Account deleted successfully', 'success');
-                
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 1500);
-                
+                setTimeout(() => { window.location.href = '/'; }, 1200);
             } catch (error) {
                 errorEl.innerText = error.message;
                 errorEl.classList.remove('hidden');
             }
         }
-        
-        // ==========================================
-        // Logout
-        // ==========================================
-        
-        function logout() {
-            localStorage.removeItem('accessToken');
-            window.location.href = '/';
-        }
-        
-        // ==========================================
-        // Toast
-        // ==========================================
-        
+
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             const toastIcon = document.getElementById('toastIcon');
             const toastMessage = document.getElementById('toastMessage');
-            
             toastMessage.innerText = message;
-            
+
             toastIcon.className = 'fas';
-            switch (type) {
-                case 'success':
-                    toastIcon.classList.add('fa-check-circle', 'text-green-400');
-                    break;
-                case 'error':
-                    toastIcon.classList.add('fa-exclamation-circle', 'text-red-400');
-                    break;
-                default:
-                    toastIcon.classList.add('fa-info-circle', 'text-blue-400');
-            }
-            
+            toastIcon.classList.add(type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle');
+            toastIcon.classList.add(type === 'error' ? 'text-red-400' : 'text-green-400');
+
             toast.classList.remove('hidden');
             setTimeout(() => toast.classList.add('hidden'), 3000);
         }
-        
-        // ==========================================
-        // Init
-        // ==========================================
-        
-        document.addEventListener('DOMContentLoaded', init);
-        
-        // Close modal on escape
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                hideDeleteModal();
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.querySelectorAll('#tabButtons .tab-btn').forEach(btn => {
+                btn.classList.remove('bg-red-600', 'text-white');
+                btn.classList.add('bg-gray-800');
+            });
+            const activeBtn = document.querySelector(`#tabButtons [data-tab="${tab}"]`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-gray-800');
+                activeBtn.classList.add('bg-red-600', 'text-white');
             }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            init();
+            document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+            document.getElementById('usernameInput').addEventListener('input', debounceUsernameCheck);
+            document.getElementById('searchInput').addEventListener('input', () => {
+                if (searchTimeout) clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(searchUsers, 300);
+            });
+            document.querySelectorAll('#tabButtons .tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+            });
         });
+
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideDeleteModal(); });
     </script>
     <script defer src="https://va.vercel-scripts.com/v1/script.js" data-sdkn="@vercel/analytics" data-sdkv="1.6.0"></script>
 </body>

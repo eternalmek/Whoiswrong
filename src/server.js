@@ -17,9 +17,7 @@ const purchasesRouter = require('./routes/purchases');
 const stripeWebhookRouter = require('./routes/stripeWebhook');
 const pricesRouter = require('./routes/prices');
 const paymentStatusRouter = require('./routes/paymentStatus');
-const judgesRouter = require('./routes/judges');
-const { supabaseServiceRole } = require('./supabaseClient');
-const { fetchJudges } = require('./services/judges');
+const accountRouter = require('./routes/account');
 
 const PORT = process.env.PORT || 8080;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
@@ -72,7 +70,7 @@ app.use('/api/checkout', checkoutRouter);
 app.use('/api/purchases', purchasesRouter);
 app.use('/api/prices', pricesRouter);
 app.use('/api/payments', paymentStatusRouter);
-app.use('/api/judges', judgesRouter);
+app.use('/api/account', accountRouter);
 
 // Health
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
