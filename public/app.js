@@ -8,6 +8,14 @@ const API_BASE = window.location.origin;
 // --- Auth State ---
 let currentUser = null;
 let accessToken = localStorage.getItem('accessToken') || null;
+const voterFingerprintKey = 'voterFingerprint';
+const voterFingerprint = (() => {
+    const existing = localStorage.getItem(voterFingerprintKey);
+    if (existing) return existing;
+    const generated = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+    localStorage.setItem(voterFingerprintKey, generated);
+    return generated;
+})();
 
 // --- DOM Elements ---
 const inputSection = document.getElementById('inputSection');
@@ -25,28 +33,41 @@ const ALL_ACCESS_KEY = 'hasAllJudgeAccess';
 
 // Priority order for judges (most viral/TikTok-friendly first)
 const JUDGE_PRIORITY = [
-    'normal',           // First 3 are free by default
-    'don_t',            // Political Tycoon
-    'tech_billionaire', // Tech Billionaire
-    'pop_superstar',    // Global Pop Superstar
-    'goat_striker',     // GOAT Striker
-    'goat_playmaker',   // GOAT Playmaker
-    'british_chef',     // British Chef
-    'meme_lord',        // Meme Lord
-    'dark_lord',        // Dark Lord
-    'cage_fighter',     // Cage Fighter
+    'normal',
+    'taylor-swift',
+    'cristiano-ronaldo',
+    'lionel-messi',
+    'donald-trump',
+    'elon-musk',
+    'barack-obama',
+    'mr-beast',
+    'kim-kardashian',
+    'andrew-tate',
+    'gordon-ramsay',
+    'beyonce',
+    'rihanna',
+    'snoop-dogg',
+    'pewdiepie',
+    'eminem',
+    'morgan-freeman',
 ];
 
-const availableJudges = Array.isArray(window.celebrityJudges) && window.celebrityJudges.length
-    ? window.celebrityJudges.sort((a, b) => {
+const FALLBACK_JUDGES = (Array.isArray(window.celebrityJudges) && window.celebrityJudges.length)
+    ? window.celebrityJudges
+    : [{ id: 'normal', name: 'Default AI Judge', emoji: '🤖', description: 'Decisive and balanced.', category: 'Default', systemPrompt: '' }];
+
+function sortJudges(list) {
+    return [...list].sort((a, b) => {
         const aIndex = JUDGE_PRIORITY.indexOf(a.id);
         const bIndex = JUDGE_PRIORITY.indexOf(b.id);
-        if (aIndex === -1 && bIndex === -1) return 0;
+        if (aIndex === -1 && bIndex === -1) return (a.name || '').localeCompare(b.name || '');
         if (aIndex === -1) return 1;
         if (bIndex === -1) return -1;
         return aIndex - bIndex;
-    })
-    : [{ id: 'normal', name: 'Normal AI Judge', emoji: '🤖', description: 'Decisive and balanced.', category: 'Default', systemPrompt: '' }];
+    });
+}
+
+let availableJudges = sortJudges(FALLBACK_JUDGES);
 
 function safeParseArray(value, fallback = []) {
     if (!value) return fallback;
@@ -58,12 +79,38 @@ function safeParseArray(value, fallback = []) {
     }
 }
 
+async function loadJudgesFromApi() {
+    try {
+        const response = await fetch(`${API_BASE}/api/judges`);
+        const data = await response.json();
+
+        if (data?.judges?.length) {
+            availableJudges = sortJudges(data.judges.map((judge) => ({
+                ...judge,
+                emoji: judge.emoji || '⭐',
+                systemPrompt: judge.system_prompt || judge.systemPrompt,
+            })));
+            if (!availableJudges.find((j) => j.id === selectedJudgeId)) {
+                selectedJudgeId = 'normal';
+            }
+            updateJudgeUI();
+        }
+    } catch (error) {
+        console.warn('Falling back to local judges', error);
+        availableJudges = sortJudges(FALLBACK_JUDGES);
+        updateJudgeUI();
+    }
+}
+
 // Number of judges that are free by default
-const FREE_JUDGES_COUNT = 3;
+const FREE_JUDGES_COUNT = 1;
 
 // Server-synced purchases for logged-in users
 let serverUnlockedJudges = [];
 let serverHasAllAccess = false;
+
+let lastSavedJudgementId = null;
+let lastShareUrl = '';
 
 let selectedJudgeId = localStorage.getItem(JUDGE_SELECTED_KEY) || 'normal';
 if (!availableJudges.find((j) => j.id === selectedJudgeId)) {
@@ -91,6 +138,33 @@ const LOADING_MESSAGES = [
     "Deliberating carefully...",
     "This one's interesting...",
     "Almost ready..."
+];
+
+const SAMPLE_DEBATES = [
+    {
+        title: 'Is pineapple on pizza a crime?',
+        judge: 'Gordon Ramsay',
+        judgeId: 'gordon-ramsay',
+        summary: 'The chef says pineapple belongs in dessert, not on your pizza. Verdict: pineapple is wrong.'
+    },
+    {
+        title: 'Messi vs Ronaldo',
+        judge: 'Cristiano Ronaldo',
+        judgeId: 'cristiano-ronaldo',
+        summary: 'With GOAT energy, Ronaldo declares Messi wrong for ducking free kicks. Stadium erupts.'
+    },
+    {
+        title: 'Is TikTok better than YouTube?',
+        judge: 'Mr. Beast',
+        judgeId: 'mr-beast',
+        summary: 'Mr Beast picks YouTube for depth, but dares you to prove him wrong with a viral TikTok.'
+    },
+    {
+        title: 'Should you text back immediately?',
+        judge: 'Taylor Swift',
+        judgeId: 'taylor-swift',
+        summary: 'Taylor says leaving them on read writes a better bridge. Verdict: texting back instantly is wrong.'
+    },
 ];
 
 // ==========================================
@@ -128,7 +202,7 @@ function showResult(data) {
     hideLoading();
     loadingSection.classList.add('hidden');
     resultSection.classList.remove('hidden');
-    resultSection.classList.add('fade-in');
+    resultSection.classList.add('fade-in', 'pop-scale');
 
     document.getElementById('loserName').innerText = data.wrong || "Unknown";
     document.getElementById('winnerName').innerText = data.right || "The Other One";
@@ -326,10 +400,17 @@ function renderJudgeChips() {
             btn.appendChild(lockIcon);
         }
 
-        // Emoji and name
+        // Avatar and name
         const header = document.createElement('div');
         header.className = 'flex items-center gap-2 mb-1';
-        header.innerHTML = `<span class="text-xl">${judge.emoji || '🤖'}</span><span class="font-semibold text-white text-sm truncate">${judge.name}</span>`;
+        const avatar = document.createElement('div');
+        avatar.className = 'w-9 h-9 rounded-full overflow-hidden bg-gray-800 flex-shrink-0';
+        avatar.innerHTML = `<img src="${judge.avatar_url || ''}" alt="${judge.name}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=AnimeJudge'" />`;
+        const meta = document.createElement('div');
+        meta.className = 'flex-1';
+        meta.innerHTML = `<p class="font-semibold text-white text-sm leading-tight truncate">${judge.name}</p><p class="text-[11px] text-gray-400 truncate">${judge.description || 'Celebrity AI judge'}</p>`;
+        header.appendChild(avatar);
+        header.appendChild(meta);
         btn.appendChild(header);
 
         // Status badge
@@ -341,12 +422,6 @@ function renderJudgeChips() {
         }`;
         badge.textContent = info.label;
         btn.appendChild(badge);
-
-        // Description (truncated)
-        const desc = document.createElement('p');
-        desc.className = 'text-xs text-gray-400 line-clamp-1';
-        desc.textContent = judge.description || '';
-        btn.appendChild(desc);
 
         container.appendChild(btn);
     });
@@ -887,6 +962,8 @@ async function judgeNow(e) {
             throw new Error("Invalid response from AI Judge.");
         }
 
+        lastSavedJudgementId = result.saved?.id || null;
+        lastShareUrl = lastSavedJudgementId ? `${window.location.origin}/debate/${lastSavedJudgementId}` : '';
         showResult(result.judgement);
 
     } catch (error) {
@@ -949,6 +1026,158 @@ function shareOnTwitter() {
     const text = encodeURIComponent(`The AI Judge says ${wrong} is WRONG! 😂\n\n${reason}\n\nSettle your debates at:`);
     const url = encodeURIComponent(window.location.origin);
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+}
+
+function copyShareLink() {
+    const link = lastShareUrl || (lastSavedJudgementId ? `${window.location.origin}/debate/${lastSavedJudgementId}` : window.location.origin);
+    if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(link).then(() => showToast('Share link copied', 'success'));
+    } else {
+        fallbackCopy(link);
+    }
+}
+
+function showReactionPrompt() {
+    showToast('Screen record your verdict reaction and tag @who.is.wrong1', 'info');
+}
+
+function getJudgeVisual(judgeId) {
+    const judge = availableJudges.find((j) => j.id === judgeId) || availableJudges[0] || {};
+    return {
+        name: judge.name || 'AI Judge',
+        avatar: judge.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(judge.name || 'Judge')}`,
+    };
+}
+
+function renderFeed(items = []) {
+    const grid = document.getElementById('feedGrid');
+    const empty = document.getElementById('feedEmpty');
+    if (!grid) return;
+
+    if (!items.length) {
+        if (empty) empty.classList.remove('hidden');
+        grid.innerHTML = '';
+        renderSamples([]);
+        return;
+    }
+
+    if (empty) empty.classList.add('hidden');
+    grid.innerHTML = '';
+
+    items.forEach((item) => {
+        const judge = getJudgeVisual(item.judge_id || item.judge?.id || 'normal');
+        const votes = item.votes || { agree: 0, disagree: 0 };
+        const card = document.createElement('article');
+        card.className = 'glass-panel p-4 rounded-xl border border-gray-800 hover:border-red-500 transition flex flex-col gap-3';
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center gap-3';
+        header.innerHTML = `<div class="w-10 h-10 rounded-full overflow-hidden bg-gray-800"><img src="${judge.avatar}" alt="${judge.name}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Judge'" /></div><div><p class="text-xs uppercase text-gray-500">${judge.name}</p><h4 class="text-lg font-display font-bold leading-snug">${item.context || item.option_a + ' vs ' + item.option_b}</h4></div>`;
+        card.appendChild(header);
+
+        const summary = document.createElement('p');
+        summary.className = 'text-sm text-gray-300';
+        summary.textContent = item.reason || item.roast || 'See the verdict inside.';
+        card.appendChild(summary);
+
+        const verdict = document.createElement('div');
+        verdict.className = 'text-sm text-gray-400 flex items-center gap-2 flex-wrap';
+        verdict.innerHTML = `<span class="px-2 py-1 rounded-full bg-red-500/20 text-red-300 text-xs font-semibold">Verdict</span><span class="font-medium text-white">${item.wrong || 'Wrong side'} was wrong</span>`;
+        card.appendChild(verdict);
+
+        const votesRow = document.createElement('div');
+        votesRow.className = 'flex items-center justify-between gap-2';
+        votesRow.innerHTML = `
+            <div class="flex items-center gap-2 text-xs text-gray-400">
+                <span class="px-2 py-1 rounded-full bg-green-500/10 text-green-300">Agree: <strong>${votes.agree}</strong></span>
+                <span class="px-2 py-1 rounded-full bg-red-500/10 text-red-300">Disagree: <strong>${votes.disagree}</strong></span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button class="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg" data-vote="agree" data-id="${item.id}">Agree</button>
+                <button class="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg" data-vote="disagree" data-id="${item.id}">Disagree</button>
+            </div>`;
+        card.appendChild(votesRow);
+
+        const shareRow = document.createElement('div');
+        shareRow.className = 'flex items-center gap-2 text-xs text-gray-400';
+        shareRow.innerHTML = `<button class="underline hover:text-white" data-copy-share="${item.id}">Copy link</button>`;
+        card.appendChild(shareRow);
+
+        grid.appendChild(card);
+    });
+
+    grid.querySelectorAll('button[data-vote]').forEach((btn) => {
+        btn.addEventListener('click', () => voteOnDebate(btn.dataset.id, btn.dataset.vote));
+    });
+
+    grid.querySelectorAll('button[data-copy-share]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const link = `${window.location.origin}/debate/${btn.dataset.copyShare}`;
+            navigator.clipboard?.writeText(link).then(() => showToast('Link copied', 'success'));
+        });
+    });
+}
+
+async function loadFeed(forceRefresh = false) {
+    try {
+        const res = await fetch(`${API_BASE}/api/judgements/feed?limit=20${forceRefresh ? `&t=${Date.now()}` : ''}`);
+        const data = await res.json();
+        const items = Array.isArray(data?.items) ? data.items : [];
+        renderFeed(items);
+        renderSamples(items);
+    } catch (error) {
+        console.warn('Unable to load feed', error);
+        renderFeed([]);
+        renderSamples([]);
+    }
+}
+
+async function voteOnDebate(id, vote) {
+    try {
+        const res = await fetch(`${API_BASE}/api/judgements/${id}/vote`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+            },
+            body: JSON.stringify({ vote, fingerprint: voterFingerprint }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Vote failed');
+        showToast('Vote counted!', 'success');
+        loadFeed(true);
+    } catch (error) {
+        showToast(error.message || 'Unable to vote', 'error');
+    }
+}
+
+function renderSamples(items = []) {
+    const grid = document.getElementById('sampleGrid');
+    if (!grid) return;
+    const source = items.length ? items.slice(0, 6).map((item) => ({
+        title: item.context || `${item.option_a} vs ${item.option_b}`,
+        judge: getJudgeVisual(item.judge_id || item.judge?.id || 'normal').name,
+        judgeId: item.judge_id || item.judge?.id || 'normal',
+        summary: item.reason || item.roast || 'Decisive verdict rendered.'
+    })) : SAMPLE_DEBATES;
+
+    grid.innerHTML = '';
+    source.forEach((item) => {
+        const judge = getJudgeVisual(item.judgeId);
+        const card = document.createElement('div');
+        card.className = 'glass-panel border border-gray-800 rounded-xl p-4 flex flex-col gap-2 hover:border-red-500 transition';
+        card.innerHTML = `
+            <div class="flex items-center gap-2">
+                <div class="w-9 h-9 rounded-full overflow-hidden bg-gray-800"><img src="${judge.avatar}" alt="${judge.name}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=AnimeJudge'" /></div>
+                <div>
+                    <p class="text-xs uppercase text-gray-500">${judge.name}</p>
+                    <h4 class="text-white font-display text-lg leading-tight">${item.title}</h4>
+                </div>
+            </div>
+            <p class="text-sm text-gray-300">${item.summary}</p>`;
+        grid.appendChild(card);
+    });
 }
 
 // ==========================================
@@ -1027,6 +1256,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Render judge selection UI
     updateJudgeUI();
+    loadJudgesFromApi();
+    loadFeed();
+    renderSamples([]);
 
     const unlockSelectedJudgeBtn = document.getElementById('unlockSelectedJudge');
     if (unlockSelectedJudgeBtn) {
@@ -1120,5 +1352,7 @@ window.judgeNow = judgeNow;
 window.resetApp = resetApp;
 window.copyResult = copyResult;
 window.shareOnTwitter = shareOnTwitter;
+window.copyShareLink = copyShareLink;
+window.showReactionPrompt = showReactionPrompt;
 window.unlockSelectedJudge = unlockSelectedJudge;
 window.unlockAllJudges = unlockAllJudges;

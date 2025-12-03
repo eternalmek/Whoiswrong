@@ -98,6 +98,15 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        .pop-scale {
+            animation: popScale 0.4s ease-out;
+        }
+
+        @keyframes popScale {
+            from { transform: scale(0.97); opacity: 0.6; }
+            to { transform: scale(1); opacity: 1; }
+        }
         
         .pulse-glow {
             animation: pulseGlow 2s ease-in-out infinite;
@@ -197,30 +206,27 @@
         
         /* Judge picker horizontal scroll */
         .judge-scroll {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 12px;
-            overflow-x: auto;
-            scroll-snap-type: x mandatory;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 8px;
+            overflow-y: auto;
+            max-height: 340px;
+            padding-right: 4px;
             scrollbar-width: thin;
         }
-        
+
         .judge-scroll::-webkit-scrollbar {
-            height: 4px;
+            width: 4px;
         }
-        
+
         .judge-card {
             scroll-snap-align: start;
-            flex-shrink: 0;
-            min-width: 140px;
-            max-width: 160px;
+            min-width: 0;
         }
-        
+
         @media (min-width: 768px) {
-            .judge-card {
-                min-width: 180px;
-                max-width: 200px;
+            .judge-scroll {
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             }
         }
         
@@ -329,32 +335,38 @@
             <!-- Mobile-first: Compact hero -->
             <div class="text-center mb-8">
                 <h1 class="font-display text-4xl sm:text-5xl md:text-6xl font-bold leading-tight mb-4">
-                    Let AI Decide <span class="gradient-text">Who's Right</span>
+                    The Internet Court — Post your argument and let the AI Judge decide who’s wrong.
                 </h1>
-                
+
                 <p class="text-gray-400 text-base sm:text-lg mb-6 max-w-md mx-auto">
-                    Perfect for screen-recording your debates for TikTok & Reels. AI always picks a side!
+                    Choose a famous AI judge — Taylor Swift, Ronaldo, Trump, Elon Musk and more.
                 </p>
                 
                 <!-- CTA - Go straight to judge -->
                 <a href="#judge-section" class="btn-primary inline-flex bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-xl text-base sm:text-lg items-center justify-center gap-2 pulse-glow">
                     <i class="fas fa-gavel"></i>
-                    Start Judging Now
+                    Start a Debate
                 </a>
+                <div class="flex justify-center mt-3">
+                    <a href="#internet-court-wall" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-700 bg-gray-900/60 text-gray-200 hover:border-red-500 transition">
+                        <i class="fas fa-fire"></i>
+                        See Trending Cases
+                    </a>
+                </div>
                 
                 <!-- Trust Indicators - Compact -->
                 <div class="flex flex-wrap gap-2 sm:gap-4 justify-center mt-6">
                     <div class="trust-badge flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm">
-                        <i class="fas fa-bolt text-green-400"></i>
-                        <span class="text-gray-300">Instant</span>
+                        <span class="text-lg">🎥</span>
+                        <span class="text-gray-300">Built for TikTok</span>
                     </div>
                     <div class="trust-badge flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm">
-                        <i class="fas fa-video text-green-400"></i>
-                        <span class="text-gray-300">TikTok Ready</span>
+                        <span class="text-lg">⚖️</span>
+                        <span class="text-gray-300">AI + Celebrity Judges</span>
                     </div>
                     <div class="trust-badge flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm">
-                        <i class="fas fa-brain text-green-400"></i>
-                        <span class="text-gray-300">AI Powered</span>
+                        <span class="text-lg">🔥</span>
+                        <span class="text-gray-300">Viral by design</span>
                     </div>
                 </div>
             </div>
@@ -546,6 +558,15 @@
                             <i class="fab fa-twitter"></i> <span class="hidden sm:inline">Tweet</span>
                         </button>
                     </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-4">
+                        <button onclick="copyShareLink()" id="copyShareButton" class="touch-target bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2" aria-label="Copy share link">
+                            <i class="fas fa-link"></i> Copy link
+                        </button>
+                        <button onclick="showReactionPrompt()" class="touch-target bg-purple-700 hover:bg-purple-800 text-white p-3 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2" aria-label="Record your reaction">
+                            <i class="fas fa-video"></i> Record your reaction
+                        </button>
+                    </div>
                     
                     <button onclick="resetApp()" class="w-full bg-white text-black hover:bg-gray-200 active:bg-gray-300 p-3 sm:p-4 rounded-lg font-bold transition flex items-center justify-center gap-2" aria-label="Start new debate">
                         <i class="fas fa-redo"></i> New Battle
@@ -632,6 +653,49 @@
     </section>
     
     <!-- Footer -->
+    <!-- Internet Court Wall -->
+    <section id="internet-court-wall" class="py-10 sm:py-14 px-4 bg-gradient-to-b from-black via-gray-900 to-black">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                <div>
+                    <p class="text-xs uppercase text-red-400 font-bold tracking-widest">Public feed</p>
+                    <h3 class="font-display text-2xl sm:text-3xl font-bold">Internet Court Wall</h3>
+                    <p class="text-gray-400 text-sm">See what everyone is arguing about right now.</p>
+                </div>
+                <button onclick="loadFeed(true)" class="btn-primary bg-gray-800 border border-gray-700 hover:border-red-500 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                    <i class="fas fa-rotate"></i>
+                    Refresh
+                </button>
+            </div>
+
+            <div id="feedEmpty" class="hidden text-center text-gray-400 bg-gray-900/60 border border-gray-800 rounded-xl py-6">
+                <p class="text-lg font-semibold">No debates yet</p>
+                <p class="text-sm text-gray-500">Post a debate and be the first on the wall.</p>
+            </div>
+
+            <div id="feedGrid" class="grid gap-4 sm:grid-cols-2"></div>
+        </div>
+    </section>
+
+    <!-- Sample / How it works -->
+    <section id="samples" class="py-10 sm:py-14 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                <div>
+                    <p class="text-xs uppercase text-red-400 font-bold tracking-widest">How it works</p>
+                    <h3 class="font-display text-2xl sm:text-3xl font-bold">Example Verdicts</h3>
+                    <p class="text-gray-400 text-sm">See how celebrity judges settle beef. Live data first, demo only when empty.</p>
+                </div>
+                <a href="#judge-section" class="btn-primary bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                    <i class="fas fa-plus-circle"></i>
+                    Start your own
+                </a>
+            </div>
+
+            <div id="sampleGrid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+        </div>
+    </section>
+
     <footer class="py-8 sm:py-12 px-4 border-t border-gray-800">
         <div class="max-w-6xl mx-auto">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
