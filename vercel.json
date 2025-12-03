@@ -28,6 +28,14 @@
       "dest": "/public/account.html"
     },
     {
+      "src": "/account",
+      "dest": "/public/account.html"
+    },
+    {
+      "src": "/account/",
+      "dest": "/public/account.html"
+    },
+    {
       "src": "/checkout/success",
       "dest": "/public/checkout/success/index.html"
     },
