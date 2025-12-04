@@ -168,6 +168,40 @@ Use this option if you prefer to connect to a hosted Supabase project.
    npm run dev
    ```
 
+## Account access troubleshooting
+
+If you can log in but the account page keeps asking you to sign in again, run through these checks:
+
+1. **Provide Supabase server credentials** — The API denies account requests with `503` unless `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SERVICE_ROLE`), and `SUPABASE_ANON_KEY` are set in your server environment.
+2. **Use the same origin for login and account** — Tokens are saved in `localStorage` by the login page and read by `/account` using `window.location.origin`. Logging in on a different domain/subdomain won’t share the token.
+3. **Confirm tokens exist after login** — After signing in, open DevTools → Application → Local Storage and check that `access_token` and `refresh_token` are present for your site. If they’re missing or blocked, the account page can’t call `/api/account/profile`.
+4. **Send the Authorization header** — The frontend does this automatically when tokens exist. If you’re testing with cURL/Postman, include `Authorization: Bearer <access_token>` on `/api/account/*` requests.
+5. **Handle expired sessions** — If the access token expires and no refresh token is stored, the app will log you out. Re-login to issue fresh tokens.
+
+Once the env vars are set and the browser has valid tokens for the same origin, the account page should load your profile instead of redirecting you to log in.
+
+### Quick setup checklist
+
+1. Create a `.env` file (or set these in your hosting dashboard) with your Supabase credentials:
+   ```bash
+   SUPABASE_URL="https://<your-project>.supabase.co"
+   SUPABASE_ANON_KEY="<anon public key>"
+   SUPABASE_SERVICE_ROLE_KEY="<service_role key>"  # server only
+   ```
+2. Restart the server so it reads the new environment variables:
+   ```bash
+   npm run dev
+   # or
+   npm start
+   ```
+3. Log in on the **same origin** where the account page lives (e.g., `https://whoiswrong.io/login.html` then `https://whoiswrong.io/account`).
+4. Open DevTools → Application → Local Storage and confirm `accessToken` and `refreshToken` exist for your site. If they’re missing, re-login.
+5. If you still see “Login Required,” hit the API directly with your token to confirm it works:
+   ```bash
+   curl -i -H "Authorization: Bearer $ACCESS_TOKEN" ${ORIGIN:-http://localhost:8080}/api/account/profile
+   ```
+   A `200` response with JSON means the server is configured; a `401` means the token is missing/expired; a `503` means Supabase env vars are still missing on the server.
+
 ## API Endpoints
 
 ### Core Judgement
