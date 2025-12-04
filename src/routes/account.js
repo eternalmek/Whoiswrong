@@ -28,37 +28,64 @@ function validateUsername(username) {
 }
 
 async function ensureProfile(userId, email) {
-  const { data: existing } = await supabaseServiceRole
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle();
+  if (!supabaseServiceRole) return null;
 
-  if (existing) return existing;
+  try {
+    const { data: existing, error: existingError } = await supabaseServiceRole
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
 
-  const displayName = email ? email.split('@')[0] : 'New User';
-  const { data } = await supabaseServiceRole
-    .from('profiles')
-    .insert({ id: userId, display_name: displayName })
-    .select()
-    .single();
-  return data;
+    if (existingError) {
+      console.error('Account profile lookup failed', existingError);
+    }
+
+    if (existing) return existing;
+
+    const displayName = email ? email.split('@')[0] : 'New User';
+    const { data, error } = await supabaseServiceRole
+      .from('profiles')
+      .insert({ id: userId, display_name: displayName, email })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Account profile insert failed', error);
+      return null;
+    }
+
+    return data;
+  } catch (profileError) {
+    console.error('Unexpected profile error', profileError);
+    return null;
+  }
 }
 
 async function fetchFriendships(userId) {
-  const { data, error } = await supabaseServiceRole
-    .from('friendships')
-    .select('*')
-    .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`);
-  if (error) throw error;
-  return data || [];
+  try {
+    const { data, error } = await supabaseServiceRole
+      .from('friendships')
+      .select('*')
+      .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`);
+    if (error) throw error;
+    return data || [];
+  } catch (friendsError) {
+    console.error('Friendship fetch failed for account view', friendsError);
+    return [];
+  }
 }
 
 router.get('/profile', requireUser, async (req, res, next) => {
   try {
     if (!ensureSupabase(res)) return;
     const { user } = req.auth;
+    console.info('[account] loading profile', { userId: user.id });
+
     const profile = await ensureProfile(user.id, user.email);
+    if (!profile) {
+      return res.status(503).json({ error: 'Profile could not be loaded. Please try again shortly.' });
+    }
 
     const warnings = [];
     const stats = {
@@ -161,7 +188,7 @@ router.get('/profile', requireUser, async (req, res, next) => {
     });
   } catch (err) {
     console.error('Account page error', err);
-    res.status(500).json({ error: 'Unable to load account profile right now.' });
+    res.status(500).json({ error: 'Unable to load account profile right now. Please try again.' });
   }
 });
 
