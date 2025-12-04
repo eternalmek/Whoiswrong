@@ -74,23 +74,23 @@ router.get('/', optionalUser, async (req, res, next) => {
 
 router.get('/feed', optionalUser, async (req, res, next) => {
   try {
-    const limit = Math.min(50, Number(req.query.limit || 12));
-
     if (!supabaseServiceRole) {
-      return res.json({ ok: true, items: [] });
+      return res.status(503).json({ error: 'Supabase not configured on server.' });
     }
 
     const { data, error } = await supabaseServiceRole
       .from('judgements')
-      .select('*')
+      .select('id, question_text, verdict_text, created_at')
+      .eq('is_public', true)
       .order('created_at', { ascending: false })
-      .limit(limit);
+      .limit(20);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error loading public judgements feed', error);
+      return res.status(500).json({ error: error.message || 'Unable to load feed' });
+    }
 
-    const enriched = await hydrateJudgements(data || []);
-
-    res.json({ ok: true, items: enriched });
+    return res.json({ judgements: data || [] });
   } catch (err) {
     next(err);
   }

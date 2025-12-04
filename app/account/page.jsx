@@ -1,39 +1,89 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/utils/supabase/client'
 
+const initialStats = { questions: 0, judgements: 0, friends: 0 }
+
 export default function AccountPage() {
-  const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState('')
-  const [actionError, setActionError] = useState('')
-  const [message, setMessage] = useState('')
-  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState(null)
+  const [user, setUser] = useState(null)
+  const [profile, setProfile] = useState(null)
+  const [questions, setQuestions] = useState([])
+  const [judgements, setJudgements] = useState([])
+  const [friends, setFriends] = useState([])
+  const [settings, setSettings] = useState(null)
+  const [stats, setStats] = useState(initialStats)
+  const [profileForm, setProfileForm] = useState({ username: '', full_name: '' })
+  const [settingsForm, setSettingsForm] = useState({ theme: 'light', language: 'en', marketing_opt_in: false })
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [savingSettings, setSavingSettings] = useState(false)
 
   useEffect(() => {
     let isMounted = true
 
-    async function fetchSession() {
+    async function loadAccount() {
+      setLoading(true)
+      setError(null)
+
+      const { data: userData, error: userError } = await supabase.auth.getUser()
+      console.log('Loaded auth user', userData?.user || null)
+      if (userError) {
+        console.error('Error loading auth user', userError)
+        if (isMounted) {
+          setError(userError.message || 'Unable to load user')
+          setLoading(false)
+        }
+        return
+      }
+
+      const currentUser = userData?.user || null
+      if (!currentUser) {
+        if (isMounted) {
+          setUser(null)
+          setLoading(false)
+        }
+        return
+      }
+
       try {
-        const { data, error } = await supabase.auth.getSession()
-
-        if (error) {
-          throw error
+        const loadedProfile = await fetchOrCreateProfile(currentUser)
+        if (!loadedProfile) {
+          throw new Error('Profile could not be created or loaded')
         }
 
-        if (!data.session) {
-          window.location.href = '/login'
-          return
-        }
+        const [statsResult, questionsResult, judgementsResult, friendsResult, settingsResult] =
+          await Promise.all([
+            loadStats(currentUser),
+            loadQuestions(currentUser),
+            loadJudgements(currentUser),
+            loadFriends(currentUser),
+            loadSettings(currentUser),
+          ])
 
-        if (isMounted) {
-          setSession(data.session)
-        }
+        if (!isMounted) return
+
+        setUser(currentUser)
+        setProfile(loadedProfile)
+        setProfileForm({
+          username: loadedProfile.username || '',
+          full_name: loadedProfile.full_name || '',
+        })
+        setStats(statsResult)
+        setQuestions(questionsResult)
+        setJudgements(judgementsResult)
+        setFriends(friendsResult)
+        setSettings(settingsResult)
+        setSettingsForm({
+          theme: settingsResult?.theme || 'light',
+          language: settingsResult?.language || 'en',
+          marketing_opt_in: !!settingsResult?.marketing_opt_in,
+        })
       } catch (err) {
-        console.error('Unable to load account session', err)
+        console.error('Account load failed', err)
         if (isMounted) {
-          setLoadError('We could not load your account right now. Please refresh to try again.')
+          setError(err.message || 'We could not load your data. Please try again later.')
         }
       } finally {
         if (isMounted) {
@@ -42,92 +92,423 @@ export default function AccountPage() {
       }
     }
 
-    fetchSession()
+    loadAccount()
 
     return () => {
       isMounted = false
     }
   }, [])
 
-  const handleDelete = async () => {
-    if (!session || deleting) return
+  const acceptedFriends = useMemo(
+    () => friends.filter((f) => f.status === 'accepted'),
+    [friends]
+  )
+  const pendingFriends = useMemo(
+    () => friends.filter((f) => f.status === 'pending'),
+    [friends]
+  )
 
-    const confirmed = window.confirm('Delete your account and all related data? This cannot be undone.')
-    if (!confirmed) return
-
-    try {
-      setDeleting(true)
-      setActionError('')
-      setMessage('')
-
-      const response = await fetch('/api/auth/me', {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}))
-        throw new Error(body.error || 'Unable to delete account. Please try again.')
-      }
-
-      await supabase.auth.signOut()
-      setMessage('Your account has been deleted. Redirecting to the homepage...')
-      setTimeout(() => {
-        window.location.href = '/'
-      }, 1200)
-    } catch (err) {
-      console.error('Account deletion failed', err)
-      setActionError(err.message || 'Unable to delete account. Please try again later.')
-    } finally {
-      setDeleting(false)
+  async function fetchOrCreateProfile(currentUser) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', currentUser.id)
+      .maybeSingle()
+    if (error) {
+      console.error('Error loading profile', error)
+      throw error
     }
+    console.log('Loaded profile', data)
+
+    if (data) return data
+
+    const { error: insertError } = await supabase
+      .from('profiles')
+      .insert({ id: currentUser.id, username: null, full_name: null })
+    if (insertError) {
+      console.error('Error creating profile', insertError)
+      throw insertError
+    }
+
+    const { data: inserted, error: fetchError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', currentUser.id)
+      .maybeSingle()
+    if (fetchError) {
+      console.error('Error reloading profile after insert', fetchError)
+      throw fetchError
+    }
+    console.log('Created profile', inserted)
+    return inserted
+  }
+
+  async function loadStats(currentUser) {
+    const [questionsCount, judgementsCount, friendsCount] = await Promise.all([
+      supabase
+        .from('questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', currentUser.id),
+      supabase
+        .from('judgements')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', currentUser.id),
+      supabase
+        .from('friends')
+        .select('id', { count: 'exact', head: true })
+        .or(`user_id.eq.${currentUser.id},friend_user_id.eq.${currentUser.id}`)
+        .eq('status', 'accepted'),
+    ])
+
+    const questionsTotal = questionsCount.count || 0
+    const judgementsTotal = judgementsCount.count || 0
+    const friendsTotal = friendsCount.count || 0
+
+    console.log('Loaded stats', { questionsTotal, judgementsTotal, friendsTotal })
+
+    if (questionsCount.error) throw questionsCount.error
+    if (judgementsCount.error) throw judgementsCount.error
+    if (friendsCount.error) throw friendsCount.error
+
+    return { questions: questionsTotal, judgements: judgementsTotal, friends: friendsTotal }
+  }
+
+  async function loadQuestions(currentUser) {
+    const { data, error } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(10)
+
+    if (error) {
+      console.error('Error loading questions', error)
+      throw error
+    }
+    console.log('Loaded questions', data)
+    return data || []
+  }
+
+  async function loadJudgements(currentUser) {
+    const { data, error } = await supabase
+      .from('judgements')
+      .select('id, judge_id, question_text, verdict_text, created_at, judges(name, slug)')
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(10)
+
+    if (error) {
+      console.error('Error loading judgements', error)
+      throw error
+    }
+    console.log('Loaded judgements', data)
+    return data || []
+  }
+
+  async function loadFriends(currentUser) {
+    const { data, error } = await supabase
+      .from('friends')
+      .select('*')
+      .or(`user_id.eq.${currentUser.id},friend_user_id.eq.${currentUser.id}`)
+      .neq('status', 'blocked')
+
+    if (error) {
+      console.error('Error loading friends', error)
+      throw error
+    }
+    console.log('Loaded friends', data)
+    return data || []
+  }
+
+  async function loadSettings(currentUser) {
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .maybeSingle()
+
+    if (error) {
+      console.error('Error loading settings', error)
+      throw error
+    }
+
+    if (data) {
+      console.log('Loaded settings', data)
+      return data
+    }
+
+    const defaultSettings = {
+      user_id: currentUser.id,
+      theme: 'light',
+      language: 'en',
+      marketing_opt_in: false,
+    }
+    const { error: insertError } = await supabase.from('user_settings').upsert(defaultSettings)
+    if (insertError) {
+      console.error('Error creating default settings', insertError)
+      throw insertError
+    }
+
+    const { data: inserted, error: fetchError } = await supabase
+      .from('user_settings')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .maybeSingle()
+
+    if (fetchError) {
+      console.error('Error reloading settings', fetchError)
+      throw fetchError
+    }
+
+    console.log('Loaded settings', inserted)
+    return inserted
+  }
+
+  async function handleProfileSave(event) {
+    event.preventDefault()
+    if (!user) return
+    setSavingProfile(true)
+    setError(null)
+
+    const { data, error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        username: profileForm.username || null,
+        full_name: profileForm.full_name || null,
+      })
+      .eq('id', user.id)
+      .select()
+      .maybeSingle()
+
+    if (updateError) {
+      console.error('Error updating profile', updateError)
+      setError(updateError.message || 'Unable to save profile')
+    } else {
+      console.log('Updated profile', data)
+      setProfile(data)
+      setProfileForm({
+        username: data?.username || '',
+        full_name: data?.full_name || '',
+      })
+    }
+
+    setSavingProfile(false)
+  }
+
+  async function handleSettingsSave(event) {
+    event.preventDefault()
+    if (!user) return
+    setSavingSettings(true)
+    setError(null)
+
+    const payload = {
+      user_id: user.id,
+      theme: settingsForm.theme,
+      language: settingsForm.language,
+      marketing_opt_in: settingsForm.marketing_opt_in,
+    }
+
+    const { data, error: updateError } = await supabase
+      .from('user_settings')
+      .upsert(payload)
+      .select()
+      .maybeSingle()
+
+    if (updateError) {
+      console.error('Error updating settings', updateError)
+      setError(updateError.message || 'Unable to save settings')
+    } else {
+      console.log('Updated settings', data)
+      setSettings(data)
+      setSettingsForm({
+        theme: data?.theme || 'light',
+        language: data?.language || 'en',
+        marketing_opt_in: !!data?.marketing_opt_in,
+      })
+    }
+
+    setSavingSettings(false)
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    window.location.href = '/login'
   }
 
   if (loading) {
     return (
       <main className="account-page">
-        <p>Loading your account...</p>
+        <p>Loading your account…</p>
       </main>
     )
   }
 
-  if (loadError) {
+  if (!user) {
     return (
       <main className="account-page">
         <h1>Account</h1>
-        <p className="account-error">{loadError}</p>
+        <p>You need to log in to access your account.</p>
+        <button type="button" onClick={() => (window.location.href = '/login')}>
+          Log in
+        </button>
       </main>
     )
   }
 
-  const user = session?.user
+  if (error) {
+    return (
+      <main className="account-page">
+        <h1>Account</h1>
+        <p>We couldn’t load your data. Please refresh or try again later.</p>
+        <pre>{error}</pre>
+      </main>
+    )
+  }
 
   return (
     <main className="account-page">
       <section className="account-card">
         <h1>Account</h1>
-        <dl className="account-details">
-          <div>
-            <dt>Email</dt>
-            <dd>{user?.email}</dd>
-          </div>
-          <div>
-            <dt>User ID</dt>
-            <dd>{user?.id}</dd>
-          </div>
-        </dl>
+        <p>Email: {user.email}</p>
+        <form onSubmit={handleProfileSave} className="account-form">
+          <label>
+            Username
+            <input
+              type="text"
+              value={profileForm.username}
+              onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value })}
+            />
+          </label>
+          <label>
+            Full name
+            <input
+              type="text"
+              value={profileForm.full_name}
+              onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
+            />
+          </label>
+          <button type="submit" disabled={savingProfile}>
+            {savingProfile ? 'Saving…' : 'Save profile'}
+          </button>
+        </form>
       </section>
 
-      <section className="account-card account-card-danger">
-        <h2>Delete account</h2>
-        <p>This will remove your account and any associated data.</p>
-        <button type="button" onClick={handleDelete} disabled={deleting} className="account-delete-button">
-          {deleting ? 'Deleting your account…' : 'Delete account'}
+      <section className="account-card">
+        <h2>Your stats</h2>
+        <ul>
+          <li>Questions: {stats.questions}</li>
+          <li>Judgements: {stats.judgements}</li>
+          <li>Friends: {stats.friends}</li>
+        </ul>
+      </section>
+
+      <section className="account-card">
+        <h2>Your last questions</h2>
+        {questions.length === 0 ? (
+          <p>No questions yet — ask your first question!</p>
+        ) : (
+          <ul>
+            {questions.map((q) => (
+              <li key={q.id}>
+                <div>{q.text}</div>
+                <small>{new Date(q.created_at).toLocaleString()}</small>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="account-card">
+        <h2>Your last judgements</h2>
+        {judgements.length === 0 ? (
+          <p>No judgements yet — request one!</p>
+        ) : (
+          <ul>
+            {judgements.map((j) => (
+              <li key={j.id}>
+                <div>
+                  <strong>{j.judges?.name || j.judge_id || 'Judge'}</strong>
+                  <div>Question: {j.question_text}</div>
+                  <div>Verdict: {j.verdict_text}</div>
+                  <small>{new Date(j.created_at).toLocaleString()}</small>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="account-card">
+        <h2>Friends</h2>
+        <div>
+          <h3>Accepted</h3>
+          {acceptedFriends.length === 0 ? (
+            <p>No friends yet.</p>
+          ) : (
+            <ul>
+              {acceptedFriends.map((f) => (
+                <li key={f.id}>Friend ID: {f.user_id === user.id ? f.friend_user_id : f.user_id}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div>
+          <h3>Pending</h3>
+          {pendingFriends.length === 0 ? (
+            <p>No pending requests.</p>
+          ) : (
+            <ul>
+              {pendingFriends.map((f) => (
+                <li key={f.id}>Friend request with {f.user_id === user.id ? f.friend_user_id : f.user_id}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      <section className="account-card">
+        <h2>Settings</h2>
+        <form onSubmit={handleSettingsSave} className="account-form">
+          <label>
+            Theme
+            <select
+              value={settingsForm.theme}
+              onChange={(e) => setSettingsForm({ ...settingsForm, theme: e.target.value })}
+            >
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
+
+          <label>
+            Language
+            <select
+              value={settingsForm.language}
+              onChange={(e) => setSettingsForm({ ...settingsForm, language: e.target.value })}
+            >
+              <option value="en">English</option>
+            </select>
+          </label>
+
+          <label>
+            <input
+              type="checkbox"
+              checked={settingsForm.marketing_opt_in}
+              onChange={(e) => setSettingsForm({ ...settingsForm, marketing_opt_in: e.target.checked })}
+            />
+            Marketing opt-in
+          </label>
+
+          <button type="submit" disabled={savingSettings}>
+            {savingSettings ? 'Saving…' : 'Save settings'}
+          </button>
+        </form>
+      </section>
+
+      <section className="account-card">
+        <button type="button" onClick={handleLogout}>
+          Log out
         </button>
-        {actionError && <p className="account-error">{actionError}</p>}
-        {message && <p className="account-message">{message}</p>}
       </section>
     </main>
   )
