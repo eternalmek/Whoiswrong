@@ -1,118 +1,73 @@
 const express = require('express');
+const { OpenAI } = require('openai');
+const { supabaseServiceRole, supabase, requireUser } = require('../supabaseClient');
+
 const router = express.Router();
-const { supabaseServiceRole } = require('../supabaseClient');
-const { optionalUser } = require('../middleware/auth');
-const { callOpenAI } = require('../openaiClient');
-const { getJudgeById, getLocalJudges } = require('../services/judges');
-const { createPublicDebate } = require('../services/debates');
 
-// POST /api/judge
-// body: { context, optionA, optionB, judgeId }
-router.post('/', optionalUser, async (req, res, next) => {
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+router.post('/', async (req, res) => {
   try {
-    const {
-      context = '',
-      optionA,
-      optionB,
-      judgeId = 'normal',
-      makePublic = true,
-      allowIndexing = true,
-    } = req.body || {};
-
-    if (!optionA || !optionB) {
-      return res.status(400).json({ error: 'optionA and optionB are required.' });
+    const { question_text, side_a, side_b, judge_id, is_public } = req.body || {};
+    if (!question_text || typeof question_text !== 'string') {
+      return res.status(400).json({ error: 'question_text is required' });
     }
 
-    const judge = (await getJudgeById(judgeId)) || getLocalJudges()[0];
+    const judgeIdentifier = judge_id || 'classic';
+    const { data: judgeRow, error: judgeError } = await supabase
+      .from('judges')
+      .select('*')
+      .or(`id.eq.${judgeIdentifier},slug.eq.${judgeIdentifier}`)
+      .maybeSingle();
 
-    // Call OpenAI
-    const ai = await callOpenAI({
-      context,
-      optionA,
-      optionB,
-      judgePrompt: judge.personality_prompt || judge.systemPrompt || judge.system_prompt,
-      judgeName: judge.name,
-    });
-
-    // Ensure "wrong" matches one of the options exactly.
-    const wrongIsA = ai.wrong.trim() === optionA.trim();
-    const wrongIsB = ai.wrong.trim() === optionB.trim();
-    if (!wrongIsA && !wrongIsB) {
-      // If model returned a different text, coerce by comparing lower-cased tokens
-      const lowerA = optionA.trim().toLowerCase();
-      const lowerB = optionB.trim().toLowerCase();
-      const lowerWrong = ai.wrong.trim().toLowerCase();
-      if (lowerWrong === lowerA) ai.wrong = optionA;
-      if (lowerWrong === lowerB) ai.wrong = optionB;
-      // if still doesn't match, set wrong to one of the options (fallback: choose optionB)
-      if (ai.wrong !== optionA && ai.wrong !== optionB) {
-        ai.wrong = optionB;
-        ai.right = optionA;
-      }
+    if (judgeError) {
+      console.error('Supabase error:', judgeError);
+      return res.status(500).json({ error: 'Unable to load judge' });
     }
 
-    // Persist into Supabase (table: judgements)
-    const insertPayload = {
-      context,
-      option_a: optionA,
-      option_b: optionB,
-      wrong: ai.wrong,
-      right: ai.right,
-      reason: ai.reason,
-      roast: ai.roast || null,
-      user_id: req.auth?.user?.id || null,
-      raw_model_response: ai.raw,
-      judge_id: judge.id,
-    };
+    const judgePrompt = judgeRow?.base_prompt ||
+      'You are a decisive judge. Provide a clear verdict and short reasoning. Never stay neutral.';
 
-    let saved = null;
-    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY && supabaseServiceRole) {
-      const { data, error } = await supabaseServiceRole.from('judgements').insert([insertPayload]).select().limit(1);
-      if (error) {
-        console.warn('Supabase insert warning:', error);
-      } else {
-        saved = data?.[0] || null;
-      }
-    }
-
-    // Create public debate entry for SEO-friendly sharing when enabled
-    if (makePublic && saved) {
-      const derivedTitle = context?.trim()
-        ? context.trim()
-        : `${optionA} vs ${optionB} — Who is wrong?`;
-
-      const verdictSummary = [ai.reason, ai.roast].filter(Boolean).join('\n\n');
-
-      createPublicDebate({
-        title: derivedTitle,
-        content: context || `Option A: ${optionA}\nOption B: ${optionB}`,
-        judgeId: judge.id,
-        verdict: verdictSummary,
-        userId: req.auth?.user?.id || null,
-        isPublic: true,
-        isIndexable: !!allowIndexing,
-        judgementId: saved?.id,
-      }).catch((err) => {
-        console.warn('Failed to create public debate entry', err);
-      });
-    }
-
-    res.json({
-      ok: true,
-      judgement: {
-        wrong: ai.wrong,
-        right: ai.right,
-        reason: ai.reason,
-        roast: ai.roast || ''
+    const messages = [
+      { role: 'system', content: judgePrompt },
+      {
+        role: 'user',
+        content: JSON.stringify({ question: question_text, side_a, side_b }),
       },
-      saved
+    ];
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages,
+      temperature: 0.6,
+      max_tokens: 300,
     });
-  } catch (err) {
-    // expose parse debug when relevant
-    if (err && err.raw) {
-      console.error('OpenAI raw response that failed to parse:', err.raw);
+
+    const verdict = completion.choices[0]?.message?.content?.trim() || 'No verdict available.';
+
+    let saved = false;
+    const { user } = await requireUser(req);
+    if (user && supabaseServiceRole) {
+      const payload = {
+        user_id: user.id,
+        judge_id: judgeRow?.id || judgeIdentifier,
+        question_text,
+        verdict_text: verdict,
+        is_public: is_public !== false,
+      };
+
+      const { error: insertError } = await supabaseServiceRole.from('judgements').insert(payload);
+      if (insertError) {
+        console.error('Supabase error:', insertError);
+      } else {
+        saved = true;
+      }
     }
-    next(err);
+
+    return res.json({ verdict, saved });
+  } catch (error) {
+    console.error('Judge route error:', error);
+    return res.status(500).json({ error: 'Unable to create verdict' });
   }
 });
 
