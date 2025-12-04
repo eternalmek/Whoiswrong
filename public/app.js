@@ -1281,17 +1281,19 @@ function renderFeed(items = []) {
 
         const header = document.createElement('div');
         header.className = 'flex items-center gap-3';
-        header.innerHTML = `<div class="w-10 h-10 rounded-full overflow-hidden bg-gray-800"><img src="${judge.avatar}" alt="${judge.name}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Judge'" /></div><div><p class="text-xs uppercase text-gray-500">${judge.name}</p><h4 class="text-lg font-display font-bold leading-snug">${item.context || item.option_a + ' vs ' + item.option_b}</h4></div>`;
+        const title = item.question_text || item.context || [item.option_a, item.option_b].filter(Boolean).join(' vs ');
+        header.innerHTML = `<div class="w-10 h-10 rounded-full overflow-hidden bg-gray-800"><img src="${judge.avatar}" alt="${judge.name}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Judge'" /></div><div><p class="text-xs uppercase text-gray-500">${judge.name}</p><h4 class="text-lg font-display font-bold leading-snug">${title || 'Recent verdict'}</h4></div>`;
         card.appendChild(header);
 
         const summary = document.createElement('p');
         summary.className = 'text-sm text-gray-300';
-        summary.textContent = item.reason || item.roast || 'See the verdict inside.';
+        summary.textContent = item.verdict_text || item.reason || item.roast || 'See the verdict inside.';
         card.appendChild(summary);
 
         const verdict = document.createElement('div');
         verdict.className = 'text-sm text-gray-400 flex items-center gap-2 flex-wrap';
-        verdict.innerHTML = `<span class="px-2 py-1 rounded-full bg-red-500/20 text-red-300 text-xs font-semibold">Verdict</span><span class="font-medium text-white">${item.wrong || 'Wrong side'} was wrong</span>`;
+        const verdictLabel = item.verdict_text || (item.wrong ? `${item.wrong} was wrong` : 'Verdict ready');
+        verdict.innerHTML = `<span class="px-2 py-1 rounded-full bg-red-500/20 text-red-300 text-xs font-semibold">Verdict</span><span class="font-medium text-white">${verdictLabel}</span>`;
         card.appendChild(verdict);
 
         const votesRow = document.createElement('div');
@@ -1331,7 +1333,11 @@ async function loadFeed(forceRefresh = false) {
     try {
         const res = await fetch(`${API_BASE}/api/judgements/feed?limit=20${forceRefresh ? `&t=${Date.now()}` : ''}`);
         const data = await res.json();
-        const items = Array.isArray(data?.items) ? data.items : [];
+        const items = Array.isArray(data?.items)
+            ? data.items
+            : Array.isArray(data?.judgements)
+                ? data.judgements
+                : [];
         renderFeed(items);
         renderSamples(items);
     } catch (error) {
@@ -1365,10 +1371,10 @@ function renderSamples(items = []) {
     const grid = document.getElementById('sampleGrid');
     if (!grid) return;
     const source = items.length ? items.slice(0, 6).map((item) => ({
-        title: item.context || `${item.option_a} vs ${item.option_b}`,
+        title: item.question_text || item.context || `${item.option_a} vs ${item.option_b}`,
         judge: getJudgeVisual(item.judge_id || item.judge?.id || 'normal').name,
         judgeId: item.judge_id || item.judge?.id || 'normal',
-        summary: item.reason || item.roast || 'Decisive verdict rendered.'
+        summary: item.verdict_text || item.reason || item.roast || 'Decisive verdict rendered.'
     })) : SAMPLE_DEBATES;
 
     grid.innerHTML = '';
