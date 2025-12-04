@@ -74,7 +74,6 @@
             button, input, textarea { min-height: 44px; font-size: 16px !important; }
         }
     </style>
-    <script src="/auth.js"></script>
 </head>
 <body class="min-h-screen">
     <nav class="fixed top-0 left-0 right-0 z-50 glass-panel">
@@ -90,7 +89,7 @@
                     <a href="/" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-1">
                         <i class="fas fa-gavel"></i> <span class="hidden sm:inline">Judge</span>
                     </a>
-                    <button onclick="logout()" class="text-gray-400 hover:text-red-400 transition text-sm flex items-center gap-1">
+                    <button data-action="logout" class="text-gray-400 hover:text-red-400 transition text-sm flex items-center gap-1">
                         <i class="fas fa-sign-out-alt"></i> <span class="hidden sm:inline">Logout</span>
                     </button>
                 </div>
@@ -98,27 +97,27 @@
         </div>
     </nav>
 
-    <div id="loadingState" class="pt-20 sm:pt-24 pb-12 sm:pb-16 px-4 text-center">
+    <div id="loadingState" data-section="account-loading" class="pt-20 sm:pt-24 pb-12 sm:pb-16 px-4 text-center">
         <div class="max-w-md mx-auto">
             <div class="animate-spin text-4xl mb-4">⚖️</div>
             <p class="text-gray-400 text-sm sm:text-base">Loading your account...</p>
         </div>
     </div>
 
-    <div id="loginRequired" class="hidden pt-20 sm:pt-24 pb-12 sm:pb-16 px-4">
+    <div id="loginRequired" data-section="login-required" class="hidden pt-20 sm:pt-24 pb-12 sm:pb-16 px-4">
         <div class="max-w-md mx-auto text-center">
             <div class="glass-panel p-6 sm:p-8 rounded-2xl">
                 <div class="text-5xl sm:text-6xl mb-3 sm:mb-4">🔒</div>
                 <h1 class="font-display text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Login Required</h1>
                 <p class="text-gray-400 text-sm sm:text-base mb-4 sm:mb-6">You need to be logged in to access your account.</p>
-                <a href="/login.html" class="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition">
+                <a href="/login.html" data-action="go-login" class="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition">
                     Go to Login
                 </a>
             </div>
         </div>
     </div>
 
-    <div id="accountError" class="hidden pt-20 sm:pt-24 pb-12 sm:pb-16 px-4">
+    <div id="accountError" data-section="account-error" class="hidden pt-20 sm:pt-24 pb-12 sm:pb-16 px-4">
         <div class="max-w-md mx-auto text-center">
             <div class="glass-panel p-6 sm:p-8 rounded-2xl">
                 <div class="text-5xl sm:text-6xl mb-3 sm:mb-4">⚠️</div>
@@ -126,14 +125,14 @@
                 <p id="accountErrorMessage" class="text-gray-400 text-sm sm:text-base mb-4 sm:mb-6">
                     Something went wrong while loading your account. Please try again.
                 </p>
-                <button onclick="init()" class="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition">
+                <button data-action="retry-account" class="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition">
                     Retry
                 </button>
             </div>
         </div>
     </div>
 
-    <main id="accountContent" class="hidden pt-20 sm:pt-24 pb-16 px-4 fade-in">
+    <main id="accountContent" data-section="account-main" class="hidden pt-20 sm:pt-24 pb-16 px-4 fade-in">
         <div class="max-w-5xl mx-auto">
             <header class="text-center mb-8 sm:mb-10">
                 <h1 class="font-display text-3xl sm:text-4xl font-bold mb-2">My Account</h1>
@@ -145,14 +144,14 @@
                     <div class="flex items-center gap-4">
                         <div class="w-14 h-14 rounded-full bg-gray-800 flex items-center justify-center text-2xl" id="avatarPreview">🧑</div>
                         <div>
-                            <div class="text-sm text-gray-400" id="emailPreview"></div>
+                            <div class="text-sm text-gray-400" id="emailPreview" data-field="email"></div>
                             <div class="text-xl font-bold" id="displayNamePreview">Loading...</div>
                             <div class="text-gray-400 text-sm" id="usernamePreview"></div>
                         </div>
                     </div>
                     <div class="flex gap-3 text-center">
                         <div>
-                            <div class="text-xl font-bold" id="statDebates">0</div>
+                            <div class="text-xl font-bold" id="statDebates" data-field="debates-count">0</div>
                             <div class="text-xs text-gray-400">Debates</div>
                         </div>
                         <div>
@@ -162,6 +161,10 @@
                         <div>
                             <div class="text-xl font-bold" id="statJudges">0</div>
                             <div class="text-xs text-gray-400">Judges</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold" data-field="purchases-count">0</div>
+                            <div class="text-xs text-gray-400">Purchases</div>
                         </div>
                     </div>
                 </div>
@@ -180,15 +183,15 @@
                         <div class="flex items-center gap-2 text-lg font-display font-bold">
                             <i class="fas fa-chart-line text-red-500"></i> Account Overview
                         </div>
-                        <div class="grid sm:grid-cols-2 gap-3 text-sm text-gray-300">
-                            <div>
-                                <div class="text-gray-500 uppercase text-xs">Email</div>
-                                <div id="overviewEmail" class="break-all"></div>
-                            </div>
-                            <div>
-                                <div class="text-gray-500 uppercase text-xs">Created</div>
-                                <div id="overviewCreated">-</div>
-                            </div>
+                            <div class="grid sm:grid-cols-2 gap-3 text-sm text-gray-300">
+                                <div>
+                                    <div class="text-gray-500 uppercase text-xs">Email</div>
+                                    <div id="overviewEmail" data-field="email" class="break-all"></div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-500 uppercase text-xs">Created</div>
+                                    <div id="overviewCreated" data-field="created_at">-</div>
+                                </div>
                             <div>
                                 <div class="text-gray-500 uppercase text-xs">Profile Visibility</div>
                                 <div id="overviewVisibility">-</div>
@@ -328,21 +331,21 @@
                     <div class="flex items-center gap-2 text-lg font-display font-bold">
                         <i class="fas fa-shield-alt text-red-500"></i> Security
                     </div>
-                    <div class="grid sm:grid-cols-2 gap-4 text-sm">
-                        <div class="bg-gray-900/40 p-3 rounded-lg">
-                            <div class="text-gray-500 uppercase text-xs">Email</div>
-                            <div id="securityEmail" class="break-all"></div>
-                        </div>
+                        <div class="grid sm:grid-cols-2 gap-4 text-sm">
+                            <div class="bg-gray-900/40 p-3 rounded-lg">
+                                <div class="text-gray-500 uppercase text-xs">Email</div>
+                                <div id="securityEmail" data-field="email" class="break-all"></div>
+                            </div>
                         <div class="bg-gray-900/40 p-3 rounded-lg">
                             <div class="text-gray-500 uppercase text-xs">Email Verified</div>
                             <div id="securityVerified">-</div>
                         </div>
                     </div>
                     <div class="flex gap-3">
-                        <button onclick="logout()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-5 rounded-xl transition text-sm flex items-center gap-2">
+                        <button data-action="logout" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-5 rounded-xl transition text-sm flex items-center gap-2">
                             <i class="fas fa-sign-out-alt"></i> Log out
                         </button>
-                        <button onclick="confirmDeleteAccount()" class="bg-red-900/50 hover:bg-red-800 text-red-300 hover:text-white font-bold py-3 px-5 rounded-xl transition text-sm border border-red-800 flex items-center gap-2">
+                        <button data-action="open-delete-modal" class="bg-red-900/50 hover:bg-red-800 text-red-300 hover:text-white font-bold py-3 px-5 rounded-xl transition text-sm border border-red-800 flex items-center gap-2">
                             <i class="fas fa-trash"></i> Delete my account
                         </button>
                     </div>
@@ -352,7 +355,7 @@
     </main>
 
     <div id="deleteModal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="hideDeleteModal()"></div>
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" data-action="close-delete-modal"></div>
         <div class="flex items-center justify-center min-h-screen p-4">
             <div class="glass-panel p-8 rounded-2xl w-full max-w-md relative z-10 border border-red-500/50">
                 <div class="text-center mb-6">
@@ -369,8 +372,8 @@
                 <div id="deleteError" class="hidden text-red-400 text-sm text-center p-2 bg-red-900/30 rounded mb-4"></div>
 
                 <div class="flex gap-3">
-                    <button onclick="hideDeleteModal()" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition">Cancel</button>
-                    <button onclick="deleteAccount()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition">Delete Forever</button>
+                    <button data-action="close-delete-modal" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition">Cancel</button>
+                    <button data-action="delete-account" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition">Delete Forever</button>
                 </div>
             </div>
         </div>
@@ -381,691 +384,212 @@
         <span id="toastMessage">Success!</span>
     </div>
 
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
-        const API_BASE = window.location.origin;
-        const auth = window.authClient;
-        let accessToken = auth.getAccessToken();
-        let refreshToken = auth.getRefreshToken();
-        let currentUser = null;
-        let profileData = null;
-        let statsData = null;
-        let friendsData = { incoming: [], outgoing: [], friends: [] };
-        let friendsDebates = [];
-        let usernameCheckTimeout = null;
-        let searchTimeout = null;
+        document.addEventListener('DOMContentLoaded', () => {
+            const sections = {
+                loading: document.querySelector('[data-section="account-loading"]'),
+                login: document.querySelector('[data-section="login-required"]'),
+                error: document.querySelector('[data-section="account-error"]'),
+                account: document.querySelector('[data-section="account-main"]'),
+            };
 
-        const loadingState = document.getElementById('loadingState');
-        const loginRequired = document.getElementById('loginRequired');
-        const accountContent = document.getElementById('accountContent');
-        const accountError = document.getElementById('accountError');
-        const accountErrorMessage = document.getElementById('accountErrorMessage');
+            const accountErrorMessage = document.getElementById('accountErrorMessage');
+            const deleteModal = document.getElementById('deleteModal');
 
-        function syncTokens(session) {
-            accessToken = session?.accessToken || auth.getAccessToken();
-            refreshToken = session?.refreshToken || auth.getRefreshToken();
-        }
+            const SUPABASE_URL =
+                window.NEXT_PUBLIC_SUPABASE_URL ||
+                window.SUPABASE_URL ||
+                window.env?.NEXT_PUBLIC_SUPABASE_URL ||
+                window.env?.SUPABASE_URL ||
+                '';
 
-        function clearSessionTokens() {
-            currentUser = null;
-            auth.clearSessionTokens();
-            accessToken = null;
-            refreshToken = null;
-        }
+            const SUPABASE_ANON_KEY =
+                window.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+                window.SUPABASE_ANON_KEY ||
+                window.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+                window.env?.SUPABASE_ANON_KEY ||
+                '';
 
-        async function refreshSession() {
-            try {
-                const refreshed = await auth.refreshSession();
-                syncTokens(refreshed);
-                return !!refreshed?.accessToken;
-            } catch (error) {
-                console.error('Session refresh failed:', error);
-                clearSessionTokens();
-                return false;
-            }
-        }
-
-        function setAvatarPreview(url) {
-            const el = document.getElementById('avatarPreview');
-            if (url) {
-                el.style.backgroundImage = `url(${url})`;
-                el.style.backgroundSize = 'cover';
-                el.textContent = '';
-            } else {
-                el.style.backgroundImage = '';
-                el.textContent = '🧑';
-            }
-        }
-
-        async function init(hasRefreshed = false) {
-            if (!accessToken) {
-                const session = await auth.requireSession({ redirectTo: '/login.html' });
-                if (!session?.accessToken) {
-                    showLoginRequired();
-                    return;
+            function setErrorMessage(message) {
+                if (accountErrorMessage && message) {
+                    accountErrorMessage.textContent = message;
                 }
-                syncTokens(session);
             }
 
-            try {
-                const response = await fetch(`${API_BASE}/api/account/profile`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
+            function showOnly(section) {
+                Object.values(sections).forEach((el) => {
+                    if (!el) return;
+                    const isActive = el === section;
+                    el.style.display = isActive ? 'block' : 'none';
+                    el.classList.toggle('hidden', !isActive);
                 });
-
-                if (!response.ok) {
-                    if (response.status === 401 && !hasRefreshed) {
-                        const refreshed = await refreshSession();
-                        if (refreshed) return init(true);
-                    }
-                    handleAccountError(response);
-                    return;
-                }
-
-                const data = await response.json();
-                currentUser = { id: data.profile.id, email: data.auth?.email, created_at: data.profile.created_at };
-                profileData = data.profile;
-                statsData = data.stats;
-                friendsDebates = data.friendsDebates || [];
-
-                showAccountContent();
-                populateOverview(data);
-                populateProfileForm();
-                renderFriendsDebates();
-                loadHistory();
-                loadFriends();
-            } catch (error) {
-                console.error('Init error:', error);
-                showAccountError('We could not load your account. Please try again in a moment.');
             }
-        }
 
-        function showLoginRequired() {
-            clearSessionTokens();
-            loadingState.classList.add('hidden');
-            loginRequired.classList.remove('hidden');
-            accountContent.classList.add('hidden');
-            accountError.classList.add('hidden');
-        }
+            function setField(name, value) {
+                const text = value ?? '-';
+                document.querySelectorAll(`[data-field="${name}"]`).forEach((el) => {
+                    el.textContent = text;
+                });
+            }
 
-        function showAccountContent() {
-            loadingState.classList.add('hidden');
-            loginRequired.classList.add('hidden');
-            accountContent.classList.remove('hidden');
-            accountError.classList.add('hidden');
-        }
-
-        function showAccountError(message) {
-            loadingState.classList.add('hidden');
-            loginRequired.classList.add('hidden');
-            accountContent.classList.add('hidden');
-            accountError.classList.remove('hidden');
-            accountErrorMessage.textContent = message || 'Something went wrong while loading your account.';
-        }
-
-        async function handleAccountError(response) {
-            if (response.status === 401) {
-                clearSessionTokens();
-                showLoginRequired();
+            if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+                console.error('Supabase client credentials are missing.');
+                setErrorMessage('Account unavailable because Supabase credentials are missing.');
+                showOnly(sections.error);
                 return;
             }
 
-            let message = 'Something went wrong while loading your account. Please try again later.';
-            try {
-                const data = await response.json();
-                if (response.status === 503) {
-                    const details = Array.isArray(data?.details) ? data.details : [];
-                    const missingEnv = details.filter((d) => d.toLowerCase().includes('supabase'));
-                    const envHint =
-                        missingEnv.length > 0
-                            ? ` Missing env vars: ${missingEnv.join(', ')}.`
-                            : '';
-                    message =
-                        data?.error ||
-                        `Account services are offline because Supabase isn't configured on the server.${envHint} ` +
-                            'Set SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and SUPABASE_ANON_KEY, then restart the server.';
-                } else if (data?.error) {
-                    message = data.error;
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            function formatDate(value) {
+                if (!value) return '-';
+                const date = new Date(value);
+                return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
+            }
+
+            async function loadUserData(user) {
+                setField('email', user.email || '-');
+                setField('created_at', formatDate(user.created_at));
+
+                const { count: judgementsCount, error: jError } = await supabase
+                    .from('judgements')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('user_id', user.id);
+
+                if (jError) {
+                    console.error('Error loading judgements:', jError);
                 }
-            } catch (_) {
-                // Ignore JSON parse errors and fall back to default message
+                setField('debates-count', typeof judgementsCount === 'number' ? judgementsCount : 0);
+
+                const { count: purchasesCount, error: pError } = await supabase
+                    .from('purchases')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('user_id', user.id);
+
+                if (pError) {
+                    console.error('Error loading purchases:', pError);
+                }
+                setField('purchases-count', typeof purchasesCount === 'number' ? purchasesCount : 0);
+
+                showOnly(sections.account);
             }
 
-            showAccountError(message);
-        }
-
-        function populateOverview(data) {
-            document.getElementById('emailPreview').textContent = data.auth?.email || 'Unknown';
-            document.getElementById('overviewEmail').textContent = data.auth?.email || 'Unknown';
-            document.getElementById('securityEmail').textContent = data.auth?.email || 'Unknown';
-            document.getElementById('securityVerified').textContent = data.auth?.email_confirmed_at ? 'Yes' : 'No';
-
-            document.getElementById('displayNamePreview').textContent = profileData.display_name || 'New User';
-            document.getElementById('usernamePreview').textContent = profileData.username ? `@${profileData.username}` : 'No username set';
-            document.getElementById('statDebates').textContent = data.stats?.debates || 0;
-            document.getElementById('statFriends').textContent = data.stats?.friends || 0;
-            document.getElementById('statJudges').textContent = data.stats?.unlockedJudges || 0;
-
-            document.getElementById('overviewVisibility').textContent = profileData.is_public_profile ? 'Public' : 'Private';
-            document.getElementById('overviewRequests').textContent = profileData.allow_friend_requests === false ? 'Disabled' : 'Allowed';
-
-            if (currentUser?.id && currentUser?.created_at) {
-                document.getElementById('overviewCreated').textContent = new Date(currentUser.created_at).toLocaleDateString();
-            } else if (data.profile?.created_at) {
-                document.getElementById('overviewCreated').textContent = new Date(data.profile.created_at).toLocaleDateString();
-            }
-
-            setAvatarPreview(profileData.avatar_url);
-        }
-
-        function populateProfileForm() {
-            document.getElementById('displayNameInput').value = profileData.display_name || '';
-            document.getElementById('usernameInput').value = profileData.username || '';
-            document.getElementById('avatarInput').value = profileData.avatar_url || '';
-            document.getElementById('countryInput').value = profileData.country || '';
-            document.getElementById('bioInput').value = profileData.bio || '';
-            document.getElementById('publicToggle').checked = profileData.is_public_profile !== false;
-            document.getElementById('requestsToggle').checked = profileData.allow_friend_requests !== false;
-            document.getElementById('wallToggle').checked = profileData.show_debates_on_wall !== false;
-            document.getElementById('notificationsToggle').checked = profileData.allow_notifications !== false;
-        }
-
-        function debounceUsernameCheck() {
-            const username = document.getElementById('usernameInput').value.trim();
-            const hint = document.getElementById('usernameHint');
-            if (!username) {
-                hint.textContent = 'Username is optional. 3-20 characters, letters/numbers/underscores only.';
-                hint.className = 'text-xs mt-1 text-gray-500';
-                return;
-            }
-
-            if (usernameCheckTimeout) clearTimeout(usernameCheckTimeout);
-            usernameCheckTimeout = setTimeout(async () => {
+            async function loadAccount() {
                 try {
-                    const res = await fetch(`${API_BASE}/api/account/username-check?username=${encodeURIComponent(username)}`, {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    const data = await res.json();
-                    if (!res.ok) {
-                        hint.textContent = data.error || 'Invalid username';
-                        hint.className = 'text-xs mt-1 text-red-400';
+                    showOnly(sections.loading);
+
+                    const { data, error } = await supabase.auth.getUser();
+                    if (error) {
+                        console.error('Error getting user:', error);
+                        setErrorMessage('Account unavailable. Please try again.');
+                        showOnly(sections.error);
                         return;
                     }
-                    if (data.available) {
-                        hint.textContent = 'Username available!';
-                        hint.className = 'text-xs mt-1 text-green-400';
-                    } else {
-                        hint.textContent = 'Username already taken.';
-                        hint.className = 'text-xs mt-1 text-red-400';
+
+                    const user = data?.user;
+                    if (!user) {
+                        showOnly(sections.login);
+                        return;
                     }
+
+                    await loadUserData(user);
                 } catch (err) {
-                    hint.textContent = 'Unable to check availability right now.';
-                    hint.className = 'text-xs mt-1 text-red-400';
+                    console.error('Unexpected error:', err);
+                    setErrorMessage('Account unavailable. Please try again.');
+                    showOnly(sections.error);
                 }
-            }, 400);
-        }
-
-        async function saveProfile() {
-            const payload = {
-                display_name: document.getElementById('displayNameInput').value.trim(),
-                username: document.getElementById('usernameInput').value.trim(),
-                avatar_url: document.getElementById('avatarInput').value.trim(),
-                country: document.getElementById('countryInput').value.trim(),
-                bio: document.getElementById('bioInput').value.trim(),
-                is_public_profile: document.getElementById('publicToggle').checked,
-                allow_friend_requests: document.getElementById('requestsToggle').checked,
-                show_debates_on_wall: document.getElementById('wallToggle').checked,
-                allow_notifications: document.getElementById('notificationsToggle').checked,
-            };
-
-            const statusEl = document.getElementById('profileStatus');
-            statusEl.textContent = 'Saving...';
-            statusEl.className = 'text-sm text-gray-400';
-
-            try {
-                const res = await fetch(`${API_BASE}/api/account/profile`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${accessToken}`
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Failed to save profile');
-
-                profileData = data.profile;
-                populateOverview({ profile: profileData, stats: statsData, auth: { email: currentUser?.email } });
-                populateProfileForm();
-                showToast('Profile updated');
-                statusEl.textContent = 'Saved';
-                statusEl.className = 'text-sm text-green-400';
-                renderFriendsDebates();
-            } catch (err) {
-                statusEl.textContent = err.message;
-                statusEl.className = 'text-sm text-red-400';
-            }
-        }
-
-        async function loadFriends() {
-            try {
-                const res = await fetch(`${API_BASE}/api/account/friends`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Failed to load friends');
-                friendsData = data;
-                renderFriends();
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        function renderFriends() {
-            const incomingList = document.getElementById('incomingList');
-            const outgoingList = document.getElementById('outgoingList');
-            const friendsList = document.getElementById('friendsList');
-
-            const friendsCount = friendsData.friends?.length || 0;
-            document.getElementById('statFriends').textContent = friendsCount;
-            if (statsData) statsData.friends = friendsCount;
-
-            incomingList.innerHTML = friendsData.incoming.length ? '' : '<div class="text-gray-500">No incoming requests.</div>';
-            outgoingList.innerHTML = friendsData.outgoing.length ? '' : '<div class="text-gray-500">No outgoing requests.</div>';
-            friendsList.innerHTML = friendsData.friends.length ? '' : '<div class="text-gray-500">No friends yet.</div>';
-
-            const renderCard = (item, actions) => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'flex items-center justify-between bg-gray-900/50 p-3 rounded-lg border border-gray-800';
-                const left = document.createElement('div');
-                left.className = 'flex items-center gap-3';
-                const avatar = document.createElement('div');
-                avatar.className = 'w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-lg';
-                if (item.other_user?.avatar_url) {
-                    avatar.style.backgroundImage = `url(${item.other_user.avatar_url})`;
-                    avatar.style.backgroundSize = 'cover';
-                    avatar.textContent = '';
-                } else {
-                    avatar.textContent = '🧑';
-                }
-                const info = document.createElement('div');
-                info.innerHTML = `<div class="font-semibold">${item.other_user?.display_name || 'User'}</div><div class="text-xs text-gray-400">${item.other_user?.username ? '@' + item.other_user.username : 'No username'}</div>`;
-                left.appendChild(avatar);
-                left.appendChild(info);
-                wrapper.appendChild(left);
-
-                const actionWrap = document.createElement('div');
-                actionWrap.className = 'flex gap-2';
-                actions.forEach((btn) => actionWrap.appendChild(btn));
-                wrapper.appendChild(actionWrap);
-                return wrapper;
-            };
-
-            friendsData.incoming.forEach((item) => {
-                const acceptBtn = document.createElement('button');
-                acceptBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-xs';
-                acceptBtn.textContent = 'Accept';
-                acceptBtn.onclick = () => respondRequest(item.id, 'accept');
-
-                const declineBtn = document.createElement('button');
-                declineBtn.className = 'bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-xs';
-                declineBtn.textContent = 'Decline';
-                declineBtn.onclick = () => respondRequest(item.id, 'decline');
-
-                incomingList.appendChild(renderCard(item, [acceptBtn, declineBtn]));
-            });
-
-            friendsData.outgoing.forEach((item) => {
-                const cancelBtn = document.createElement('button');
-                cancelBtn.className = 'bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-xs';
-                cancelBtn.textContent = 'Cancel';
-                cancelBtn.onclick = () => cancelRequest(item.id);
-                outgoingList.appendChild(renderCard(item, [cancelBtn]));
-            });
-
-            friendsData.friends.forEach((item) => {
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg text-xs';
-                removeBtn.textContent = 'Remove';
-                removeBtn.onclick = () => removeFriend(item.id);
-                friendsList.appendChild(renderCard(item, [removeBtn]));
-            });
-        }
-
-        async function searchUsers() {
-            const term = document.getElementById('searchInput').value.trim();
-            const list = document.getElementById('searchResults');
-            if (!term) {
-                list.innerHTML = '<div class="text-gray-500">Type to search for users.</div>';
-                return;
             }
 
-            list.innerHTML = '<div class="text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Searching...</div>';
-            try {
-                const res = await fetch(`${API_BASE}/api/account/search?query=${encodeURIComponent(term)}`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Search failed');
+            function setupTabs() {
+                const tabButtons = document.querySelectorAll('#tabButtons [data-tab]');
+                const panels = document.querySelectorAll('.tab-panel');
 
-                if (!data.results.length) {
-                    list.innerHTML = '<div class="text-gray-500">No users found.</div>';
-                    return;
+                function switchTab(tab) {
+                    panels.forEach((panel) => {
+                        panel.classList.toggle('hidden', panel.id !== `tab-${tab}`);
+                    });
+
+                    tabButtons.forEach((btn) => {
+                        const isActive = btn.dataset.tab === tab;
+                        btn.classList.toggle('bg-red-600', isActive);
+                        btn.classList.toggle('text-white', isActive);
+                        btn.classList.toggle('bg-gray-800', !isActive);
+                    });
                 }
 
-                list.innerHTML = '';
-                data.results.forEach((user) => {
-                    const card = document.createElement('div');
-                    card.className = 'flex items-center justify-between bg-gray-900/50 p-3 rounded-lg border border-gray-800';
-
-                    const left = document.createElement('div');
-                    left.className = 'flex items-center gap-3';
-                    const avatar = document.createElement('div');
-                    avatar.className = 'w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-lg';
-                    if (user.avatar_url) {
-                        avatar.style.backgroundImage = `url(${user.avatar_url})`;
-                        avatar.style.backgroundSize = 'cover';
-                        avatar.textContent = '';
-                    } else {
-                        avatar.textContent = '🧑';
-                    }
-                    const info = document.createElement('div');
-                    info.innerHTML = `<div class="font-semibold">${user.display_name || 'User'}</div><div class="text-xs text-gray-400">${user.username ? '@' + user.username : 'No username'}</div>`;
-                    left.appendChild(avatar);
-                    left.appendChild(info);
-                    card.appendChild(left);
-
-                    const btn = document.createElement('button');
-                    btn.className = 'bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-xs';
-
-                    if (user.status === 'accepted') {
-                        btn.textContent = 'Friends';
-                        btn.disabled = true;
-                        btn.className = 'bg-green-700 text-white px-3 py-2 rounded-lg text-xs opacity-80';
-                    } else if (user.status === 'pending') {
-                        btn.textContent = user.is_requester ? 'Pending (sent)' : 'Pending';
-                        btn.disabled = true;
-                        btn.className = 'bg-gray-700 text-white px-3 py-2 rounded-lg text-xs opacity-80';
-                    } else {
-                        btn.textContent = 'Add Friend';
-                        btn.onclick = () => sendRequest(user.id);
-                    }
-
-                    card.appendChild(btn);
-                    list.appendChild(card);
+                tabButtons.forEach((btn) => {
+                    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
                 });
-            } catch (err) {
-                list.innerHTML = `<div class="text-red-400">${err.message}</div>`;
+
+                const initialTab = document.querySelector('#tabButtons [data-tab]');
+                switchTab(initialTab?.dataset.tab || 'overview');
             }
-        }
 
-        async function sendRequest(receiverId) {
-            try {
-                const res = await fetch(`${API_BASE}/api/account/friends/request`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${accessToken}`
-                    },
-                    body: JSON.stringify({ receiver_id: receiverId })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Could not send request');
-                showToast('Friend request sent');
-                loadFriends();
-                searchUsers();
-            } catch (err) {
-                showToast(err.message, 'error');
-            }
-        }
-
-        async function respondRequest(id, action) {
-            try {
-                const res = await fetch(`${API_BASE}/api/account/friends/respond`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${accessToken}`
-                    },
-                    body: JSON.stringify({ friendship_id: id, action })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Failed to update request');
-                showToast('Updated request');
-                loadFriends();
-            } catch (err) {
-                showToast(err.message, 'error');
-            }
-        }
-
-        async function cancelRequest(id) {
-            try {
-                const res = await fetch(`${API_BASE}/api/account/friends/cancel`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${accessToken}`
-                    },
-                    body: JSON.stringify({ friendship_id: id })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Failed to cancel');
-                showToast('Request cancelled');
-                loadFriends();
-            } catch (err) {
-                showToast(err.message, 'error');
-            }
-        }
-
-        async function removeFriend(id) {
-            try {
-                const res = await fetch(`${API_BASE}/api/account/friends/remove`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${accessToken}`
-                    },
-                    body: JSON.stringify({ friendship_id: id })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Failed to remove');
-                showToast('Friend removed');
-                loadFriends();
-            } catch (err) {
-                showToast(err.message, 'error');
-            }
-        }
-
-        function renderFriendsDebates() {
-            const container = document.getElementById('friendsDebates');
-            if (!friendsDebates || friendsDebates.length === 0) {
-                container.innerHTML = '<div class="text-gray-500">No friend activity yet.</div>';
-                return;
-            }
-            container.innerHTML = '';
-            friendsDebates.forEach((item) => {
-                const card = document.createElement('div');
-                card.className = 'bg-gray-900/50 p-3 rounded-lg border border-gray-800 text-sm';
-                const name = item.profile?.display_name || 'Friend';
-                const username = item.profile?.username ? '@' + item.profile.username : '';
-                const header = document.createElement('div');
-                header.className = 'flex items-center justify-between text-gray-300';
-                header.innerHTML = `<div class="font-semibold">${name} <span class="text-gray-500 text-xs">${username}</span></div><div class="text-xs text-gray-500">${new Date(item.created_at).toLocaleDateString()}</div>`;
-                card.appendChild(header);
-
-                const body = document.createElement('div');
-                body.className = 'mt-2 text-gray-200';
-                body.textContent = `${item.option_a || 'Option A'} vs ${item.option_b || 'Option B'} — winner: ${item.right}`;
-                card.appendChild(body);
-
-                if (item.reason) {
-                    const reason = document.createElement('div');
-                    reason.className = 'text-xs text-gray-400 mt-1 italic';
-                    reason.textContent = item.reason;
-                    card.appendChild(reason);
+            function openDeleteModal() {
+                if (deleteModal) {
+                    deleteModal.classList.remove('hidden');
+                    document.body.style.overflow = 'hidden';
                 }
-                container.appendChild(card);
-            });
-        }
+            }
 
-        async function loadHistory() {
-            const historyList = document.getElementById('historyList');
-            const noHistory = document.getElementById('noHistory');
-            historyList.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i>Loading your verdicts...</div>';
-
-            try {
-                const response = await fetch(`${API_BASE}/api/judgements?mine=true&limit=10`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
-                if (!response.ok) throw new Error('Failed to load history');
-                const data = await response.json();
-                const items = data.items || [];
-
-                if (items.length === 0) {
-                    historyList.classList.add('hidden');
-                    noHistory.classList.remove('hidden');
-                    return;
+            function closeDeleteModal() {
+                if (deleteModal) {
+                    deleteModal.classList.add('hidden');
+                    document.body.style.overflow = '';
                 }
-
-                noHistory.classList.add('hidden');
-                historyList.classList.remove('hidden');
-                historyList.innerHTML = '';
-
-                items.forEach(item => {
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'bg-gray-800/50 p-4 rounded-lg border border-gray-800';
-
-                    const dateDiv = document.createElement('div');
-                    dateDiv.className = 'flex items-center gap-2 mb-2 text-sm text-gray-400';
-                    dateDiv.innerHTML = '<i class="fas fa-calendar"></i>';
-                    dateDiv.appendChild(document.createTextNode(' ' + new Date(item.created_at).toLocaleDateString()));
-                    itemDiv.appendChild(dateDiv);
-
-                    const optionsDiv = document.createElement('div');
-                    optionsDiv.className = 'flex items-center gap-2 mb-2';
-                    const optionA = document.createElement('span');
-                    optionA.className = 'text-blue-400';
-                    optionA.textContent = item.option_a || '';
-                    const vs = document.createElement('span');
-                    vs.className = 'text-gray-500 text-sm';
-                    vs.textContent = 'vs';
-                    const optionB = document.createElement('span');
-                    optionB.className = 'text-purple-400';
-                    optionB.textContent = item.option_b || '';
-                    optionsDiv.appendChild(optionA);
-                    optionsDiv.appendChild(vs);
-                    optionsDiv.appendChild(optionB);
-                    itemDiv.appendChild(optionsDiv);
-
-                    const resultDiv = document.createElement('div');
-                    resultDiv.className = 'text-sm';
-                    resultDiv.innerHTML = `<span class="text-gray-400">Winner:</span> <span class="text-green-400 font-semibold">${item.right}</span>`;
-                    itemDiv.appendChild(resultDiv);
-
-                    if (item.reason) {
-                        const reasonDiv = document.createElement('div');
-                        reasonDiv.className = 'text-sm text-gray-400 mt-1 italic';
-                        reasonDiv.textContent = '"' + (item.reason || '') + '"';
-                        itemDiv.appendChild(reasonDiv);
-                    }
-
-                    historyList.appendChild(itemDiv);
-                });
-
-            } catch (error) {
-                historyList.innerHTML = '<div class="text-center text-red-400 py-4">Failed to load history</div>';
-            }
-        }
-
-        function logout() {
-            clearSessionTokens();
-            auth.logoutUser({ redirectTo: '/login.html' });
-        }
-
-        function confirmDeleteAccount() {
-            document.getElementById('deleteModal').classList.remove('hidden');
-            document.getElementById('deleteConfirmInput').value = '';
-            document.getElementById('deleteError').classList.add('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function hideDeleteModal() {
-            document.getElementById('deleteModal').classList.add('hidden');
-            document.body.style.overflow = '';
-        }
-
-        async function deleteAccount() {
-            const confirmInput = document.getElementById('deleteConfirmInput');
-            const errorEl = document.getElementById('deleteError');
-
-            if (confirmInput.value !== 'DELETE') {
-                errorEl.innerText = 'Please type DELETE to confirm';
-                errorEl.classList.remove('hidden');
-                return;
             }
 
-            try {
-                const response = await fetch(`${API_BASE}/api/auth/me`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
+            async function handleLogout() {
+                await supabase.auth.signOut();
+                window.location.href = '/';
+            }
 
-                if (!response.ok) {
-                    const data = await response.json().catch(() => ({}));
-                    throw new Error(data.error || 'Failed to delete account');
+            function handleDeleteAccount() {
+                const errorEl = document.getElementById('deleteError');
+                if (errorEl) {
+                    errorEl.textContent = 'Account deletion is unavailable in this preview.';
+                    errorEl.classList.remove('hidden');
                 }
-
-                clearSessionTokens();
-                showToast('Account deleted successfully', 'success');
-                setTimeout(() => { window.location.href = '/'; }, 1200);
-            } catch (error) {
-                errorEl.innerText = error.message;
-                errorEl.classList.remove('hidden');
             }
-        }
 
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            const toastIcon = document.getElementById('toastIcon');
-            const toastMessage = document.getElementById('toastMessage');
-            toastMessage.innerText = message;
-
-            toastIcon.className = 'fas';
-            toastIcon.classList.add(type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle');
-            toastIcon.classList.add(type === 'error' ? 'text-red-400' : 'text-green-400');
-
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3000);
-        }
-
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
-            document.getElementById(`tab-${tab}`).classList.remove('hidden');
-            document.querySelectorAll('#tabButtons .tab-btn').forEach(btn => {
-                btn.classList.remove('bg-red-600', 'text-white');
-                btn.classList.add('bg-gray-800');
+            document.querySelectorAll('[data-action="go-login"]').forEach((btn) => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.location.href = '/login.html';
+                });
             });
-            const activeBtn = document.querySelector(`#tabButtons [data-tab="${tab}"]`);
-            if (activeBtn) {
-                activeBtn.classList.remove('bg-gray-800');
-                activeBtn.classList.add('bg-red-600', 'text-white');
-            }
-        }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            init();
-            document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
-            document.getElementById('usernameInput').addEventListener('input', debounceUsernameCheck);
-            document.getElementById('searchInput').addEventListener('input', () => {
-                if (searchTimeout) clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(searchUsers, 300);
+            document.querySelectorAll('[data-action="retry-account"]').forEach((btn) => {
+                btn.addEventListener('click', loadAccount);
             });
-            document.querySelectorAll('#tabButtons .tab-btn').forEach(btn => {
-                btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+
+            document.querySelectorAll('[data-action="logout"]').forEach((btn) => {
+                btn.addEventListener('click', handleLogout);
             });
+
+            document.querySelectorAll('[data-action="open-delete-modal"]').forEach((btn) => {
+                btn.addEventListener('click', openDeleteModal);
+            });
+
+            document.querySelectorAll('[data-action="close-delete-modal"]').forEach((btn) => {
+                btn.addEventListener('click', closeDeleteModal);
+            });
+
+            document.querySelectorAll('[data-action="delete-account"]').forEach((btn) => {
+                btn.addEventListener('click', handleDeleteAccount);
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeDeleteModal();
+            });
+
+            setupTabs();
+            loadAccount();
         });
-
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideDeleteModal(); });
     </script>
+
     <script defer src="https://va.vercel-scripts.com/v1/script.js" data-sdkn="@vercel/analytics" data-sdkv="1.6.0"></script>
 </body>
 </html>
