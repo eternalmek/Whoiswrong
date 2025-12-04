@@ -398,18 +398,14 @@
             const accountErrorMessage = document.getElementById('accountErrorMessage');
             const deleteModal = document.getElementById('deleteModal');
 
-            const SUPABASE_URL =
+            const supabaseUrl =
                 window.NEXT_PUBLIC_SUPABASE_URL ||
-                window.SUPABASE_URL ||
                 window.env?.NEXT_PUBLIC_SUPABASE_URL ||
-                window.env?.SUPABASE_URL ||
                 '';
 
-            const SUPABASE_ANON_KEY =
+            const supabaseAnonKey =
                 window.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-                window.SUPABASE_ANON_KEY ||
                 window.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-                window.env?.SUPABASE_ANON_KEY ||
                 '';
 
             function setErrorMessage(message) {
@@ -434,14 +430,14 @@
                 });
             }
 
-            if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+            if (!supabaseUrl || !supabaseAnonKey) {
                 console.error('Supabase client credentials are missing.');
                 setErrorMessage('Account unavailable because Supabase credentials are missing.');
                 showOnly(sections.error);
                 return;
             }
 
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
             function formatDate(value) {
                 if (!value) return '-';

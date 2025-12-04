@@ -1,9 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { createClient } from '@/utils/supabase/client'
+import { supabase } from '@/utils/supabase/client'
 
 export default function AccountPage() {
-  const supabase = createClient()
   const [user, setUser] = useState(null)
   const [judgements, setJudgements] = useState([])
   const [purchases, setPurchases] = useState([])
@@ -15,31 +14,33 @@ export default function AccountPage() {
 
     async function loadUser() {
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
 
-        if (userError) {
-          throw userError
+        if (sessionError) {
+          throw sessionError
         }
 
-        if (!user) {
+        const currentUser = session?.user
+
+        if (!currentUser) {
           window.location.href = '/login'
           return
         }
 
         if (!isMounted) return
 
-        setUser(user)
+        setUser(currentUser)
 
         const [judgementsResponse, purchasesResponse] = await Promise.all([
           supabase
             .from('judgements')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('user_id', currentUser.id)
             .order('created_at', { ascending: false }),
-          supabase
-            .from('purchases')
-            .select('*')
-            .eq('user_id', user.id),
+          supabase.from('purchases').select('*').eq('user_id', currentUser.id),
         ])
 
         if (!isMounted) return
@@ -71,7 +72,7 @@ export default function AccountPage() {
     return () => {
       isMounted = false
     }
-  }, [supabase])
+  }, [])
 
   if (loading) return <p>Loading...</p>
 
