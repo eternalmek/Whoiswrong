@@ -8,7 +8,22 @@ router.get('/', async (_req, res) => {
   try {
     const { data, error } = await client
       .from('judgements')
-      .select('id, question_text, verdict_text, judge_id, created_at, judges(name)')
+      .select(
+        [
+          'id',
+          'question_text',
+          'verdict_text',
+          'context',
+          'option_a',
+          'option_b',
+          'wrong',
+          'reason',
+          'roast',
+          'judge_id',
+          'created_at',
+          'judges(name, slug, avatar_url)',
+        ].join(', ')
+      )
       .eq('is_public', true)
       .order('created_at', { ascending: false })
       .limit(20);
@@ -18,7 +33,9 @@ router.get('/', async (_req, res) => {
       return res.status(500).json({ error: 'Unable to load feed' });
     }
 
-    return res.json({ judgements: data || [] });
+    const judgements = (data || []).map((row) => ({ ...row, judge: row.judges || null }));
+
+    return res.json({ judgements, items: judgements });
   } catch (err) {
     console.error('Feed error:', err);
     return res.status(500).json({ error: 'Unable to load feed' });
