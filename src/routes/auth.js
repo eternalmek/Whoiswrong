@@ -174,7 +174,13 @@ router.delete('/me', requireUser, async (req, res, next) => {
 
     // clean up user-linked rows
     if (supabaseServiceRole) {
-      await supabaseServiceRole.from('judgements').delete().eq('user_id', user.id);
+      await Promise.allSettled([
+        supabaseServiceRole.from('judgements').delete().eq('user_id', user.id),
+        supabaseServiceRole.from('friends').delete().or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`),
+        supabaseServiceRole.from('notifications').delete().eq('user_id', user.id),
+        supabaseServiceRole.from('user_settings').delete().eq('user_id', user.id),
+        supabaseServiceRole.from('questions').delete().eq('user_id', user.id),
+      ]);
     }
 
     const { error } = await supabaseServiceRole.auth.admin.deleteUser(user.id);
