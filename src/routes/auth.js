@@ -3,14 +3,35 @@ const router = express.Router();
 const { supabasePublic, supabaseServiceRole } = require('../supabaseClient');
 const { requireUser } = require('../middleware/auth');
 
-async function ensureProfile(user) {
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
+
+function normalizeUsername(username) {
+  if (!username) return null;
+  const trimmed = String(username).trim();
+  if (!trimmed) return null;
+  return trimmed;
+}
+
+function validateUsername(username) {
+  if (!username) return false;
+  return USERNAME_REGEX.test(username);
+}
+
+async function ensureProfile(user, username) {
   if (!supabaseServiceRole || !user?.id) return;
+
+  const payload = {
+    id: user.id,
+    display_name: user.email ? user.email.split('@')[0] : null,
+    email: user.email,
+  };
+
+  const normalizedUsername = normalizeUsername(username || user.user_metadata?.username);
+  if (normalizedUsername) payload.username = normalizedUsername;
+
   await supabaseServiceRole
     .from('profiles')
-    .upsert(
-      { id: user.id, display_name: user.email ? user.email.split('@')[0] : null },
-      { onConflict: 'id' }
-    )
+    .upsert(payload, { onConflict: 'id' })
     .select()
     .single()
     .catch(() => {});
@@ -23,21 +44,40 @@ router.post('/signup', async (req, res, next) => {
       return res.status(500).json({ error: 'Supabase auth not configured on server.' });
     }
 
-    const { email, password } = req.body || {};
+    const { email, password, username } = req.body || {};
     if (!email || !password) {
       return res.status(400).json({ error: 'email and password are required' });
+    }
+
+    const normalizedUsername = normalizeUsername(username);
+    if (normalizedUsername && !validateUsername(normalizedUsername)) {
+      return res.status(400).json({ error: 'Username must be 3-20 characters (letters, numbers, underscores).' });
+    }
+
+    if (normalizedUsername && supabaseServiceRole) {
+      const { data: existing } = await supabaseServiceRole
+        .from('profiles')
+        .select('id')
+        .eq('username', normalizedUsername)
+        .maybeSingle();
+      if (existing) {
+        return res.status(409).json({ error: 'Username is already taken.' });
+      }
     }
 
     const { data, error } = await supabasePublic.auth.signUp({
       email,
       password,
+      options: {
+        data: normalizedUsername ? { username: normalizedUsername } : undefined,
+      },
     });
 
     if (error) {
       return res.status(400).json({ error: error.message });
     }
 
-    await ensureProfile(data.user);
+    await ensureProfile(data.user, normalizedUsername);
 
     return res.status(201).json({
       ok: true,
@@ -72,7 +112,7 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ error: error.message });
     }
 
-    await ensureProfile(data.user);
+    await ensureProfile(data.user, data.user?.user_metadata?.username);
 
     return res.json({
       ok: true,
@@ -103,7 +143,7 @@ router.post('/refresh', async (req, res, next) => {
       return res.status(401).json({ error: error?.message || 'Unable to refresh session' });
     }
 
-    await ensureProfile(data.session.user);
+    await ensureProfile(data.session.user, data.session.user?.user_metadata?.username);
 
     res.json({
       ok: true,
