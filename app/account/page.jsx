@@ -1,13 +1,14 @@
 'use client'
+
 import { useEffect, useState } from 'react'
 import { supabase } from '@/utils/supabase/client'
 
 export default function AccountPage() {
   const [user, setUser] = useState(null)
-  const [judgements, setJudgements] = useState([])
-  const [purchases, setPurchases] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+  const [message, setMessage] = useState('')
 
   useEffect(() => {
     let isMounted = true
@@ -23,42 +24,18 @@ export default function AccountPage() {
           throw sessionError
         }
 
-        const currentUser = session?.user
-
-        if (!currentUser) {
+        if (!session?.user) {
           window.location.href = '/login'
           return
         }
 
-        if (!isMounted) return
-
-        setUser(currentUser)
-
-        const [judgementsResponse, purchasesResponse] = await Promise.all([
-          supabase
-            .from('judgements')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false }),
-          supabase.from('purchases').select('*').eq('user_id', currentUser.id),
-        ])
-
-        if (!isMounted) return
-
-        if (judgementsResponse.error) {
-          throw judgementsResponse.error
-        }
-
-        if (purchasesResponse.error) {
-          throw purchasesResponse.error
-        }
-
-        setJudgements(judgementsResponse.data || [])
-        setPurchases(purchasesResponse.data || [])
-      } catch (err) {
-        console.error('Failed to load account data', err)
         if (isMounted) {
-          setError('Unable to load account details. Please try again later.')
+          setUser(session.user)
+        }
+      } catch (err) {
+        console.error('Failed to load account session', err)
+        if (isMounted) {
+          setError('Unable to load your account right now.')
         }
       } finally {
         if (isMounted) {
@@ -74,65 +51,78 @@ export default function AccountPage() {
     }
   }, [])
 
-  if (loading) return <p>Loading...</p>
+  const handleDelete = async () => {
+    if (deleting) return
+
+    const confirmed = window.confirm('Are you sure you want to delete your account? This cannot be undone.')
+    if (!confirmed) return
+
+    try {
+      setDeleting(true)
+      setError(null)
+      setMessage('')
+
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+
+      if (sessionError) {
+        throw sessionError
+      }
+
+      if (!session?.access_token) {
+        throw new Error('You must be logged in to delete your account.')
+      }
+
+      const response = await fetch('/api/auth/me', {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(body.error || 'Failed to delete account.')
+      }
+
+      await supabase.auth.signOut()
+      setMessage('Account deleted. Redirecting...')
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 1500)
+    } catch (err) {
+      console.error('Account deletion failed', err)
+      setError(err.message || 'Unable to delete account. Please try again.')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  if (loading) {
+    return <p>Loading account...</p>
+  }
 
   if (error) {
     return (
-      <div>
+      <div className="account-page">
         <h1>My Account</h1>
-        <p>{error}</p>
+        <p className="account-error">{error}</p>
       </div>
     )
   }
 
-  if (!user) return null
-
-  const username = user.user_metadata?.username
-
   return (
-    <div>
+    <div className="account-page">
       <h1>My Account</h1>
+      {user && <p className="account-email">Signed in as {user.email}</p>}
 
-      <section>
-        <h2>Profile</h2>
-        <p>Email: {user.email}</p>
-        <p>Created: {new Date(user.created_at).toLocaleDateString()}</p>
-        {username && <p>Username: {username}</p>}
-      </section>
+      <button type="button" onClick={handleDelete} disabled={deleting} className="account-delete-button">
+        {deleting ? 'Deleting account...' : 'Delete my account'}
+      </button>
 
-      <section>
-        <h2>History</h2>
-        {judgements.length === 0 ? (
-          <p>No judgements found.</p>
-        ) : (
-          <ul>
-            {judgements.map((judgement) => (
-              <li key={judgement.id}>
-                <p><strong>Prompt:</strong> {judgement.prompt || 'N/A'}</p>
-                <p><strong>Verdict:</strong> {judgement.verdict || 'N/A'}</p>
-                <p><strong>Created:</strong> {new Date(judgement.created_at).toLocaleString()}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section>
-        <h2>Purchases</h2>
-        {purchases.length === 0 ? (
-          <p>No purchases found.</p>
-        ) : (
-          <ul>
-            {purchases.map((purchase) => (
-              <li key={purchase.id}>
-                <p><strong>Item:</strong> {purchase.item || 'Purchase'}</p>
-                <p><strong>Amount:</strong> {purchase.amount || 'N/A'}</p>
-                <p><strong>Date:</strong> {new Date(purchase.created_at).toLocaleString()}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {message && <p className="account-message">{message}</p>}
     </div>
   )
 }
