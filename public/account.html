@@ -511,7 +511,18 @@
             let message = 'Something went wrong while loading your account. Please try again later.';
             try {
                 const data = await response.json();
-                if (data?.error) {
+                if (response.status === 503) {
+                    const details = Array.isArray(data?.details) ? data.details : [];
+                    const missingEnv = details.filter((d) => d.toLowerCase().includes('supabase'));
+                    const envHint =
+                        missingEnv.length > 0
+                            ? ` Missing env vars: ${missingEnv.join(', ')}.`
+                            : '';
+                    message =
+                        data?.error ||
+                        `Account services are offline because Supabase isn't configured on the server.${envHint} ` +
+                            'Set SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and SUPABASE_ANON_KEY, then restart the server.';
+                } else if (data?.error) {
                     message = data.error;
                 }
             } catch (_) {
