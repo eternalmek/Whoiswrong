@@ -30,15 +30,6 @@ function getBearerToken(req) {
   return authHeader.slice(7).trim();
 }
 
-async function requireUser(req) {
-  const token = getBearerToken(req);
-  if (!token) return { user: null, error: 'Missing bearer token' };
-
-  const client = supabaseServiceRole || supabase;
-  const { data, error } = await client.auth.getUser(token);
-  return { user: data?.user || null, error: error?.message || null, token };
-}
-
 /**
  * Verify an auth token and return the user
  * @param {string} token - JWT access token
@@ -50,6 +41,14 @@ async function verifyAuthToken(token) {
   const client = supabaseServiceRole || supabase;
   const { data, error } = await client.auth.getUser(token);
   return { user: data?.user || null, error: error?.message || null };
+}
+
+async function requireUser(req) {
+  const token = getBearerToken(req);
+  if (!token) return { user: null, error: 'Missing bearer token' };
+
+  const { user, error } = await verifyAuthToken(token);
+  return { user, error, token };
 }
 
 module.exports = {
