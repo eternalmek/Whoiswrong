@@ -202,6 +202,24 @@ Once the env vars are set and the browser has valid tokens for the same origin, 
    ```
    A `200` response with JSON means the server is configured; a `401` means the token is missing/expired; a `503` means Supabase env vars are still missing on the server.
 
+## Account system guide
+
+- **Single Supabase client:** All server routes read credentials from `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SERVICE_ROLE`). Keep these values aligned between the backend and your Vercel/hosting environment.
+- **Front-end auth:** `public/auth.js` stores Supabase access/refresh tokens in `localStorage`. The account page (`public/account.html`) now always uses those tokens to call `/api/account/*` so it will not break if Supabase client env vars are missing in the browser.
+- **Key API routes:**
+  - `POST /api/auth/signup` / `POST /api/auth/login` – issue Supabase sessions.
+  - `GET /api/account/profile` – profile + stats + settings snapshot.
+  - `PUT /api/account/profile` – profile and privacy updates.
+  - `GET /api/account/friends` / `POST /friends/*` – social graph management.
+  - `GET /api/account/notifications` – unread badge + recent friend debates.
+- **Database tables:** Apply migrations (including `20250330000000_account_rebuild.sql`) to ensure `profiles`, `user_settings`, `judgements` (with `user_id` uuid), `friends`, and `notifications` exist with row-level security.
+- **Production env vars:** Set on Vercel/hosting: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `FRONTEND_ORIGIN`, `OPENAI_API_KEY`, `STRIPE_SECRET_KEY` (if used). Restart after changing.
+- **Local testing:**
+  1. `npm install`
+  2. Provide a `.env` with Supabase keys (matching your project).
+  3. `npm run dev` and open `http://localhost:8080/login.html` → log in → visit `/account.html`.
+  4. Use the same origin for login/account so stored tokens are reused.
+
 ## API Endpoints
 
 ### Core Judgement

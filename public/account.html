@@ -385,7 +385,7 @@
     </div>
 
 
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="/auth.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const sections = {
@@ -397,16 +397,12 @@
 
             const accountErrorMessage = document.getElementById('accountErrorMessage');
             const deleteModal = document.getElementById('deleteModal');
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
 
-            const supabaseUrl =
-                window.NEXT_PUBLIC_SUPABASE_URL ||
-                window.env?.NEXT_PUBLIC_SUPABASE_URL ||
-                '';
-
-            const supabaseAnonKey =
-                window.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-                window.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-                '';
+            let accessToken = null;
+            let currentProfile = null;
 
             function setErrorMessage(message) {
                 if (accountErrorMessage && message) {
@@ -430,14 +426,47 @@
                 });
             }
 
-            if (!supabaseUrl || !supabaseAnonKey) {
-                console.error('Supabase client credentials are missing.');
-                setErrorMessage('Account unavailable because Supabase credentials are missing.');
-                showOnly(sections.error);
-                return;
+            function showToast(message, type = 'success') {
+                if (!toast || !toastMessage || !toastIcon) return;
+                toastMessage.textContent = message;
+                toastIcon.className =
+                    type === 'error'
+                        ? 'fas fa-exclamation-circle text-red-400'
+                        : 'fas fa-check-circle text-green-400';
+                toast.classList.remove('hidden');
+                toast.style.opacity = 1;
+                setTimeout(() => {
+                    toast.style.opacity = 0;
+                    setTimeout(() => toast.classList.add('hidden'), 200);
+                }, 2400);
             }
 
-            const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+            async function apiFetch(path, options = {}) {
+                if (!accessToken) {
+                    const session = await window.authClient.requireSession({ redirectTo: '/login.html' });
+                    accessToken = session?.accessToken;
+                }
+
+                const response = await fetch(path, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(options.headers || {}),
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                });
+
+                if (response.status === 401) {
+                    window.authClient.logoutUser({ redirectTo: '/login.html' });
+                    return Promise.reject(new Error('Please log in again.'));
+                }
+
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(data.error || 'Request failed. Please try again.');
+                }
+                return data;
+            }
 
             function formatDate(value) {
                 if (!value) return '-';
@@ -445,56 +474,387 @@
                 return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
             }
 
-            async function loadUserData(user) {
-                setField('email', user.email || '-');
-                setField('created_at', formatDate(user.created_at));
-
-                const { count: judgementsCount, error: jError } = await supabase
-                    .from('judgements')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('user_id', user.id);
-
-                if (jError) {
-                    console.error('Error loading judgements:', jError);
-                }
-                setField('debates-count', typeof judgementsCount === 'number' ? judgementsCount : 0);
-
-                const { count: purchasesCount, error: pError } = await supabase
-                    .from('purchases')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('user_id', user.id);
-
-                if (pError) {
-                    console.error('Error loading purchases:', pError);
-                }
-                setField('purchases-count', typeof purchasesCount === 'number' ? purchasesCount : 0);
-
-                showOnly(sections.account);
+            function profileCompleteness(profile) {
+                const fields = ['display_name', 'username', 'avatar_url', 'bio', 'country'];
+                const filled = fields.filter((key) => !!profile?.[key]).length;
+                return Math.round((filled / fields.length) * 100);
             }
 
-            async function loadAccount() {
-                try {
-                    showOnly(sections.loading);
+            function renderHistory(items = []) {
+                const list = document.getElementById('historyList');
+                const empty = document.getElementById('noHistory');
+                if (!list || !empty) return;
 
-                    const { data, error } = await supabase.auth.getUser();
-                    if (error) {
-                        console.error('Error getting user:', error);
-                        setErrorMessage('Account unavailable. Please try again.');
-                        showOnly(sections.error);
-                        return;
+                list.innerHTML = '';
+                if (!items.length) {
+                    empty.classList.remove('hidden');
+                    return;
+                }
+
+                empty.classList.add('hidden');
+                items.forEach((item) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'glass-panel p-3 sm:p-4 rounded-xl flex flex-col gap-2 border border-gray-800';
+                    wrapper.innerHTML = `
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div>
+                                <div class="text-sm text-gray-400">${new Date(item.created_at).toLocaleString()}</div>
+                                <div class="font-semibold">${item.context || item.question_text || 'Debate'}</div>
+                                <div class="text-gray-400 text-sm">${item.option_a || ''} vs ${item.option_b || ''}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs uppercase text-gray-500">You picked</div>
+                                <div class="font-semibold text-red-400">${item.user_side || '—'}</div>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-2 text-sm">
+                            <button class="share-btn bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg" data-id="${item.id}">Share</button>
+                            <a class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg" href="/debate/${item.id}" target="_blank" rel="noopener">Open</a>
+                        </div>
+                    `;
+                    list.appendChild(wrapper);
+                });
+
+                list.querySelectorAll('.share-btn').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const id = btn.dataset.id;
+                        const url = `${window.location.origin}/debate/${id}`;
+                        navigator.clipboard
+                            .writeText(`I just judged a debate on Whoiswrong.io — check it out: ${url}`)
+                            .then(() => showToast('Link copied!'))
+                            .catch(() => showToast('Copy failed. Share manually!', 'error'));
+                    });
+                });
+            }
+
+            function renderFriends(data) {
+                const incomingList = document.getElementById('incomingList');
+                const outgoingList = document.getElementById('outgoingList');
+                const friendsList = document.getElementById('friendsList');
+                if (!incomingList || !outgoingList || !friendsList) return;
+
+                const renderRow = (item, actions = []) => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between bg-gray-900/40 p-3 rounded-lg border border-gray-800';
+                    div.innerHTML = `
+                        <div>
+                            <div class="font-semibold">${item.other_user?.display_name || 'Unknown'}</div>
+                            <div class="text-xs text-gray-400">${item.other_user?.username || item.other_user?.id || ''}</div>
+                        </div>
+                        <div class="flex gap-2"></div>
+                    `;
+                    const btnWrap = div.querySelector('div:last-child');
+                    actions.forEach(({ label, action, tone }) => {
+                        const b = document.createElement('button');
+                        b.className = `${tone === 'danger' ? 'bg-red-700 hover:bg-red-800' : 'bg-gray-800 hover:bg-gray-700'} text-white text-xs px-3 py-2 rounded-lg`;
+                        b.textContent = label;
+                        b.addEventListener('click', () => action(item));
+                        btnWrap.appendChild(b);
+                    });
+                    return div;
+                };
+
+                incomingList.innerHTML = '';
+                outgoingList.innerHTML = '';
+                friendsList.innerHTML = '';
+
+                (data.incoming || []).forEach((item) => {
+                    incomingList.appendChild(
+                        renderRow(item, [
+                            { label: 'Accept', action: () => respondFriend(item.id, 'accept') },
+                            { label: 'Reject', action: () => respondFriend(item.id, 'decline'), tone: 'danger' },
+                        ])
+                    );
+                });
+
+                (data.outgoing || []).forEach((item) => {
+                    outgoingList.appendChild(
+                        renderRow(item, [{ label: 'Cancel', action: () => cancelFriend(item.id), tone: 'danger' }])
+                    );
+                });
+
+                (data.friends || []).forEach((item) => {
+                    friendsList.appendChild(
+                        renderRow(item, [
+                            { label: 'Remove', action: () => removeFriend(item.id), tone: 'danger' },
+                        ])
+                    );
+                });
+            }
+
+            async function loadFriends() {
+                try {
+                    const data = await apiFetch('/api/account/friends');
+                    renderFriends(data);
+                    setField('friends-count', data.friends?.length || 0);
+                    setField('requests-count', data.incoming?.length || 0);
+                } catch (err) {
+                    console.error('Failed to load friends', err);
+                }
+            }
+
+            async function loadNotifications() {
+                const container = document.getElementById('friendsDebates');
+                if (!container) return;
+                const notifBadge = document.getElementById('overviewRequests');
+                try {
+                    const { notifications = [], friendsDebates = [] } = await apiFetch('/api/account/notifications');
+                    container.innerHTML = '';
+                    if (!friendsDebates.length) {
+                        container.innerHTML = '<div class="text-gray-500">No friend activity yet.</div>';
+                    } else {
+                        friendsDebates.forEach((debate) => {
+                            const el = document.createElement('div');
+                            el.className = 'bg-gray-900/50 p-3 rounded-lg border border-gray-800';
+                            el.innerHTML = `
+                                <div class="font-semibold">${debate.profile?.display_name || 'Friend'} judged</div>
+                                <div class="text-sm text-gray-400">${debate.context || debate.question_text || ''}</div>
+                                <div class="text-xs text-gray-500">${new Date(debate.created_at).toLocaleString()}</div>
+                            `;
+                            container.appendChild(el);
+                        });
                     }
 
-                    const user = data?.user;
-                    if (!user) {
+                    const unread = notifications.filter((n) => !n.read_at).length;
+                    if (notifBadge) notifBadge.textContent = unread > 0 ? `${unread} new` : 'Up to date';
+                    if (unread > 0) {
+                        apiFetch('/api/account/notifications/read', { method: 'POST' }).catch(() => {});
+                    }
+                } catch (err) {
+                    console.warn('Notifications load failed', err);
+                }
+            }
+
+            async function loadHistory() {
+                try {
+                    const { items } = await apiFetch('/api/judgements?mine=true&limit=25');
+                    renderHistory(items || []);
+                } catch (err) {
+                    console.error('History load failed', err);
+                }
+            }
+
+            async function loadProfile() {
+                try {
+                    showOnly(sections.loading);
+                    const session = await window.authClient.requireSession({ redirectTo: '/login.html' });
+                    accessToken = session?.accessToken;
+                    if (!accessToken) {
                         showOnly(sections.login);
                         return;
                     }
 
-                    await loadUserData(user);
+                    const data = await apiFetch('/api/account/profile');
+                    const { profile, stats, auth, warnings } = data;
+                    currentProfile = profile;
+
+                    setField('email', auth?.email || profile?.email || '-');
+                    setField('created_at', formatDate(profile?.created_at));
+                    setField('debates-count', stats?.debates || 0);
+                    setField('friends-count', stats?.friends || 0);
+                    setField('purchases-count', stats?.unlockedJudges || 0);
+                    document.getElementById('statDebates').textContent = stats?.debates ?? 0;
+                    document.getElementById('statFriends').textContent = stats?.friends ?? 0;
+                    document.getElementById('statJudges').textContent = stats?.unlockedJudges ?? 0;
+                    setField('overviewVisibility', profile?.is_public_profile ? 'Public' : 'Private');
+                    setField('overviewRequests', profile?.allow_friend_requests ? 'Allowed' : 'Blocked');
+                    setField('display_name', profile?.display_name || '');
+
+                    document.getElementById('emailPreview').textContent = auth?.email || profile?.email || '';
+                    document.getElementById('displayNamePreview').textContent = profile?.display_name || 'New User';
+                    document.getElementById('usernamePreview').textContent = profile?.username ? `@${profile.username}` : '';
+                    document.getElementById('avatarPreview').textContent = profile?.avatar_url ? '🧠' : '🧑';
+
+                    document.getElementById('displayNameInput').value = profile?.display_name || '';
+                    document.getElementById('usernameInput').value = profile?.username || '';
+                    document.getElementById('avatarInput').value = profile?.avatar_url || '';
+                    document.getElementById('countryInput').value = profile?.country || '';
+                    document.getElementById('bioInput').value = profile?.bio || '';
+                    document.getElementById('publicToggle').checked = profile?.is_public_profile !== false;
+                    document.getElementById('requestsToggle').checked = profile?.allow_friend_requests !== false;
+                    document.getElementById('wallToggle').checked = profile?.show_debates_on_wall !== false;
+                    document.getElementById('notificationsToggle').checked = profile?.allow_notifications !== false;
+
+                    const progress = profileCompleteness(profile);
+                    const bar = document.createElement('div');
+                    bar.className = 'w-full bg-gray-800 rounded-full h-2 mt-3';
+                    bar.innerHTML = `<div class="bg-red-600 h-2 rounded-full" style="width:${progress}%"></div>`;
+                    const status = document.getElementById('profileStatus');
+                    status.textContent = `Profile completeness: ${progress}%`;
+                    status.appendChild(bar);
+
+                    if (warnings?.length) console.warn('Account warnings', warnings);
+
+                    showOnly(sections.account);
                 } catch (err) {
-                    console.error('Unexpected error:', err);
-                    setErrorMessage('Account unavailable. Please try again.');
+                    console.error('Unable to load account', err);
+                    setErrorMessage('Could not load your data. Please refresh the page.');
                     showOnly(sections.error);
+                }
+            }
+
+            async function saveProfile() {
+                const payload = {
+                    display_name: document.getElementById('displayNameInput').value,
+                    username: document.getElementById('usernameInput').value,
+                    avatar_url: document.getElementById('avatarInput').value,
+                    country: document.getElementById('countryInput').value,
+                    bio: document.getElementById('bioInput').value,
+                    is_public_profile: document.getElementById('publicToggle').checked,
+                    allow_friend_requests: document.getElementById('requestsToggle').checked,
+                    show_debates_on_wall: document.getElementById('wallToggle').checked,
+                    allow_notifications: document.getElementById('notificationsToggle').checked,
+                };
+
+                const button = document.getElementById('saveProfileBtn');
+                const status = document.getElementById('profileStatus');
+                button.disabled = true;
+                status.textContent = 'Saving...';
+
+                try {
+                    const { profile } = await apiFetch('/api/account/profile', {
+                        method: 'PUT',
+                        body: JSON.stringify(payload),
+                    });
+                    currentProfile = profile;
+                    showToast('Profile updated');
+                    await loadProfile();
+                } catch (err) {
+                    console.error('Profile save failed', err);
+                    status.textContent = err.message || 'Could not save changes.';
+                } finally {
+                    button.disabled = false;
+                }
+            }
+
+            async function respondFriend(id, action) {
+                try {
+                    await apiFetch('/api/account/friends/respond', {
+                        method: 'POST',
+                        body: JSON.stringify({ friendship_id: id, action }),
+                    });
+                    showToast('Friend request updated');
+                    loadFriends();
+                } catch (err) {
+                    showToast(err.message || 'Unable to update request', 'error');
+                }
+            }
+
+            async function cancelFriend(id) {
+                try {
+                    await apiFetch('/api/account/friends/cancel', {
+                        method: 'POST',
+                        body: JSON.stringify({ friendship_id: id }),
+                    });
+                    showToast('Request cancelled');
+                    loadFriends();
+                } catch (err) {
+                    showToast(err.message || 'Unable to cancel request', 'error');
+                }
+            }
+
+            async function removeFriend(id) {
+                try {
+                    await apiFetch('/api/account/friends/remove', {
+                        method: 'POST',
+                        body: JSON.stringify({ friendship_id: id }),
+                    });
+                    showToast('Friend removed');
+                    loadFriends();
+                } catch (err) {
+                    showToast(err.message || 'Unable to remove friend', 'error');
+                }
+            }
+
+            async function searchUsers(term) {
+                const resultsEl = document.getElementById('searchResults');
+                if (!resultsEl) return;
+                resultsEl.innerHTML = '<div class="text-gray-500 text-sm">Searching...</div>';
+                try {
+                    const { results } = await apiFetch(`/api/account/search?query=${encodeURIComponent(term)}`);
+                    resultsEl.innerHTML = '';
+                    if (!results.length) {
+                        resultsEl.innerHTML = '<div class="text-gray-500 text-sm">No users found.</div>';
+                        return;
+                    }
+
+                    results.forEach((user) => {
+                        const el = document.createElement('div');
+                        el.className = 'flex items-center justify-between bg-gray-900/50 p-3 rounded-lg border border-gray-800';
+                        el.innerHTML = `
+                            <div>
+                                <div class="font-semibold">${user.display_name || 'User'}</div>
+                                <div class="text-xs text-gray-400">${user.username || user.id}</div>
+                            </div>
+                            <button class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-2 rounded-lg">${
+                                user.status === 'accepted'
+                                    ? 'Friends'
+                                    : user.status === 'pending'
+                                    ? user.is_requester
+                                        ? 'Pending'
+                                        : 'Respond'
+                                    : 'Add friend'
+                            }</button>
+                        `;
+                        const btn = el.querySelector('button');
+                        btn.disabled = user.status === 'accepted' || user.status === 'pending';
+                        if (!btn.disabled) {
+                            btn.addEventListener('click', async () => {
+                                try {
+                                    await apiFetch('/api/account/friends/request', {
+                                        method: 'POST',
+                                        body: JSON.stringify({ receiver_id: user.id }),
+                                    });
+                                    showToast('Request sent');
+                                    loadFriends();
+                                    btn.textContent = 'Pending';
+                                    btn.disabled = true;
+                                } catch (err) {
+                                    showToast(err.message || 'Unable to send request', 'error');
+                                }
+                            });
+                        }
+                        resultsEl.appendChild(el);
+                    });
+                } catch (err) {
+                    resultsEl.innerHTML = `<div class="text-red-400 text-sm">${err.message || 'Search failed'}</div>`;
+                }
+            }
+
+            function openDeleteModal() {
+                if (deleteModal) {
+                    deleteModal.classList.remove('hidden');
+                    document.body.style.overflow = 'hidden';
+                }
+            }
+
+            function closeDeleteModal() {
+                if (deleteModal) {
+                    deleteModal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+            }
+
+            async function handleLogout() {
+                window.authClient.logoutUser({ redirectTo: '/' });
+            }
+
+            async function handleDeleteAccount() {
+                const errorEl = document.getElementById('deleteError');
+                const confirmInput = document.getElementById('deleteConfirmInput');
+                if (!confirmInput || confirmInput.value !== 'DELETE') {
+                    errorEl.textContent = 'Please type DELETE to confirm.';
+                    errorEl.classList.remove('hidden');
+                    return;
+                }
+
+                try {
+                    await apiFetch('/api/auth/me', { method: 'DELETE' });
+                    showToast('Account deleted');
+                    window.authClient.logoutUser({ redirectTo: '/' });
+                } catch (err) {
+                    errorEl.textContent = err.message || 'Unable to delete account.';
+                    errorEl.classList.remove('hidden');
                 }
             }
 
@@ -523,33 +883,6 @@
                 switchTab(initialTab?.dataset.tab || 'overview');
             }
 
-            function openDeleteModal() {
-                if (deleteModal) {
-                    deleteModal.classList.remove('hidden');
-                    document.body.style.overflow = 'hidden';
-                }
-            }
-
-            function closeDeleteModal() {
-                if (deleteModal) {
-                    deleteModal.classList.add('hidden');
-                    document.body.style.overflow = '';
-                }
-            }
-
-            async function handleLogout() {
-                await supabase.auth.signOut();
-                window.location.href = '/';
-            }
-
-            function handleDeleteAccount() {
-                const errorEl = document.getElementById('deleteError');
-                if (errorEl) {
-                    errorEl.textContent = 'Account deletion is unavailable in this preview.';
-                    errorEl.classList.remove('hidden');
-                }
-            }
-
             document.querySelectorAll('[data-action="go-login"]').forEach((btn) => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -558,7 +891,7 @@
             });
 
             document.querySelectorAll('[data-action="retry-account"]').forEach((btn) => {
-                btn.addEventListener('click', loadAccount);
+                btn.addEventListener('click', loadProfile);
             });
 
             document.querySelectorAll('[data-action="logout"]').forEach((btn) => {
@@ -577,12 +910,27 @@
                 btn.addEventListener('click', handleDeleteAccount);
             });
 
+            document.getElementById('saveProfileBtn')?.addEventListener('click', saveProfile);
+
+            document.getElementById('searchInput')?.addEventListener('input', (e) => {
+                const value = e.target.value.trim();
+                if (!value) {
+                    document.getElementById('searchResults').innerHTML = '';
+                    return;
+                }
+                searchUsers(value);
+            });
+
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') closeDeleteModal();
             });
 
             setupTabs();
-            loadAccount();
+            loadProfile().then(() => {
+                loadHistory();
+                loadFriends();
+                loadNotifications();
+            });
         });
     </script>
 
