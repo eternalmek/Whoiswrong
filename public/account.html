@@ -447,25 +447,37 @@
                     accessToken = session?.accessToken;
                 }
 
-                const response = await fetch(path, {
-                    ...options,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(options.headers || {}),
-                        Authorization: `Bearer ${accessToken}`,
-                    },
-                });
+                try {
+                    const response = await fetch(path, {
+                        ...options,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(options.headers || {}),
+                            Authorization: `Bearer ${accessToken}`,
+                        },
+                    });
 
-                if (response.status === 401) {
-                    window.authClient.logoutUser({ redirectTo: '/login.html' });
-                    return Promise.reject(new Error('Please log in again.'));
-                }
+                    const data = await response.json().catch(() => ({}));
+                    if (response.status === 401) {
+                        const error = new Error(data.error || 'Please log in again.');
+                        error.status = response.status;
+                        window.authClient.logoutUser({ redirectTo: '/login.html' });
+                        throw error;
+                    }
 
-                const data = await response.json().catch(() => ({}));
-                if (!response.ok) {
-                    throw new Error(data.error || 'Request failed. Please try again.');
+                    if (!response.ok) {
+                        const error = new Error(data.error || 'Request failed. Please try again.');
+                        error.status = response.status;
+                        throw error;
+                    }
+
+                    return data;
+                } catch (err) {
+                    if (!err?.status) {
+                        err = Object.assign(new Error('Network error. Please retry.'), err || {});
+                    }
+                    throw err;
                 }
-                return data;
             }
 
             function formatDate(value) {
@@ -641,7 +653,7 @@
                     accessToken = session?.accessToken;
                     if (!accessToken) {
                         showOnly(sections.login);
-                        return;
+                        return false;
                     }
 
                     const data = await apiFetch('/api/account/profile');
@@ -686,10 +698,23 @@
                     if (warnings?.length) console.warn('Account warnings', warnings);
 
                     showOnly(sections.account);
+                    return true;
                 } catch (err) {
                     console.error('Unable to load account', err);
-                    setErrorMessage('Could not load your data. Please refresh the page.');
+
+                    if (err?.status === 401) {
+                        showOnly(sections.login);
+                        return false;
+                    }
+
+                    if (err?.status === 503) {
+                        setErrorMessage('Account service is unavailable. Please try again soon.');
+                    } else {
+                        setErrorMessage(err?.message || 'Could not load your data. Please refresh the page.');
+                    }
+
                     showOnly(sections.error);
+                    return false;
                 }
             }
 
@@ -926,10 +951,12 @@
             });
 
             setupTabs();
-            loadProfile().then(() => {
-                loadHistory();
-                loadFriends();
-                loadNotifications();
+            loadProfile().then((ok) => {
+                if (ok) {
+                    loadHistory();
+                    loadFriends();
+                    loadNotifications();
+                }
             });
         });
     </script>
