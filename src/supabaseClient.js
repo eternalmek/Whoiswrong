@@ -55,6 +55,46 @@ const supabasePublic = SUPABASE_URL && SUPABASE_ANON_KEY
     })
   : null;
 
+const REQUIRED_TABLES = ['judgements'];
+
+async function verifySupabaseSchema(tables = REQUIRED_TABLES) {
+  if (!supabaseServiceRole) return [];
+
+  const missing = [];
+  for (const table of tables) {
+    const { error } = await supabaseServiceRole.from(table).select('id').limit(1);
+
+    if (error) {
+      const message = error.message || '';
+      const isMissing =
+        message.includes(`table '${table}'`) ||
+        message.includes(`table 'public.${table}'`) ||
+        message.includes(`${table}' in the schema cache`);
+
+      if (isMissing) {
+        missing.push(table);
+      } else {
+        console.warn(`Supabase table check failed for ${table}:`, message || error);
+      }
+    }
+  }
+
+  if (missing.length) {
+    console.warn(
+      'Supabase schema is missing required tables. Apply the SQL migrations in supabase/migrations to create them:',
+      missing
+    );
+  }
+
+  return missing;
+}
+
+if (supabaseServiceRole) {
+  verifySupabaseSchema().catch((err) =>
+    console.warn('Supabase schema verification failed:', err?.message || err)
+  );
+}
+
 async function verifyAuthToken(token) {
   if (!token) {
     return { user: null, error: new Error('Missing token') };
@@ -73,4 +113,5 @@ module.exports = {
   supabasePublic,
   verifyAuthToken,
   supabaseConfigIssues,
+  verifySupabaseSchema,
 };
