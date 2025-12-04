@@ -4,38 +4,36 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/utils/supabase/client'
 
 export default function AccountPage() {
-  const [user, setUser] = useState(null)
+  const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [deleting, setDeleting] = useState(false)
+  const [loadError, setLoadError] = useState('')
+  const [actionError, setActionError] = useState('')
   const [message, setMessage] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     let isMounted = true
 
-    async function loadUser() {
+    async function fetchSession() {
       try {
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession()
+        const { data, error } = await supabase.auth.getSession()
 
-        if (sessionError) {
-          throw sessionError
+        if (error) {
+          throw error
         }
 
-        if (!session?.user) {
+        if (!data.session) {
           window.location.href = '/login'
           return
         }
 
         if (isMounted) {
-          setUser(session.user)
+          setSession(data.session)
         }
       } catch (err) {
-        console.error('Failed to load account session', err)
+        console.error('Unable to load account session', err)
         if (isMounted) {
-          setError('Unable to load your account right now.')
+          setLoadError('We could not load your account right now. Please refresh to try again.')
         }
       } finally {
         if (isMounted) {
@@ -44,7 +42,7 @@ export default function AccountPage() {
       }
     }
 
-    loadUser()
+    fetchSession()
 
     return () => {
       isMounted = false
@@ -52,28 +50,15 @@ export default function AccountPage() {
   }, [])
 
   const handleDelete = async () => {
-    if (deleting) return
+    if (!session || deleting) return
 
-    const confirmed = window.confirm('Are you sure you want to delete your account? This cannot be undone.')
+    const confirmed = window.confirm('Delete your account and all related data? This cannot be undone.')
     if (!confirmed) return
 
     try {
       setDeleting(true)
-      setError(null)
+      setActionError('')
       setMessage('')
-
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession()
-
-      if (sessionError) {
-        throw sessionError
-      }
-
-      if (!session?.access_token) {
-        throw new Error('You must be logged in to delete your account.')
-      }
 
       const response = await fetch('/api/auth/me', {
         method: 'DELETE',
@@ -84,45 +69,66 @@ export default function AccountPage() {
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}))
-        throw new Error(body.error || 'Failed to delete account.')
+        throw new Error(body.error || 'Unable to delete account. Please try again.')
       }
 
       await supabase.auth.signOut()
-      setMessage('Account deleted. Redirecting...')
+      setMessage('Your account has been deleted. Redirecting to the homepage...')
       setTimeout(() => {
         window.location.href = '/'
-      }, 1500)
+      }, 1200)
     } catch (err) {
       console.error('Account deletion failed', err)
-      setError(err.message || 'Unable to delete account. Please try again.')
+      setActionError(err.message || 'Unable to delete account. Please try again later.')
     } finally {
       setDeleting(false)
     }
   }
 
   if (loading) {
-    return <p>Loading account...</p>
-  }
-
-  if (error) {
     return (
-      <div className="account-page">
-        <h1>My Account</h1>
-        <p className="account-error">{error}</p>
-      </div>
+      <main className="account-page">
+        <p>Loading your account...</p>
+      </main>
     )
   }
 
+  if (loadError) {
+    return (
+      <main className="account-page">
+        <h1>Account</h1>
+        <p className="account-error">{loadError}</p>
+      </main>
+    )
+  }
+
+  const user = session?.user
+
   return (
-    <div className="account-page">
-      <h1>My Account</h1>
-      {user && <p className="account-email">Signed in as {user.email}</p>}
+    <main className="account-page">
+      <section className="account-card">
+        <h1>Account</h1>
+        <dl className="account-details">
+          <div>
+            <dt>Email</dt>
+            <dd>{user?.email}</dd>
+          </div>
+          <div>
+            <dt>User ID</dt>
+            <dd>{user?.id}</dd>
+          </div>
+        </dl>
+      </section>
 
-      <button type="button" onClick={handleDelete} disabled={deleting} className="account-delete-button">
-        {deleting ? 'Deleting account...' : 'Delete my account'}
-      </button>
-
-      {message && <p className="account-message">{message}</p>}
-    </div>
+      <section className="account-card account-card-danger">
+        <h2>Delete account</h2>
+        <p>This will remove your account and any associated data.</p>
+        <button type="button" onClick={handleDelete} disabled={deleting} className="account-delete-button">
+          {deleting ? 'Deleting your account…' : 'Delete account'}
+        </button>
+        {actionError && <p className="account-error">{actionError}</p>}
+        {message && <p className="account-message">{message}</p>}
+      </section>
+    </main>
   )
 }
