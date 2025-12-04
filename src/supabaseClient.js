@@ -11,21 +11,29 @@ const { createClient } = require('@supabase/supabase-js');
  *    - SUPABASE_ANON_KEY: from "anon public" key (safe for client-side)
  *    - SUPABASE_SERVICE_ROLE_KEY: from "service_role" key (server-side ONLY!)
  */
-// Prefer server-side env vars but fall back to public ones when available (for anon client)
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+// Prefer Vercel/Next-style env vars to avoid surprises when deploying
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  process.env.SUPABASE_URL ||
+  process.env.SUPABASE_PROJECT_URL;
+
+// Service role key must NEVER be shipped to the browser. Only read server-side names.
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.SUPABASE_SERVICE_ROLE ||
   process.env.SUPABASE_SERVICE_KEY;
+
+// Anonymous key is safe for the client, so we accept the public names first.
 const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_ANON_KEY;
 
 const supabaseConfigIssues = [];
-if (!SUPABASE_URL) supabaseConfigIssues.push('SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) is missing');
+if (!SUPABASE_URL) supabaseConfigIssues.push('NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL) is missing');
 if (!SUPABASE_SERVICE_ROLE_KEY)
-  supabaseConfigIssues.push('SUPABASE_SERVICE_ROLE_KEY is missing on the server');
+  supabaseConfigIssues.push('SUPABASE_SERVICE_ROLE_KEY is missing on the server (do NOT expose this publicly)');
 if (!SUPABASE_ANON_KEY)
-  supabaseConfigIssues.push('SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY) is missing');
+  supabaseConfigIssues.push('NEXT_PUBLIC_SUPABASE_ANON_KEY (or SUPABASE_ANON_KEY) is missing');
 
 if (supabaseConfigIssues.length) {
   console.warn('Supabase configuration issues detected:', supabaseConfigIssues.join('; '));
