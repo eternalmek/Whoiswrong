@@ -3,15 +3,17 @@
 // ==========================================
 
 // --- Configuration ---
-const API_BASE = window.location.origin;
+// Use existing API_BASE from auth.js if available, otherwise define it
+const APP_API_BASE = (typeof API_BASE !== 'undefined') ? API_BASE : window.location.origin;
 
 // --- Auth State ---
 let currentUser = null;
 // Get token from localStorage and validate it's not a stringified null/undefined
 const storedToken = localStorage.getItem('accessToken');
 let accessToken = (storedToken && storedToken !== 'null' && storedToken !== 'undefined') ? storedToken : null;
-const REFRESH_TOKEN_KEY = 'refreshToken';
-const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+// Use existing REFRESH_TOKEN_KEY from auth.js if available
+const APP_REFRESH_TOKEN_KEY = (typeof REFRESH_TOKEN_KEY !== 'undefined') ? REFRESH_TOKEN_KEY : 'refreshToken';
+const storedRefreshToken = localStorage.getItem(APP_REFRESH_TOKEN_KEY);
 let refreshToken = (storedRefreshToken && storedRefreshToken !== 'null' && storedRefreshToken !== 'undefined') ? storedRefreshToken : null;
 const voterFingerprintKey = 'voterFingerprint';
 const voterFingerprint = (() => {
@@ -104,7 +106,7 @@ function safeParseArray(value, fallback = []) {
 
 async function loadJudgesFromApi() {
     try {
-        const response = await fetch(`${API_BASE}/api/judges`);
+        const response = await fetch(`${APP_API_BASE}/api/judges`);
         const data = await response.json();
 
         if (data?.judges?.length) {
@@ -285,7 +287,7 @@ async function loadDebateById(id) {
     if (!id) return;
     showLoading();
     try {
-        const res = await fetch(`${API_BASE}/api/judgements/${id}`);
+        const res = await fetch(`${APP_API_BASE}/api/judgements/${id}`);
         const data = await res.json();
         if (!res.ok || !data?.item) {
             throw new Error(data?.error || 'Debate not found');
@@ -584,7 +586,7 @@ function updateJudgeUI() {
  */
 async function fetchStripePrices() {
     try {
-        const response = await fetch(`${API_BASE}/api/prices`);
+        const response = await fetch(`${APP_API_BASE}/api/prices`);
 
         if (!response.ok) {
             console.warn('Failed to fetch Stripe prices, using defaults');
@@ -693,7 +695,7 @@ async function handleUnlockSingle(judgeId) {
     try {
         showToast('Redirecting to checkout...', 'info');
 
-        const response = await fetch(`${API_BASE}/api/checkout`, {
+        const response = await fetch(`${APP_API_BASE}/api/checkout`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -748,7 +750,7 @@ async function handleUnlockAll() {
     try {
         showToast('Redirecting to checkout...', 'info');
 
-        const response = await fetch(`${API_BASE}/api/checkout`, {
+        const response = await fetch(`${APP_API_BASE}/api/checkout`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -815,7 +817,7 @@ function persistSessionTokens({ access_token, refresh_token }) {
 
     if (refresh_token) {
         refreshToken = refresh_token;
-        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+        localStorage.setItem(APP_REFRESH_TOKEN_KEY, refreshToken);
     }
 }
 
@@ -826,14 +828,14 @@ function clearSessionTokens() {
     serverUnlockedJudges = [];
     serverHasAllAccess = false;
     localStorage.removeItem('accessToken');
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(APP_REFRESH_TOKEN_KEY);
 }
 
 async function refreshSession() {
     if (!refreshToken) return false;
 
     try {
-        const response = await fetch(`${API_BASE}/api/auth/refresh`, {
+        const response = await fetch(`${APP_API_BASE}/api/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refresh_token: refreshToken })
@@ -867,7 +869,7 @@ async function fetchUserPurchases() {
     }
     
     try {
-        const response = await fetch(`${API_BASE}/api/purchases`, {
+        const response = await fetch(`${APP_API_BASE}/api/purchases`, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`
             }
@@ -927,7 +929,7 @@ async function savePendingPurchase() {
             return;
         }
         
-        const response = await fetch(`${API_BASE}/api/purchases/save`, {
+        const response = await fetch(`${APP_API_BASE}/api/purchases/save`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -959,7 +961,7 @@ async function checkAuth(hasRefreshed = false) {
     }
 
     try {
-        const response = await fetch(`${API_BASE}/api/auth/me`, {
+        const response = await fetch(`${APP_API_BASE}/api/auth/me`, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`
             }
@@ -993,7 +995,7 @@ async function checkAuth(hasRefreshed = false) {
 
 async function signup(email, password) {
     try {
-        const response = await fetch(`${API_BASE}/api/auth/signup`, {
+        const response = await fetch(`${APP_API_BASE}/api/auth/signup`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1032,7 +1034,7 @@ async function signup(email, password) {
 
 async function login(email, password) {
     try {
-        const response = await fetch(`${API_BASE}/api/auth/login`, {
+        const response = await fetch(`${APP_API_BASE}/api/auth/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1114,7 +1116,7 @@ async function judgeNow(e) {
             headers['Authorization'] = `Bearer ${accessToken}`;
         }
 
-        const response = await fetch(`${API_BASE}/api/judge`, {
+        const response = await fetch(`${APP_API_BASE}/api/judge`, {
             method: 'POST',
             headers,
             body: JSON.stringify({ context, optionA, optionB, judgeId: selectedJudgeId })
@@ -1331,7 +1333,7 @@ function renderFeed(items = []) {
 
 async function loadFeed(forceRefresh = false) {
     try {
-        const res = await fetch(`${API_BASE}/api/judgements/feed?limit=20${forceRefresh ? `&t=${Date.now()}` : ''}`);
+        const res = await fetch(`${APP_API_BASE}/api/judgements/feed?limit=20${forceRefresh ? `&t=${Date.now()}` : ''}`);
         const data = await res.json();
         const items = Array.isArray(data?.items)
             ? data.items
@@ -1349,7 +1351,7 @@ async function loadFeed(forceRefresh = false) {
 
 async function voteOnDebate(id, vote) {
     try {
-        const res = await fetch(`${API_BASE}/api/judgements/${id}/vote`, {
+        const res = await fetch(`${APP_API_BASE}/api/judgements/${id}/vote`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
