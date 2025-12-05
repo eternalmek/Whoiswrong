@@ -180,31 +180,88 @@ const LOADING_MESSAGES = [
     "Almost ready..."
 ];
 
+// Demo debates to show when database is empty
 const SAMPLE_DEBATES = [
     {
+        id: 'demo-pineapple',
         title: 'Is pineapple on pizza a crime?',
         judge: 'Gordon Ramsay',
         judgeId: 'gordon-ramsay',
-        summary: 'The chef says pineapple belongs in dessert, not on your pizza. Verdict: pineapple is wrong.'
+        summary: 'The chef says pineapple belongs in dessert, not on your pizza. Verdict: pineapple is wrong.',
+        isDemo: true
     },
     {
-        title: 'Messi vs Ronaldo',
+        id: 'demo-messi-ronaldo',
+        title: 'Ronaldo vs Messi',
         judge: 'Cristiano Ronaldo',
         judgeId: 'cristiano-ronaldo',
-        summary: 'With GOAT energy, Ronaldo declares Messi wrong for ducking free kicks. Stadium erupts.'
+        summary: 'With GOAT energy, Ronaldo declares Messi wrong for ducking free kicks. Stadium erupts.',
+        isDemo: true
     },
     {
+        id: 'demo-tiktok',
         title: 'Is TikTok better than YouTube?',
         judge: 'MrBeast',
         judgeId: 'mrbeast',
-        summary: 'MrBeast picks YouTube for depth, but dares you to prove him wrong with a viral TikTok.'
+        summary: 'MrBeast picks YouTube for depth, but dares you to prove him wrong with a viral TikTok.',
+        isDemo: true
     },
     {
+        id: 'demo-text-back',
         title: 'Should you text back immediately?',
         judge: 'Taylor Swift',
         judgeId: 'taylor-swift',
-        summary: 'Taylor says leaving them on read writes a better bridge. Verdict: texting back instantly is wrong.'
+        summary: 'Taylor says leaving them on read writes a better bridge. Verdict: texting back instantly is wrong.',
+        isDemo: true
     },
+    {
+        id: 'demo-cats-dogs',
+        title: 'Cats or dogs?',
+        judge: 'Elon Musk',
+        judgeId: 'elon-musk',
+        summary: 'Elon declares dogs are better because they can be trained to fetch. Cats are wrong.',
+        isDemo: true
+    },
+    {
+        id: 'demo-iphone-samsung',
+        title: 'iPhone vs Samsung?',
+        judge: 'MrBeast',
+        judgeId: 'mrbeast',
+        summary: 'MrBeast says iPhones win for creator tools. Samsung users are wrong. Challenge accepted.',
+        isDemo: true
+    },
+    {
+        id: 'demo-aliens',
+        title: 'Should aliens be allowed to vote?',
+        judge: 'Elon Musk',
+        judgeId: 'elon-musk',
+        summary: 'Elon says only after they pass a SpaceX citizenship test. Earth-only voters are wrong.',
+        isDemo: true
+    },
+    {
+        id: 'demo-morning-night',
+        title: 'Are morning people or night owls more productive?',
+        judge: 'Barack Obama',
+        judgeId: 'barack-obama',
+        summary: 'Obama delivers a measured verdict: Early risers have the edge. Night owls are wrong, but valued.',
+        isDemo: true
+    },
+    {
+        id: 'demo-hot-cold',
+        title: 'Hot shower or cold shower?',
+        judge: 'Andrew Tate',
+        judgeId: 'andrew-tate',
+        summary: 'Top G energy only. Cold showers build discipline. Hot shower people are wrong.',
+        isDemo: true
+    },
+    {
+        id: 'demo-cereal-milk',
+        title: 'Cereal before milk or milk before cereal?',
+        judge: 'Gordon Ramsay',
+        judgeId: 'gordon-ramsay',
+        summary: 'WHAT ARE YOU? Cereal first, always. Milk-firsters are WRONG and should be ashamed.',
+        isDemo: true
+    }
 ];
 
 // ==========================================
@@ -376,14 +433,14 @@ function setSubmitButtonLoading(loading) {
         btn.disabled = true;
         btn.classList.remove('pulse-glow');
         icon.className = 'fas fa-spinner fa-spin';
-        text.textContent = 'Judging...';
+        text.textContent = 'Getting the Verdict...';
         if (optionA) optionA.disabled = true;
         if (optionB) optionB.disabled = true;
     } else {
         btn.disabled = false;
         btn.classList.add('pulse-glow');
         icon.className = 'fas fa-gavel';
-        text.textContent = 'Judge Now';
+        text.textContent = 'Get the Verdict';
         if (optionA) optionA.disabled = false;
         if (optionB) optionB.disabled = false;
     }
@@ -1235,8 +1292,9 @@ function getShareDetails() {
 }
 
 function shareOnTwitter() {
-    const { text, link } = getShareDetails();
-    const encodedText = encodeURIComponent(text);
+    const { link } = getShareDetails();
+    const shareText = `Who is wrong? Check this AI verdict on whoiswrong.io ⚖️👀`;
+    const encodedText = encodeURIComponent(shareText);
     const encodedUrl = encodeURIComponent(link);
     window.open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`, '_blank');
 }
@@ -1250,20 +1308,24 @@ function shareDebate(platform) {
         return;
     }
 
+    if (platform === 'tiktok') {
+        copyShareLink('Link copied! Paste it in your TikTok description or comments.');
+        return;
+    }
+    
+    if (platform === 'instagram') {
+        copyShareLink('Link copied! Paste it in your Instagram story or post.');
+        return;
+    }
+
+    // For other platforms or generic share
     if (navigator.share) {
         navigator.share(shareData).catch(() => {
-            // Ignore cancellation
+            // Ignore cancellation, copy link as fallback
+            copyShareLink();
         });
     } else {
         copyShareLink();
-    }
-
-    if (platform === 'tiktok') {
-        copyShareLink('Link copied for TikTok');
-        window.open('https://www.tiktok.com/upload?lang=en', '_blank');
-    } else if (platform === 'instagram') {
-        copyShareLink('Link copied for Instagram');
-        window.open('https://www.instagram.com/create/story/', '_blank');
     }
 }
 
@@ -1291,26 +1353,31 @@ function renderFeed(items = []) {
     const empty = document.getElementById('feedEmpty');
     if (!grid) return;
 
-    if (!items.length) {
-        if (empty) empty.classList.remove('hidden');
-        grid.innerHTML = '';
-        renderSamples([]);
-        return;
-    }
+    // If no items from the database, use demo debates instead of showing "no debates"
+    const displayItems = items.length > 0 ? items : SAMPLE_DEBATES.map(demo => ({
+        id: demo.id,
+        question_text: demo.title,
+        verdict_text: demo.summary,
+        judge_id: demo.judgeId,
+        isDemo: true,
+        votes: { agree: Math.floor(Math.random() * 50) + 10, disagree: Math.floor(Math.random() * 20) + 5 }
+    }));
 
+    // Always hide the "empty" message since we show demos
     if (empty) empty.classList.add('hidden');
     grid.innerHTML = '';
 
-    items.forEach((item) => {
+    displayItems.forEach((item) => {
         const judge = getJudgeVisual(item.judge_id || item.judge?.id || 'normal');
         const votes = item.votes || { agree: 0, disagree: 0 };
+        const isDemo = item.isDemo || false;
         const card = document.createElement('article');
         card.className = 'glass-panel p-4 rounded-xl border border-gray-800 hover:border-red-500 transition flex flex-col gap-3';
 
         const header = document.createElement('div');
         header.className = 'flex items-center gap-3';
         const title = item.question_text || item.context || [item.option_a, item.option_b].filter(Boolean).join(' vs ');
-        header.innerHTML = `<div class="w-10 h-10 rounded-full overflow-hidden bg-gray-800"><img src="${judge.avatar}" alt="${judge.name}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Judge'" /></div><div><p class="text-xs uppercase text-gray-500">${judge.name}</p><h4 class="text-lg font-display font-bold leading-snug">${title || 'Recent verdict'}</h4></div>`;
+        header.innerHTML = `<div class="w-10 h-10 rounded-full overflow-hidden bg-gray-800"><img src="${judge.avatar}" alt="${judge.name}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Judge'" /></div><div><p class="text-xs uppercase text-gray-500">${judge.name}${isDemo ? ' <span class="text-yellow-400">(Demo)</span>' : ''}</p><h4 class="text-lg font-display font-bold leading-snug">${title || 'Recent verdict'}</h4></div>`;
         card.appendChild(header);
 
         const summary = document.createElement('p');
@@ -1326,21 +1393,34 @@ function renderFeed(items = []) {
 
         const votesRow = document.createElement('div');
         votesRow.className = 'flex items-center justify-between gap-2';
-        votesRow.innerHTML = `
-            <div class="flex items-center gap-2 text-xs text-gray-400">
-                <span class="px-2 py-1 rounded-full bg-green-500/10 text-green-300">Agree: <strong>${votes.agree}</strong></span>
-                <span class="px-2 py-1 rounded-full bg-red-500/10 text-red-300">Disagree: <strong>${votes.disagree}</strong></span>
-            </div>
-            <div class="flex items-center gap-2">
-                <button class="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg" data-vote="agree" data-id="${item.id}">Agree</button>
-                <button class="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg" data-vote="disagree" data-id="${item.id}">Disagree</button>
-            </div>`;
+        
+        if (isDemo) {
+            // Demo debates show static votes without interactive buttons
+            votesRow.innerHTML = `
+                <div class="flex items-center gap-2 text-xs text-gray-400">
+                    <span class="px-2 py-1 rounded-full bg-green-500/10 text-green-300">Agree: <strong>${votes.agree}</strong></span>
+                    <span class="px-2 py-1 rounded-full bg-red-500/10 text-red-300">Disagree: <strong>${votes.disagree}</strong></span>
+                </div>
+                <span class="text-xs text-gray-500 italic">Demo debate</span>`;
+        } else {
+            votesRow.innerHTML = `
+                <div class="flex items-center gap-2 text-xs text-gray-400">
+                    <span class="px-2 py-1 rounded-full bg-green-500/10 text-green-300">Agree: <strong>${votes.agree}</strong></span>
+                    <span class="px-2 py-1 rounded-full bg-red-500/10 text-red-300">Disagree: <strong>${votes.disagree}</strong></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button class="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg" data-vote="agree" data-id="${item.id}">Agree</button>
+                    <button class="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg" data-vote="disagree" data-id="${item.id}">Disagree</button>
+                </div>`;
+        }
         card.appendChild(votesRow);
 
-        const shareRow = document.createElement('div');
-        shareRow.className = 'flex items-center gap-2 text-xs text-gray-400';
-        shareRow.innerHTML = `<button class="underline hover:text-white" data-copy-share="${item.id}">Copy link</button>`;
-        card.appendChild(shareRow);
+        if (!isDemo) {
+            const shareRow = document.createElement('div');
+            shareRow.className = 'flex items-center gap-2 text-xs text-gray-400';
+            shareRow.innerHTML = `<button class="underline hover:text-white" data-copy-share="${item.id}">Copy link</button>`;
+            card.appendChild(shareRow);
+        }
 
         grid.appendChild(card);
     });

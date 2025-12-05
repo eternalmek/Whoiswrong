@@ -157,62 +157,70 @@
             <header class="text-center mb-8 sm:mb-12">
                 <p class="text-red-500 uppercase tracking-wider text-xs sm:text-sm font-bold mb-2">Settle Any Debate</p>
                 <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4">
-                    Who Is <span class="gradient-text">Wrong?</span>
+                    Let AI Decide Who's <span class="gradient-text">Wrong</span> in Your Arguments
                 </h1>
-                <p class="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto">Pick a celebrity AI judge, present your case, and get a decisive verdict. No more "it depends" – someone is always wrong!</p>
+                <p class="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto mb-6">Type both sides, pick a celebrity judge, get a savage verdict in seconds.</p>
+                <a href="#judge-section" class="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-xl text-lg transition pulse-glow">
+                    Judge My Debate – It's Free
+                </a>
             </header>
             
             <!-- Input Section -->
-            <section id="inputSection" class="glass-panel p-6 sm:p-8 rounded-2xl mb-6 sm:mb-8">
+            <section id="inputSection" class="glass-panel p-6 sm:p-8 rounded-2xl mb-6 sm:mb-8" id="judge-section">
                 <form id="judgeForm" class="space-y-4 sm:space-y-6">
                     
-                    <!-- Context / Question -->
+                    <!-- Step 1: Context / Question -->
                     <div>
                         <label for="contextInput" class="block text-xs font-bold text-gray-500 uppercase mb-2">
-                            <i class="fas fa-comment-alt mr-1"></i> What's the debate? (optional context)
+                            <i class="fas fa-comment-alt mr-1"></i> Step 1 – Context (optional)
                         </label>
                         <textarea 
                             id="contextInput" 
                             rows="2" 
                             class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
-                            placeholder="E.g., My friend says pineapple doesn't belong on pizza..."
+                            placeholder="What are you arguing about? (E.g. 'Is Ronaldo better than Messi?')"
                         ></textarea>
                     </div>
                     
-                    <!-- Side A vs Side B -->
-                    <div class="grid sm:grid-cols-2 gap-4">
-                        <div>
-                            <label for="optionA" class="block text-xs font-bold text-gray-500 uppercase mb-2">
-                                <i class="fas fa-user mr-1 text-green-400"></i> Side A
-                            </label>
-                            <input 
-                                type="text" 
-                                id="optionA" 
-                                class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
-                                placeholder="Alex's position..."
-                                required
-                            >
-                        </div>
-                        <div>
-                            <label for="optionB" class="block text-xs font-bold text-gray-500 uppercase mb-2">
-                                <i class="fas fa-user mr-1 text-red-400"></i> Side B
-                            </label>
-                            <input 
-                                type="text" 
-                                id="optionB" 
-                                class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                placeholder="Jordan's position..."
-                                required
-                            >
+                    <!-- Step 2: Side A vs Side B -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">
+                            <i class="fas fa-users mr-1"></i> Step 2 – Side A / Side B
+                        </label>
+                        <div class="grid sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="optionA" class="block text-xs font-bold text-gray-400 mb-1">
+                                    <i class="fas fa-user mr-1 text-green-400"></i> Side A
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="optionA" 
+                                    class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    placeholder="Ronaldo"
+                                    required
+                                >
+                            </div>
+                            <div>
+                                <label for="optionB" class="block text-xs font-bold text-gray-400 mb-1">
+                                    <i class="fas fa-user mr-1 text-red-400"></i> Side B
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="optionB" 
+                                    class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    placeholder="Messi"
+                                    required
+                                >
+                            </div>
                         </div>
                     </div>
                     
-                    <!-- Judge Selection -->
+                    <!-- Step 3: Judge Selection -->
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-3">
-                            <i class="fas fa-gavel mr-1"></i> Choose Your Judge
+                            <i class="fas fa-gavel mr-1"></i> Step 3 – Choose Your Judge
                         </label>
-                        <p id="judgeSelectionHint" class="text-gray-400 text-sm mb-3">🤖 Normal AI Judge</p>
+                        <p id="judgeSelectionHint" class="text-gray-400 text-sm mb-3">🤖 Normal AI Judge – Free</p>
                         <div id="judgeChips" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-h-64 overflow-y-auto p-1" role="listbox" aria-label="Select a judge">
                             <!-- Judge chips populated by JavaScript -->
                         </div>
@@ -230,7 +238,7 @@
                         </div>
                     </div>
                     
-                    <!-- Submit Button -->
+                    <!-- Step 4: Submit Button -->
                     <button 
                         type="submit" 
                         id="judgeSubmitBtn"
@@ -238,7 +246,7 @@
                         disabled
                     >
                         <i id="judgeIcon" class="fas fa-gavel"></i>
-                        <span id="judgeBtnText">Judge Now</span>
+                        <span id="judgeBtnText">Get the Verdict</span>
                     </button>
                 </form>
             </section>
@@ -275,10 +283,13 @@
                 <!-- Share Buttons -->
                 <div class="flex flex-wrap justify-center gap-2 mb-4">
                     <button onclick="shareDebate('x')" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition">
-                        <i class="fab fa-x-twitter"></i> Share
+                        <i class="fab fa-x-twitter"></i> Share on X
                     </button>
                     <button onclick="shareDebate('tiktok')" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition">
                         <i class="fab fa-tiktok"></i> TikTok
+                    </button>
+                    <button onclick="shareDebate('instagram')" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition">
+                        <i class="fab fa-instagram"></i> Instagram
                     </button>
                     <button onclick="copyResult()" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition">
                         <i class="fas fa-copy"></i> Copy
@@ -328,7 +339,7 @@
     </main>
     
     <!-- Footer -->
-    <footer class="py-6 sm:py-8 px-4 border-t border-gray-800">
+    <footer class="py-6 sm:py-8 pb-20 sm:pb-8 px-4 border-t border-gray-800">
         <div class="max-w-6xl mx-auto text-center text-gray-500 text-xs sm:text-sm">
             <p>&copy; 2024 Betterappai. All rights reserved.</p>
             <div class="mt-3 sm:mt-4 flex justify-center gap-4 sm:gap-6">
@@ -340,9 +351,16 @@
     </footer>
     
     <!-- Toast Notification -->
-    <div id="toast" class="hidden fixed bottom-4 right-4 z-50 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 shadow-lg flex items-center gap-3 max-w-sm">
+    <div id="toast" class="hidden fixed bottom-20 sm:bottom-4 right-4 z-50 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 shadow-lg flex items-center gap-3 max-w-sm">
         <i id="toastIcon" class="fas fa-check-circle text-green-400"></i>
         <span id="toastMessage" class="text-sm text-white">Success!</span>
+    </div>
+    
+    <!-- Mobile Sticky Bottom Bar -->
+    <div id="stickyBottomBar" class="fixed bottom-0 left-0 right-0 z-40 sm:hidden glass-panel border-t border-gray-700 p-3">
+        <a href="#judge-section" class="block w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl text-center transition">
+            <i class="fas fa-gavel mr-2"></i> Judge My Debate – Free
+        </a>
     </div>
     
     <!-- Login Modal -->

@@ -165,12 +165,12 @@ router.post('/save', requireUser, async (req, res, next) => {
     const purchasedPriceIds = lineItems.map((item) => item.price?.id || item.price);
 
     if (normalizedMode === 'single') {
-      const expectedPrice = process.env.STRIPE_PRICE_SINGLE_JUDGE;
+      const expectedPrice = process.env.STRIPE_PRICE_JUDGE_ONCE || process.env.STRIPE_PRICE_SINGLE_JUDGE;
       if (!expectedPrice || !purchasedPriceIds.includes(expectedPrice)) {
         return res.status(400).json({ error: 'Price ID mismatch for single purchase' });
       }
     } else if (normalizedMode === 'subscription') {
-      const expectedPrice = process.env.STRIPE_PRICE_ALL_JUDGES;
+      const expectedPrice = process.env.STRIPE_PRICE_SUB_ALL_JUDGES || process.env.STRIPE_PRICE_ALL_JUDGES;
       if (!expectedPrice || !purchasedPriceIds.includes(expectedPrice)) {
         return res.status(400).json({ error: 'Price ID mismatch for subscription purchase' });
       }
