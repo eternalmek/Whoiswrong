@@ -318,3 +318,222 @@ select {
 .hidden {
   display: none;
 }
+
+/* ==========================================
+   Judge Grid Styles (Mobile-first)
+   ========================================== */
+
+.judges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.judge-card {
+  background: #111827;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #1f2933;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.judge-card:hover {
+  border-color: #374151;
+  transform: translateY(-2px);
+}
+
+.judge-card.judge-locked::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.judge-img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+}
+
+.judge-body {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.judge-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.judge-desc {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.judge-btn,
+.unlock-all-btn {
+  border: none;
+  outline: none;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.85rem;
+  margin-top: 0.4rem;
+  background: linear-gradient(90deg, #4f46e5, #06b6d4);
+  color: white;
+  font-weight: 600;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.judge-btn:hover,
+.unlock-all-btn:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+.unlock-all-btn {
+  width: calc(100% - 2rem);
+  margin: 1rem;
+}
+
+.lock-icon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+}
+
+/* ==========================================
+   Feed Styles (Judgement Cards)
+   ========================================== */
+
+.feed-section {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.judgement-card {
+  background: #111827;
+  border-radius: 12px;
+  padding: 0.75rem;
+  border: 1px solid #1f2933;
+  transition: border-color 0.2s ease;
+}
+
+.judgement-card:hover {
+  border-color: #374151;
+}
+
+.judgement-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.judge-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.judgement-date {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.judgement-question {
+  font-weight: 500;
+  margin: 0.5rem 0 0;
+}
+
+.judgement-verdict {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: #d1d5db;
+}
+
+.judgement-body {
+  margin-top: 0.5rem;
+}
+
+.judgement-footer {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.reaction-btn {
+  flex: 1;
+  border-radius: 999px;
+  border: 1px solid #374151;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.reaction-btn:hover {
+  background: #111827;
+  border-color: #4b5563;
+}
+
+.reaction-btn.active {
+  border-color: #4f46e5;
+  background: rgba(79, 70, 229, 0.1);
+}
+
+/* ==========================================
+   Responsive Adjustments
+   ========================================== */
+
+@media (min-width: 640px) {
+  .judges-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.25rem;
+    padding: 1.5rem;
+  }
+
+  .judge-img {
+    height: 160px;
+  }
+
+  .judge-body {
+    padding: 1rem;
+  }
+
+  .judgement-card {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .judges-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .judge-img {
+    height: 180px;
+  }
+}
