@@ -1,59 +1,433 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Whoiswrong.io</title>
-    <link rel="stylesheet" href="/styles.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
-    <script src="/client.js" defer></script>
-    <script src="/home.js" defer></script>
-  </head>
-  <body>
-    <header class="hero">
-      <div>
-        <p class="eyebrow">Ask any question</p>
-        <h1>Who is wrong? Let an AI judge decide.</h1>
-        <p class="lede">Pick a judge, ask your scenario, and get a clear verdict with receipts.</p>
-      </div>
-    </header>
-
-    <main class="layout">
-      <section class="card">
-        <h2>Ask the Judge</h2>
-        <form id="judge-form" class="stack">
-          <label>
-            <span>Question or scenario</span>
-            <textarea name="question" rows="3" placeholder="Who was right about..." required></textarea>
-          </label>
-          <div class="grid">
-            <label>
-              <span>Side A (optional)</span>
-              <input name="sideA" type="text" placeholder="Alex" />
-            </label>
-            <label>
-              <span>Side B (optional)</span>
-              <input name="sideB" type="text" placeholder="Jordan" />
-            </label>
-          </div>
-          <label>
-            <span>Choose a judge</span>
-            <select id="judge-select"></select>
-          </label>
-          <button type="submit" class="primary">Judge it</button>
-          <p id="status" class="muted"></p>
-        </form>
-      </section>
-
-      <section class="card">
-        <h2>Verdict</h2>
-        <div id="verdict-box" class="verdict">Ask a question to see the verdict.</div>
-      </section>
-
-      <section class="card">
-        <h2>Public feed</h2>
-        <ul id="feed-list" class="feed"></ul>
-      </section>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhoIsWrong.io – AI Judge Settles Your Debates</title>
+    <meta name="description" content="Settle your debates once and for all! Pick a celebrity AI judge and get a decisive verdict on who is wrong.">
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#0a0a0a">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'display': ['Oswald', 'sans-serif'],
+                        'sans': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, .font-display {
+            font-family: 'Oswald', sans-serif;
+        }
+        
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .pulse-glow {
+            animation: pulse-glow 2s infinite;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.6); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pop-scale {
+            animation: popScale 0.3s ease-out;
+        }
+        
+        @keyframes popScale {
+            0% { transform: scale(0.95); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        
+        .judge-card {
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .judge-card.judge-locked::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: inherit;
+        }
+        
+        .lock-icon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 1;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .btn-primary {
+            min-height: 48px;
+        }
+    </style>
+    
+    <script src="/celebrityJudges.js"></script>
+    <script src="/auth.js"></script>
+</head>
+<body class="min-h-screen">
+    
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 glass-panel">
+        <div class="max-w-6xl mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <a href="/" class="flex items-center gap-2">
+                    <span class="text-xl sm:text-2xl">⚖️</span>
+                    <span class="font-display text-lg sm:text-xl font-bold">
+                        Who Is <span class="text-red-500">Wrong?</span>
+                    </span>
+                </a>
+                
+                <div class="flex items-center gap-3">
+                    <!-- Auth Buttons (shown when logged out) -->
+                    <div id="authButtons" class="flex items-center gap-2">
+                        <button onclick="showModal('loginModal')" class="text-gray-400 hover:text-white transition text-sm">Login</button>
+                        <button onclick="showModal('signupModal')" class="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1.5 rounded-lg transition">Sign up</button>
+                    </div>
+                    
+                    <!-- User Menu (shown when logged in) -->
+                    <div id="userMenu" class="hidden items-center gap-3">
+                        <a href="/account.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-1">
+                            <i class="fas fa-user"></i>
+                            <span id="userEmail" class="hidden sm:inline">Account</span>
+                        </a>
+                        <button onclick="logout()" class="text-gray-400 hover:text-white transition text-sm">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <main class="pt-20 sm:pt-24 pb-12 sm:pb-16 px-4">
+        <div class="max-w-4xl mx-auto">
+            
+            <!-- Hero Header -->
+            <header class="text-center mb-8 sm:mb-12">
+                <p class="text-red-500 uppercase tracking-wider text-xs sm:text-sm font-bold mb-2">Settle Any Debate</p>
+                <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4">
+                    Who Is <span class="gradient-text">Wrong?</span>
+                </h1>
+                <p class="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto">Pick a celebrity AI judge, present your case, and get a decisive verdict. No more "it depends" – someone is always wrong!</p>
+            </header>
+            
+            <!-- Input Section -->
+            <section id="inputSection" class="glass-panel p-6 sm:p-8 rounded-2xl mb-6 sm:mb-8">
+                <form id="judgeForm" class="space-y-4 sm:space-y-6">
+                    
+                    <!-- Context / Question -->
+                    <div>
+                        <label for="contextInput" class="block text-xs font-bold text-gray-500 uppercase mb-2">
+                            <i class="fas fa-comment-alt mr-1"></i> What's the debate? (optional context)
+                        </label>
+                        <textarea 
+                            id="contextInput" 
+                            rows="2" 
+                            class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                            placeholder="E.g., My friend says pineapple doesn't belong on pizza..."
+                        ></textarea>
+                    </div>
+                    
+                    <!-- Side A vs Side B -->
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="optionA" class="block text-xs font-bold text-gray-500 uppercase mb-2">
+                                <i class="fas fa-user mr-1 text-green-400"></i> Side A
+                            </label>
+                            <input 
+                                type="text" 
+                                id="optionA" 
+                                class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                                placeholder="Alex's position..."
+                                required
+                            >
+                        </div>
+                        <div>
+                            <label for="optionB" class="block text-xs font-bold text-gray-500 uppercase mb-2">
+                                <i class="fas fa-user mr-1 text-red-400"></i> Side B
+                            </label>
+                            <input 
+                                type="text" 
+                                id="optionB" 
+                                class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                placeholder="Jordan's position..."
+                                required
+                            >
+                        </div>
+                    </div>
+                    
+                    <!-- Judge Selection -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-3">
+                            <i class="fas fa-gavel mr-1"></i> Choose Your Judge
+                        </label>
+                        <p id="judgeSelectionHint" class="text-gray-400 text-sm mb-3">🤖 Normal AI Judge</p>
+                        <div id="judgeChips" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-h-64 overflow-y-auto p-1" role="listbox" aria-label="Select a judge">
+                            <!-- Judge chips populated by JavaScript -->
+                        </div>
+                        
+                        <!-- Unlock Buttons -->
+                        <div class="flex flex-wrap gap-2 mt-4">
+                            <button type="button" id="unlockSelectedJudge" class="text-xs bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 px-3 py-2 rounded-lg transition flex items-center gap-1">
+                                <i class="fas fa-unlock"></i>
+                                <span>Unlock this judge</span>
+                            </button>
+                            <button type="button" id="unlockAllJudges" class="text-xs bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white px-3 py-2 rounded-lg transition flex items-center gap-1">
+                                <i class="fas fa-crown"></i>
+                                <span>All $3.99/mo</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <button 
+                        type="submit" 
+                        id="judgeSubmitBtn"
+                        class="btn-primary w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-xl transition flex items-center justify-center gap-2 pulse-glow disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled
+                    >
+                        <i id="judgeIcon" class="fas fa-gavel"></i>
+                        <span id="judgeBtnText">Judge Now</span>
+                    </button>
+                </form>
+            </section>
+            
+            <!-- Loading Section -->
+            <section id="loadingSection" class="hidden glass-panel p-8 sm:p-12 rounded-2xl mb-6 sm:mb-8 text-center">
+                <div class="text-5xl sm:text-6xl mb-4 animate-bounce">⚖️</div>
+                <h2 class="font-display text-2xl sm:text-3xl font-bold mb-2">Deliberating...</h2>
+                <p id="loadingMessage" class="text-gray-400">Reviewing the evidence...</p>
+            </section>
+            
+            <!-- Result Section -->
+            <section id="resultSection" class="hidden glass-panel p-6 sm:p-8 rounded-2xl mb-6 sm:mb-8">
+                <div class="text-center mb-6">
+                    <p id="resultJudgeLabel" class="text-gray-400 text-sm mb-2">🤖 Verdict by Normal AI Judge</p>
+                    <h2 class="font-display text-3xl sm:text-4xl font-bold mb-4">The Verdict Is In!</h2>
+                </div>
+                
+                <div class="grid sm:grid-cols-2 gap-4 mb-6">
+                    <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
+                        <p class="text-red-400 text-xs uppercase font-bold mb-1">❌ Wrong</p>
+                        <p id="loserName" class="font-display text-xl sm:text-2xl font-bold text-red-400">Unknown</p>
+                    </div>
+                    <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
+                        <p class="text-green-400 text-xs uppercase font-bold mb-1">✅ Right</p>
+                        <p id="winnerName" class="font-display text-xl sm:text-2xl font-bold text-green-400">The Other One</p>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-900 rounded-xl p-4 mb-6">
+                    <p class="text-gray-300 text-sm sm:text-base italic" id="explanationText">"The judge's reasoning will appear here."</p>
+                </div>
+                
+                <!-- Share Buttons -->
+                <div class="flex flex-wrap justify-center gap-2 mb-4">
+                    <button onclick="shareDebate('x')" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition">
+                        <i class="fab fa-x-twitter"></i> Share
+                    </button>
+                    <button onclick="shareDebate('tiktok')" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition">
+                        <i class="fab fa-tiktok"></i> TikTok
+                    </button>
+                    <button onclick="copyResult()" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                
+                <!-- Judge Again Button -->
+                <button onclick="resetApp()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition flex items-center justify-center gap-2">
+                    <i class="fas fa-redo"></i> Judge Another Debate
+                </button>
+                
+                <!-- Signup Prompt for non-logged-in users -->
+                <div id="signupPrompt" class="mt-4 p-4 bg-gray-900 rounded-xl text-center">
+                    <p class="text-gray-400 text-sm mb-2">Save this verdict and unlock more features!</p>
+                    <button onclick="showModal('signupModal')" class="text-red-400 hover:text-red-300 text-sm font-semibold">Create an account →</button>
+                </div>
+            </section>
+            
+            <!-- Error Section -->
+            <section id="errorSection" class="hidden glass-panel p-6 sm:p-8 rounded-2xl mb-6 sm:mb-8 text-center border-red-500/30 border">
+                <div class="text-4xl mb-4">😵</div>
+                <h2 class="font-display text-xl sm:text-2xl font-bold mb-2 text-red-400">Something Went Wrong</h2>
+                <p id="errorMessage" class="text-gray-400 mb-4">An error occurred. Please try again.</p>
+                <button onclick="showInput()" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm transition">
+                    Try Again
+                </button>
+            </section>
+            
+            <!-- Sample Debates -->
+            <section class="mb-8 sm:mb-12">
+                <h2 class="font-display text-xl sm:text-2xl font-bold mb-4 text-center">🔥 Recent Verdicts</h2>
+                <div id="sampleGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Sample debates populated by JavaScript -->
+                </div>
+            </section>
+            
+            <!-- Feed Section -->
+            <section class="mb-8">
+                <h2 class="font-display text-xl sm:text-2xl font-bold mb-4 text-center">📢 Public Feed</h2>
+                <p id="feedEmpty" class="text-gray-500 text-center hidden">No public judgements yet. Be the first!</p>
+                <div id="feedGrid" class="grid gap-4">
+                    <!-- Feed items populated by JavaScript -->
+                </div>
+            </section>
+            
+        </div>
     </main>
-  </body>
+    
+    <!-- Footer -->
+    <footer class="py-6 sm:py-8 px-4 border-t border-gray-800">
+        <div class="max-w-6xl mx-auto text-center text-gray-500 text-xs sm:text-sm">
+            <p>&copy; 2024 Betterappai. All rights reserved.</p>
+            <div class="mt-3 sm:mt-4 flex justify-center gap-4 sm:gap-6">
+                <a href="/about.html" class="hover:text-red-400 transition">About</a>
+                <a href="/legal.html" class="hover:text-red-400 transition">Legal</a>
+                <a href="/account.html" class="hover:text-red-400 transition">Account</a>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Toast Notification -->
+    <div id="toast" class="hidden fixed bottom-4 right-4 z-50 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 shadow-lg flex items-center gap-3 max-w-sm">
+        <i id="toastIcon" class="fas fa-check-circle text-green-400"></i>
+        <span id="toastMessage" class="text-sm text-white">Success!</span>
+    </div>
+    
+    <!-- Login Modal -->
+    <div id="loginModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+        <div class="glass-panel rounded-2xl p-6 w-full max-w-md relative">
+            <button onclick="hideModal('loginModal')" class="absolute top-4 right-4 text-gray-500 hover:text-white">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 class="font-display text-2xl font-bold mb-4">Welcome Back</h2>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label for="loginEmail" class="block text-xs font-bold text-gray-500 uppercase mb-2">Email</label>
+                    <input type="email" id="loginEmail" required class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="you@example.com">
+                </div>
+                <div>
+                    <label for="loginPassword" class="block text-xs font-bold text-gray-500 uppercase mb-2">Password</label>
+                    <input type="password" id="loginPassword" required class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="••••••••">
+                </div>
+                <div id="loginError" class="hidden text-red-400 text-sm"></div>
+                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition">Login</button>
+            </form>
+            <p class="text-gray-400 text-sm text-center mt-4">
+                Don't have an account? 
+                <button onclick="hideModal('loginModal'); showModal('signupModal')" class="text-red-400 hover:text-red-300 font-semibold">Sign up</button>
+            </p>
+        </div>
+    </div>
+    
+    <!-- Signup Modal -->
+    <div id="signupModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+        <div class="glass-panel rounded-2xl p-6 w-full max-w-md relative">
+            <button onclick="hideModal('signupModal')" class="absolute top-4 right-4 text-gray-500 hover:text-white">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 class="font-display text-2xl font-bold mb-4">Create Account</h2>
+            <form id="signupForm" class="space-y-4">
+                <div>
+                    <label for="signupEmail" class="block text-xs font-bold text-gray-500 uppercase mb-2">Email</label>
+                    <input type="email" id="signupEmail" required class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="you@example.com">
+                </div>
+                <div>
+                    <label for="signupPassword" class="block text-xs font-bold text-gray-500 uppercase mb-2">Password</label>
+                    <input type="password" id="signupPassword" required class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="••••••••">
+                </div>
+                <div>
+                    <label for="signupPasswordConfirm" class="block text-xs font-bold text-gray-500 uppercase mb-2">Confirm Password</label>
+                    <input type="password" id="signupPasswordConfirm" required class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="••••••••">
+                </div>
+                <div id="signupError" class="hidden text-red-400 text-sm"></div>
+                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition">Sign up</button>
+            </form>
+            <p class="text-gray-400 text-sm text-center mt-4">
+                Already have an account? 
+                <button onclick="hideModal('signupModal'); showModal('loginModal')" class="text-red-400 hover:text-red-300 font-semibold">Login</button>
+            </p>
+        </div>
+    </div>
+    
+    <!-- Purchase Modal -->
+    <div id="purchaseModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+        <div class="glass-panel rounded-2xl p-6 w-full max-w-md relative">
+            <button onclick="hideModal('purchaseModal')" class="absolute top-4 right-4 text-gray-500 hover:text-white">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="text-center mb-4">
+                <span id="purchaseJudgeEmoji" class="text-5xl">🎭</span>
+                <h2 id="purchaseJudgeName" class="font-display text-2xl font-bold mt-2">Judge Name</h2>
+                <p id="purchaseJudgeDesc" class="text-gray-400 text-sm mt-1">Get unique verdicts with personality!</p>
+            </div>
+            <div class="space-y-3">
+                <button id="purchaseSingleBtn" onclick="unlockSelectedJudge()" class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
+                    <i class="fas fa-unlock"></i>
+                    <span>Unlock This Judge – $0.99</span>
+                </button>
+                <button id="purchaseAllBtn" onclick="unlockAllJudges()" class="w-full bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
+                    <i class="fas fa-crown"></i>
+                    <span>Unlock ALL Judges – $3.99/mo</span>
+                </button>
+            </div>
+            <p class="text-gray-500 text-xs text-center mt-4">Secure payment via Stripe</p>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="/app.js"></script>
+    <script defer src="https://va.vercel-scripts.com/v1/script.js" data-sdkn="@vercel/analytics" data-sdkv="1.6.0"></script>
+</body>
 </html>
