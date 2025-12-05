@@ -3,9 +3,15 @@ const Stripe = require('stripe');
 const { supabaseServiceRole } = require('../supabaseClient');
 
 const router = express.Router();
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const stripeKey = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeKey ? Stripe(stripeKey) : null;
 
 router.post('/', express.raw({ type: 'application/json' }), async (req, res) => {
+  if (!stripe) {
+    console.error('Stripe is not configured. STRIPE_SECRET_KEY is missing.');
+    return res.status(500).json({ error: 'Payment service not configured' });
+  }
+
   const sig = req.headers['stripe-signature'];
   let event;
 

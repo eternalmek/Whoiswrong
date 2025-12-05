@@ -19,17 +19,20 @@ async function createCheckoutSession({ userId, productType, priceId, judgeId, mo
     throw new Error('Stripe price not configured');
   }
 
+  // Determine the purchase type for metadata: 'single' or 'subscription'
+  const purchaseMode = mode === 'subscription' ? 'subscription' : 'single';
+
   const sessionConfig = {
     mode: mode || 'payment',
     payment_method_types: ['card'],
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${getBaseUrl()}/success`,
+    success_url: `${getBaseUrl()}/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${getBaseUrl()}/cancel`,
     metadata: {
       user_id: userId,
       product_type: productType,
       judge_id: judgeId || '',
-      mode: mode || 'payment',
+      mode: purchaseMode,
       celebrityId: judgeId || '',
     },
   };

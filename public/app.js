@@ -911,6 +911,29 @@ async function fetchUserPurchases() {
 const PENDING_PURCHASE_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
 /**
+ * Check if user just returned from a successful Stripe payment
+ * The success page stores the session_id in localStorage
+ */
+async function handleStripeSuccessReturn() {
+    const sessionId = localStorage.getItem('stripe_success_session_id');
+    if (!sessionId) return;
+    
+    // Clear the session ID immediately to prevent duplicate processing
+    localStorage.removeItem('stripe_success_session_id');
+    
+    console.log('Detected return from Stripe checkout, refreshing purchases...');
+    
+    // Refresh purchases from the server to get newly unlocked content
+    await fetchUserPurchases();
+    
+    // Update the UI
+    updateJudgeUI();
+    
+    // Show success message
+    showToast('Payment successful! Your judges are now unlocked.', 'success');
+}
+
+/**
  * Save any pending purchases that were made before account creation
  */
 async function savePendingPurchase() {
@@ -973,6 +996,9 @@ async function checkAuth(hasRefreshed = false) {
 
             // Save any pending purchases from before account creation
             await savePendingPurchase();
+
+            // Check if user just returned from Stripe payment success
+            await handleStripeSuccessReturn();
 
             // Fetch user's purchases from the server
             await fetchUserPurchases();

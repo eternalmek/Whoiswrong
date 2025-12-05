@@ -16,5 +16,16 @@
     <p class="text-gray-300">Your judges are now unlocked. Head back to the app to start judging with your new access.</p>
     <a href="/" class="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold px-5 py-3 rounded-xl transition">Return to WhoIsWrong</a>
   </div>
+  <script>
+    // Store the Stripe session ID for verification when the user returns to the app
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var sessionId = params.get('session_id');
+      if (sessionId) {
+        // Store session ID for the main app to verify and process
+        localStorage.setItem('stripe_success_session_id', sessionId);
+      }
+    })();
+  </script>
 </body>
 </html>
