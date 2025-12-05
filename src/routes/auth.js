@@ -29,12 +29,19 @@ async function ensureProfile(user, username) {
   const normalizedUsername = normalizeUsername(username || user.user_metadata?.username);
   if (normalizedUsername) payload.username = normalizedUsername;
 
-  await supabaseServiceRole
-    .from('profiles')
-    .upsert(payload, { onConflict: 'id' })
-    .select()
-    .single()
-    .catch(() => {});
+  try {
+    const { error } = await supabaseServiceRole
+      .from('profiles')
+      .upsert(payload, { onConflict: 'id' })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('ensureProfile upsert failed:', error);
+    }
+  } catch (err) {
+    console.error('ensureProfile unexpected error:', err);
+  }
 }
 
 // POST /api/auth/signup
