@@ -123,9 +123,6 @@ async function loadJudgesFromApi() {
     }
 }
 
-// Number of judges that are free by default
-const FREE_JUDGES_COUNT = 1;
-
 // Server-synced purchases for logged-in users
 let serverUnlockedJudges = [];
 let serverHasAllAccess = false;
@@ -167,6 +164,8 @@ let stripePrices = {
     allJudges: { formatted: '$3.99', amount: 3.99, currency: 'AUD', interval: 'month' }
 };
 let pricesLoaded = false;
+// Tracks whether Stripe payment service is available
+let paymentServiceConfigured = false;
 
 // Loading messages for variety
 const LOADING_MESSAGES = [
@@ -492,8 +491,9 @@ function persistJudgeState() {
 
 function getJudgeAccessInfo(judgeId) {
     const judge = availableJudges.find((j) => j.id === judgeId) || availableJudges[0];
-    const judgeIndex = availableJudges.findIndex((j) => j.id === judgeId);
-    const isFreeByDefault = judgeIndex >= 0 && judgeIndex < FREE_JUDGES_COUNT;
+    // Use the judge's is_default_free property to determine if it's free by default
+    // This is data-driven rather than position-based
+    const isFreeByDefault = judge.is_default_free === true;
     
     // Check both local storage and server-synced purchases
     // Server takes precedence for logged-in users
@@ -514,12 +514,30 @@ function showPurchaseModal(judge) {
     const emoji = document.getElementById('purchaseJudgeEmoji');
     const name = document.getElementById('purchaseJudgeName');
     const desc = document.getElementById('purchaseJudgeDesc');
+    const purchaseSingleBtn = document.getElementById('purchaseSingleBtn');
+    const purchaseAllBtn = document.getElementById('purchaseAllBtn');
     
     if (!modal) return;
     
     if (emoji) emoji.textContent = judge.emoji || '🎭';
     if (name) name.textContent = judge.name;
-    if (desc) desc.textContent = judge.description || 'Get unique verdicts with personality!';
+    if (desc) {
+        if (!paymentServiceConfigured) {
+            desc.textContent = 'Payments coming soon! Check back later to unlock this judge.';
+        } else {
+            desc.textContent = judge.description || 'Get unique verdicts with personality!';
+        }
+    }
+
+    // Disable purchase buttons if payment service is not configured
+    if (purchaseSingleBtn) {
+        purchaseSingleBtn.disabled = !paymentServiceConfigured;
+        purchaseSingleBtn.classList.toggle('opacity-50', !paymentServiceConfigured);
+    }
+    if (purchaseAllBtn) {
+        purchaseAllBtn.disabled = !paymentServiceConfigured;
+        purchaseAllBtn.classList.toggle('opacity-50', !paymentServiceConfigured);
+    }
     
     // Set the selected judge so unlock works correctly
     selectedJudgeId = judge.id;
@@ -618,19 +636,37 @@ function updateUnlockButtons() {
     const info = getJudgeAccessInfo(selectedJudgeId);
 
     if (unlockOneBtn) {
-        const shouldDisableSingle = info.unlocked;
+        // Disable if already unlocked OR if payment service is not available
+        const shouldDisableSingle = info.unlocked || !paymentServiceConfigured;
         unlockOneBtn.disabled = shouldDisableSingle;
         unlockOneBtn.classList.toggle('opacity-50', shouldDisableSingle);
         const label = unlockOneBtn.querySelector('span');
         if (label) {
-            label.innerText = info.unlocked ? 'Already unlocked' : 'Unlock this judge';
+            if (!paymentServiceConfigured) {
+                label.innerText = 'Coming soon';
+            } else if (info.unlocked) {
+                label.innerText = 'Already unlocked';
+            } else {
+                label.innerText = 'Unlock this judge';
+            }
         }
     }
 
     if (unlockAllBtn) {
-        const shouldDisableAll = hasAllAccess;
+        // Disable if already has all access OR if payment service is not available
+        const shouldDisableAll = hasAllAccess || !paymentServiceConfigured;
         unlockAllBtn.disabled = shouldDisableAll;
         unlockAllBtn.classList.toggle('opacity-50', shouldDisableAll);
+        const label = unlockAllBtn.querySelector('span');
+        if (label) {
+            if (!paymentServiceConfigured) {
+                const interval = formatInterval(stripePrices.allJudges.interval);
+                label.innerText = `All ${stripePrices.allJudges.formatted}${interval} (Coming soon)`;
+            } else {
+                const interval = formatInterval(stripePrices.allJudges.interval);
+                label.innerText = hasAllAccess ? 'All judges unlocked' : `All ${stripePrices.allJudges.formatted}${interval}`;
+            }
+        }
     }
 }
 
@@ -654,10 +690,14 @@ async function fetchStripePrices() {
 
         if (!response.ok) {
             console.warn('Failed to fetch Stripe prices, using defaults');
+            paymentServiceConfigured = false;
             return;
         }
 
         const data = await response.json();
+
+        // Check if payment service is configured on the server
+        paymentServiceConfigured = data.paymentServiceConfigured === true;
 
         if (data.singleJudge && data.allJudges) {
             stripePrices = data;
@@ -668,6 +708,7 @@ async function fetchStripePrices() {
         }
     } catch (error) {
         console.warn('Error fetching Stripe prices:', error);
+        paymentServiceConfigured = false;
         // Keep using default prices
     }
 }
@@ -744,6 +785,19 @@ async function handleUnlockSingle(judgeId) {
         return;
     }
 
+    // Check if the judge is free by default
+    const judgeInfo = getJudgeAccessInfo(judgeId);
+    if (judgeInfo.judge && judgeInfo.judge.is_default_free) {
+        showToast('This judge is free!', 'info');
+        return;
+    }
+
+    // Check if payment service is available
+    if (!paymentServiceConfigured) {
+        showToast('Payments are not available yet. Please try again later.', 'error');
+        return;
+    }
+
     if (!accessToken || !currentUser) {
         showToast('Please log in to unlock judges.', 'info');
         showModal('loginModal');
@@ -774,6 +828,10 @@ async function handleUnlockSingle(judgeId) {
         const data = await response.json();
 
         if (!response.ok) {
+            // Provide clearer error message for payment service not configured
+            if (data.error === 'Payment service not configured') {
+                throw new Error('Payments are not available yet. Please try again later.');
+            }
             throw new Error(data.error || 'Failed to create checkout session');
         }
 
@@ -805,6 +863,12 @@ async function handleUnlockAll() {
         return;
     }
 
+    // Check if payment service is available
+    if (!paymentServiceConfigured) {
+        showToast('Payments are not available yet. Please try again later.', 'error');
+        return;
+    }
+
     if (!accessToken || !currentUser) {
         showToast('Please log in to unlock judges.', 'info');
         showModal('loginModal');
@@ -828,6 +892,10 @@ async function handleUnlockAll() {
         const data = await response.json();
 
         if (!response.ok) {
+            // Provide clearer error message for payment service not configured
+            if (data.error === 'Payment service not configured') {
+                throw new Error('Payments are not available yet. Please try again later.');
+            }
             throw new Error(data.error || 'Failed to create checkout session');
         }
 
