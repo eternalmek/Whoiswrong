@@ -41,9 +41,13 @@ function json(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
+function isNonEmptyObject(obj) {
+  return obj !== null && typeof obj === 'object' && Object.keys(obj).length > 0;
+}
+
 async function readJsonBody(req) {
   // If req.body is already a non-empty parsed object, return it directly
-  if (req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
+  if (isNonEmptyObject(req.body)) {
     return req.body;
   }
 
@@ -58,7 +62,7 @@ async function readJsonBody(req) {
         // If we got data from the stream, parse it
         if (body) {
           resolve(JSON.parse(body));
-        } else if (req.body && typeof req.body === 'object') {
+        } else if (req.body !== null && typeof req.body === 'object') {
           // Stream was empty but req.body exists (already parsed by middleware)
           resolve(req.body);
         } else {
