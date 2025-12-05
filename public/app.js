@@ -122,49 +122,11 @@ const SHARE_CONFIG = {
     instagram: "Link copied! Paste it in your Instagram story or post."
 };
 
-// Demo debates to show when database is empty
-const SAMPLE_DEBATES = [
-    {
-        id: 'demo-pineapple',
-        title: 'Is pineapple on pizza a crime?',
-        judge: 'AI Judge',
-        judgeId: 'normal',
-        summary: 'The AI says pineapple belongs in dessert, not on your pizza. Verdict: pineapple is wrong.',
-        isDemo: true
-    },
-    {
-        id: 'demo-messi-ronaldo',
-        title: 'Ronaldo vs Messi',
-        judge: 'AI Judge',
-        judgeId: 'normal',
-        summary: 'With GOAT energy, the AI declares the debate settled. One is clearly wrong.',
-        isDemo: true
-    },
-    {
-        id: 'demo-tiktok',
-        title: 'Is TikTok better than YouTube?',
-        judge: 'AI Judge',
-        judgeId: 'normal',
-        summary: 'The AI picks YouTube for depth, but dares you to prove it wrong with a viral TikTok.',
-        isDemo: true
-    },
-    {
-        id: 'demo-text-back',
-        title: 'Should you text back immediately?',
-        judge: 'AI Judge',
-        judgeId: 'normal',
-        summary: 'The AI says leaving them on read writes a better story. Verdict: texting back instantly is wrong.',
-        isDemo: true
-    },
-    {
-        id: 'demo-cats-dogs',
-        title: 'Cats or dogs?',
-        judge: 'AI Judge',
-        judgeId: 'normal',
-        summary: 'The AI declares dogs are better because they can be trained to fetch. Cats are wrong.',
-        isDemo: true
-    }
-];
+// User's purchase status
+let userPurchaseStatus = {
+    hasAllJudges: false,
+    purchasedJudges: []
+};
 
 // ==========================================
 // State Management
@@ -383,7 +345,109 @@ function updateJudgeHint() {
     const hintEl = document.getElementById('judgeSelectionHint');
     const judge = availableJudges.find((j) => j.id === selectedJudgeId) || availableJudges[0];
     if (hintEl) {
-        hintEl.textContent = `${judge.emoji || '🤖'} ${judge.name}`;
+        const isUnlocked = isJudgeUnlocked(judge);
+        const statusText = isUnlocked ? '' : ' 🔒';
+        hintEl.textContent = `${judge.emoji || '🤖'} ${judge.name}${statusText}`;
+    }
+}
+
+// Check if a judge is unlocked for the current user
+function isJudgeUnlocked(judge) {
+    // Free judges are always unlocked
+    if (judge.is_default_free || judge.price === 0 || judge.id === 'normal') {
+        return true;
+    }
+    // If user has all judges, everything is unlocked
+    if (userPurchaseStatus.hasAllJudges) {
+        return true;
+    }
+    // Check if specifically purchased
+    return userPurchaseStatus.purchasedJudges.includes(judge.id);
+}
+
+// Load user's purchase status
+async function loadPurchaseStatus() {
+    if (!currentUser || !accessToken) {
+        userPurchaseStatus = { hasAllJudges: false, purchasedJudges: [] };
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${APP_API_BASE}/api/checkout/status`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            userPurchaseStatus = {
+                hasAllJudges: data.hasAllJudges || false,
+                purchasedJudges: data.purchasedJudges || []
+            };
+        }
+    } catch (error) {
+        console.warn('Failed to load purchase status', error);
+    }
+}
+
+// Handle judge purchase
+async function purchaseJudge(judgeId) {
+    if (!currentUser) {
+        showModal('loginModal');
+        showToast('Please log in to unlock judges', 'info');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${APP_API_BASE}/api/checkout/single`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({ judgeId })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Purchase failed');
+        }
+        
+        if (data.url) {
+            window.location.href = data.url;
+        }
+    } catch (error) {
+        showToast(error.message || 'Unable to start purchase', 'error');
+    }
+}
+
+// Handle all judges purchase
+async function purchaseAllJudges() {
+    if (!currentUser) {
+        showModal('loginModal');
+        showToast('Please log in to unlock judges', 'info');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${APP_API_BASE}/api/checkout/all`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Purchase failed');
+        }
+        
+        if (data.url) {
+            window.location.href = data.url;
+        }
+    } catch (error) {
+        showToast(error.message || 'Unable to start purchase', 'error');
     }
 }
 
@@ -395,6 +459,8 @@ function renderJudgeChips() {
 
     availableJudges.forEach((judge) => {
         const isSelected = judge.id === selectedJudgeId;
+        const isUnlocked = isJudgeUnlocked(judge);
+        const isCelebrity = judge.is_celebrity;
         
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -404,13 +470,27 @@ function renderJudgeChips() {
             isSelected 
                 ? 'border-red-500 bg-red-500/20 ring-2 ring-red-500/50' 
                 : 'border-gray-700 bg-gray-900/60 hover:border-gray-500'
-        }`;
+        } ${!isUnlocked ? 'judge-locked' : ''}`;
         
-        btn.addEventListener('click', () => {
-            selectedJudgeId = judge.id;
-            persistJudgeState();
-            updateJudgeUI();
-        });
+        if (isUnlocked) {
+            btn.addEventListener('click', () => {
+                selectedJudgeId = judge.id;
+                persistJudgeState();
+                updateJudgeUI();
+            });
+        } else {
+            btn.addEventListener('click', () => {
+                purchaseJudge(judge.id);
+            });
+        }
+
+        // Lock icon for locked judges
+        if (!isUnlocked) {
+            const lockIcon = document.createElement('span');
+            lockIcon.className = 'lock-icon text-yellow-400 text-sm';
+            lockIcon.innerHTML = '<i class="fas fa-lock"></i>';
+            btn.appendChild(lockIcon);
+        }
 
         // Avatar and name
         const header = document.createElement('div');
@@ -427,8 +507,13 @@ function renderJudgeChips() {
 
         // Status badge
         const badge = document.createElement('span');
-        badge.className = 'inline-block text-[10px] px-2 py-0.5 rounded-full font-medium mb-1 bg-green-500/20 text-green-300';
-        badge.textContent = 'Free';
+        if (isUnlocked) {
+            badge.className = 'inline-block text-[10px] px-2 py-0.5 rounded-full font-medium mb-1 bg-green-500/20 text-green-300';
+            badge.textContent = judge.is_default_free ? 'Free' : 'Unlocked';
+        } else {
+            badge.className = 'inline-block text-[10px] px-2 py-0.5 rounded-full font-medium mb-1 bg-yellow-500/20 text-yellow-300';
+            badge.textContent = `$${judge.price || '0.99'} to unlock`;
+        }
         btn.appendChild(badge);
 
         container.appendChild(btn);
@@ -793,29 +878,30 @@ function renderFeed(items = []) {
     const empty = document.getElementById('feedEmpty');
     if (!grid) return;
 
-    const displayItems = items.length > 0 ? items : SAMPLE_DEBATES.map(demo => ({
-        id: demo.id,
-        question_text: demo.title,
-        verdict_text: demo.summary,
-        judge_id: demo.judgeId,
-        isDemo: true,
-        votes: { agree: Math.floor(Math.random() * 50) + 10, disagree: Math.floor(Math.random() * 20) + 5 }
-    }));
+    // No demo data - only show real items
+    if (items.length === 0) {
+        if (empty) {
+            empty.classList.remove('hidden');
+            empty.textContent = 'No public judgements yet. Be the first to share your verdict!';
+        }
+        grid.innerHTML = '';
+        return;
+    }
 
     if (empty) empty.classList.add('hidden');
     grid.innerHTML = '';
 
-    displayItems.forEach((item) => {
+    items.forEach((item) => {
         const judge = getJudgeVisual(item.judge_id || item.judge?.id || 'normal');
-        const votes = item.votes || { agree: 0, disagree: 0 };
-        const isDemo = item.isDemo || false;
+        const reactions = item.reactions || { likes: 0, dislikes: 0 };
         const card = document.createElement('article');
         card.className = 'glass-panel p-4 rounded-xl border border-gray-800 hover:border-red-500 transition flex flex-col gap-3';
+        card.id = `feed-item-${item.id}`;
 
         const header = document.createElement('div');
         header.className = 'flex items-center gap-3';
         const title = item.question_text || item.context || [item.option_a, item.option_b].filter(Boolean).join(' vs ');
-        header.innerHTML = `<div class="w-10 h-10 rounded-full overflow-hidden bg-gray-800"><img src="${judge.avatar}" alt="${judge.name}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Judge'" /></div><div><p class="text-xs uppercase text-gray-500">${judge.name}${isDemo ? ' <span class="text-yellow-400">(Demo)</span>' : ''}</p><h4 class="text-lg font-display font-bold leading-snug">${title || 'Recent verdict'}</h4></div>`;
+        header.innerHTML = `<div class="w-10 h-10 rounded-full overflow-hidden bg-gray-800"><img src="${judge.avatar}" alt="${judge.name}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Judge'" /></div><div><p class="text-xs uppercase text-gray-500">${judge.name}</p><h4 class="text-lg font-display font-bold leading-snug">${title || 'Recent verdict'}</h4></div>`;
         card.appendChild(header);
 
         const summary = document.createElement('p');
@@ -825,45 +911,35 @@ function renderFeed(items = []) {
 
         const verdict = document.createElement('div');
         verdict.className = 'text-sm text-gray-400 flex items-center gap-2 flex-wrap';
-        const verdictLabel = item.verdict_text || (item.wrong ? `${item.wrong} was wrong` : 'Verdict ready');
+        const verdictLabel = item.wrong ? `${item.wrong} was wrong` : 'Verdict ready';
         verdict.innerHTML = `<span class="px-2 py-1 rounded-full bg-red-500/20 text-red-300 text-xs font-semibold">Verdict</span><span class="font-medium text-white">${verdictLabel}</span>`;
         card.appendChild(verdict);
 
-        const votesRow = document.createElement('div');
-        votesRow.className = 'flex items-center justify-between gap-2';
-        
-        if (isDemo) {
-            votesRow.innerHTML = `
-                <div class="flex items-center gap-2 text-xs text-gray-400">
-                    <span class="px-2 py-1 rounded-full bg-green-500/10 text-green-300">Agree: <strong>${votes.agree}</strong></span>
-                    <span class="px-2 py-1 rounded-full bg-red-500/10 text-red-300">Disagree: <strong>${votes.disagree}</strong></span>
-                </div>
-                <span class="text-xs text-gray-500 italic">Demo debate</span>`;
-        } else {
-            votesRow.innerHTML = `
-                <div class="flex items-center gap-2 text-xs text-gray-400">
-                    <span class="px-2 py-1 rounded-full bg-green-500/10 text-green-300">Agree: <strong>${votes.agree}</strong></span>
-                    <span class="px-2 py-1 rounded-full bg-red-500/10 text-red-300">Disagree: <strong>${votes.disagree}</strong></span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button class="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg" data-vote="agree" data-id="${item.id}">Agree</button>
-                    <button class="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg" data-vote="disagree" data-id="${item.id}">Disagree</button>
-                </div>`;
-        }
-        card.appendChild(votesRow);
-
-        if (!isDemo) {
-            const shareRow = document.createElement('div');
-            shareRow.className = 'flex items-center gap-2 text-xs text-gray-400';
-            shareRow.innerHTML = `<button class="underline hover:text-white" data-copy-share="${item.id}">Copy link</button>`;
-            card.appendChild(shareRow);
-        }
+        // Reactions row with like/dislike buttons
+        const reactionsRow = document.createElement('div');
+        reactionsRow.className = 'flex items-center justify-between gap-2';
+        reactionsRow.innerHTML = `
+            <div class="flex items-center gap-3 text-sm">
+                <button class="reaction-btn flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition ${item.userReaction === 'like' ? 'ring-2 ring-green-500' : ''}" data-reaction="like" data-id="${item.id}">
+                    <span class="text-lg">❤️</span>
+                    <span class="likes-count text-gray-300">${reactions.likes || 0}</span>
+                </button>
+                <button class="reaction-btn flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition ${item.userReaction === 'dislike' ? 'ring-2 ring-red-500' : ''}" data-reaction="dislike" data-id="${item.id}">
+                    <span class="text-lg">👎</span>
+                    <span class="dislikes-count text-gray-300">${reactions.dislikes || 0}</span>
+                </button>
+            </div>
+            <div class="flex items-center gap-2">
+                <button class="text-xs text-gray-400 hover:text-white underline" data-copy-share="${item.id}">Copy link</button>
+            </div>`;
+        card.appendChild(reactionsRow);
 
         grid.appendChild(card);
     });
 
-    grid.querySelectorAll('button[data-vote]').forEach((btn) => {
-        btn.addEventListener('click', () => voteOnDebate(btn.dataset.id, btn.dataset.vote));
+    // Add event listeners for reactions
+    grid.querySelectorAll('.reaction-btn').forEach((btn) => {
+        btn.addEventListener('click', () => handleReaction(btn.dataset.id, btn.dataset.reaction));
     });
 
     grid.querySelectorAll('button[data-copy-share]').forEach((btn) => {
@@ -874,21 +950,110 @@ function renderFeed(items = []) {
     });
 }
 
+// Handle reaction (like/dislike)
+async function handleReaction(judgementId, reaction) {
+    if (!currentUser) {
+        showModal('loginModal');
+        showToast('Please log in to react', 'info');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${APP_API_BASE}/api/reactions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({ judgementId, reaction })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Reaction failed');
+
+        // Update the UI instantly
+        const card = document.getElementById(`feed-item-${judgementId}`);
+        if (card) {
+            const likesCount = card.querySelector('.likes-count');
+            const dislikesCount = card.querySelector('.dislikes-count');
+            const likeBtn = card.querySelector('[data-reaction="like"]');
+            const dislikeBtn = card.querySelector('[data-reaction="dislike"]');
+
+            if (likesCount) likesCount.textContent = data.likes || 0;
+            if (dislikesCount) dislikesCount.textContent = data.dislikes || 0;
+
+            // Update button states
+            if (likeBtn) {
+                likeBtn.classList.toggle('ring-2', data.userReaction === 'like');
+                likeBtn.classList.toggle('ring-green-500', data.userReaction === 'like');
+            }
+            if (dislikeBtn) {
+                dislikeBtn.classList.toggle('ring-2', data.userReaction === 'dislike');
+                dislikeBtn.classList.toggle('ring-red-500', data.userReaction === 'dislike');
+            }
+        }
+
+        showToast(data.userReaction ? `${reaction === 'like' ? '❤️' : '👎'} Reacted!` : 'Reaction removed', 'success');
+    } catch (error) {
+        showToast(error.message || 'Unable to react', 'error');
+    }
+}
+
 async function loadFeed(forceRefresh = false) {
     try {
-        const res = await fetch(`${APP_API_BASE}/api/judgements/feed?limit=20${forceRefresh ? `&t=${Date.now()}` : ''}`);
+        const headers = accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {};
+        const res = await fetch(`${APP_API_BASE}/api/judgements/feed?limit=20${forceRefresh ? `&t=${Date.now()}` : ''}`, { headers });
         const data = await res.json();
         const items = Array.isArray(data?.items)
             ? data.items
             : Array.isArray(data?.judgements)
                 ? data.judgements
                 : [];
+        
+        // Load reactions for items if we have any
+        if (items.length > 0) {
+            await loadReactionsForItems(items);
+        }
+        
         renderFeed(items);
         renderSamples(items);
     } catch (error) {
         console.warn('Unable to load feed', error);
         renderFeed([]);
         renderSamples([]);
+    }
+}
+
+// Load reactions for multiple items
+async function loadReactionsForItems(items) {
+    try {
+        const judgementIds = items.map(item => item.id);
+        const headers = {
+            'Content-Type': 'application/json',
+            ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
+        };
+        
+        const res = await fetch(`${APP_API_BASE}/api/reactions/batch`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ judgementIds })
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            const reactionsMap = data.reactions || {};
+            
+            // Merge reactions into items
+            items.forEach(item => {
+                const itemReactions = reactionsMap[item.id];
+                if (itemReactions) {
+                    item.reactions = { likes: itemReactions.likes, dislikes: itemReactions.dislikes };
+                    item.userReaction = itemReactions.userReaction;
+                }
+            });
+        }
+    } catch (error) {
+        console.warn('Failed to load reactions', error);
     }
 }
 
@@ -915,12 +1080,19 @@ async function voteOnDebate(id, vote) {
 function renderSamples(items = []) {
     const grid = document.getElementById('sampleGrid');
     if (!grid) return;
-    const source = items.length ? items.slice(0, 6).map((item) => ({
+    
+    // No demo data - only show real items
+    if (items.length === 0) {
+        grid.innerHTML = '<p class="text-gray-500 text-center col-span-full py-8">No recent verdicts yet. Be the first to share!</p>';
+        return;
+    }
+    
+    const source = items.slice(0, 6).map((item) => ({
         title: item.question_text || item.context || `${item.option_a} vs ${item.option_b}`,
         judge: getJudgeVisual(item.judge_id || item.judge?.id || 'normal').name,
         judgeId: item.judge_id || item.judge?.id || 'normal',
         summary: item.verdict_text || item.reason || item.roast || 'Decisive verdict rendered.'
-    })) : SAMPLE_DEBATES;
+    }));
 
     grid.innerHTML = '';
     source.forEach((item) => {
@@ -1016,12 +1188,12 @@ function hydrateInitialView() {
 // Event Listeners
 // ==========================================
 
-document.addEventListener('DOMContentLoaded', () => {
-    checkAuth();
+document.addEventListener('DOMContentLoaded', async () => {
+    await checkAuth();
+    await loadPurchaseStatus();
     updateJudgeUI();
     loadJudgesFromApi();
     loadFeed();
-    renderSamples([]);
     hydrateInitialView();
 
     const judgeForm = document.getElementById('judgeForm');
@@ -1051,6 +1223,8 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 errorEl.classList.add('hidden');
                 await login(email, password);
+                await loadPurchaseStatus();
+                updateJudgeUI();
             } catch (error) {
                 errorEl.innerText = error.message;
                 errorEl.classList.remove('hidden');
@@ -1076,6 +1250,8 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 errorEl.classList.add('hidden');
                 await signup(email, password);
+                await loadPurchaseStatus();
+                updateJudgeUI();
             } catch (error) {
                 errorEl.innerText = error.message;
                 errorEl.classList.remove('hidden');
@@ -1101,3 +1277,6 @@ window.copyResult = copyResult;
 window.shareOnTwitter = shareOnTwitter;
 window.shareDebate = shareDebate;
 window.copyShareLink = copyShareLink;
+window.purchaseJudge = purchaseJudge;
+window.purchaseAllJudges = purchaseAllJudges;
+window.handleReaction = handleReaction;
