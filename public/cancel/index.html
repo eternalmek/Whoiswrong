@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Cancelled – WhoIsWrong.io</title>
+    <meta name="description" content="Your purchase was cancelled. No charges were made.">
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#0a0a0a">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'display': ['Oswald', 'sans-serif'],
+                        'sans': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, .font-display {
+            font-family: 'Oswald', sans-serif;
+        }
+        
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    
+    <div class="max-w-md w-full">
+        <div class="glass-panel p-8 rounded-2xl text-center">
+            
+            <!-- Cancelled Icon -->
+            <div class="mb-6">
+                <div class="w-24 h-24 mx-auto bg-gray-500/20 rounded-full flex items-center justify-center">
+                    <i class="fas fa-times-circle text-6xl text-gray-400"></i>
+                </div>
+            </div>
+            
+            <!-- Message -->
+            <h1 class="font-display text-3xl sm:text-4xl font-bold mb-4 text-gray-300">Purchase Cancelled</h1>
+            <p class="text-gray-400 mb-6">No worries! Your purchase was cancelled and no charges were made. You can still use the free AI Judge or try again whenever you're ready.</p>
+            
+            <!-- Reassurance -->
+            <div class="bg-gray-900 rounded-xl p-4 mb-6 text-left">
+                <p class="text-gray-500 text-xs uppercase font-bold mb-2">What happens now?</p>
+                <ul class="text-gray-300 text-sm space-y-2">
+                    <li class="flex items-start gap-2">
+                        <i class="fas fa-check text-green-400 mt-1"></i>
+                        <span>No charges were made to your card</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <i class="fas fa-check text-green-400 mt-1"></i>
+                        <span>You can still use the free AI Judge</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <i class="fas fa-check text-green-400 mt-1"></i>
+                        <span>Celebrity judges are available anytime</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Actions -->
+            <div class="space-y-3">
+                <a href="/" class="block w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition">
+                    <i class="fas fa-gavel mr-2"></i>Continue with Free Judge
+                </a>
+                <a href="/#judge-section" class="block w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-bold py-3 px-6 rounded-xl transition">
+                    <i class="fas fa-star mr-2"></i>Browse Celebrity Judges
+                </a>
+            </div>
+            
+        </div>
+        
+        <!-- Footer -->
+        <p class="text-center text-gray-500 text-sm mt-6">
+            Questions? <a href="mailto:support@whoiswrong.io" class="text-red-400 hover:text-red-300">Contact Support</a>
+        </p>
+    </div>
+    
+    <script defer src="https://va.vercel-scripts.com/v1/script.js" data-sdkn="@vercel/analytics" data-sdkv="1.6.0"></script>
+</body>
+</html>

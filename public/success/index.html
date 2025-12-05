@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Successful – WhoIsWrong.io</title>
+    <meta name="description" content="Thank you for your purchase! Your celebrity judges are now unlocked.">
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#0a0a0a">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'display': ['Oswald', 'sans-serif'],
+                        'sans': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, .font-display {
+            font-family: 'Oswald', sans-serif;
+        }
+        
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .success-checkmark {
+            animation: scaleIn 0.5s ease-out;
+        }
+        
+        @keyframes scaleIn {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #ef4444;
+            animation: confetti-fall 3s ease-out forwards;
+        }
+        
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    
+    <!-- Confetti particles -->
+    <div id="confetti-container"></div>
+    
+    <div class="max-w-md w-full">
+        <div class="glass-panel p-8 rounded-2xl text-center">
+            
+            <!-- Success Icon -->
+            <div class="success-checkmark mb-6">
+                <div class="w-24 h-24 mx-auto bg-green-500/20 rounded-full flex items-center justify-center">
+                    <i class="fas fa-check-circle text-6xl text-green-400"></i>
+                </div>
+            </div>
+            
+            <!-- Message -->
+            <h1 class="font-display text-3xl sm:text-4xl font-bold mb-4 text-green-400">Purchase Successful!</h1>
+            <p class="text-gray-400 mb-6" id="successMessage">Thank you for your purchase! Your celebrity judges are now unlocked and ready to deliver their verdicts.</p>
+            
+            <!-- Purchase Details -->
+            <div id="purchaseDetails" class="bg-gray-900 rounded-xl p-4 mb-6 text-left">
+                <p class="text-gray-500 text-xs uppercase font-bold mb-2">Purchase Summary</p>
+                <p class="text-white font-semibold" id="purchaseType">Loading...</p>
+            </div>
+            
+            <!-- Actions -->
+            <div class="space-y-3">
+                <a href="/" class="block w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition">
+                    <i class="fas fa-gavel mr-2"></i>Start Judging
+                </a>
+                <a href="/account.html" class="block w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-bold py-3 px-6 rounded-xl transition">
+                    <i class="fas fa-user mr-2"></i>View Account
+                </a>
+            </div>
+            
+        </div>
+        
+        <!-- Footer -->
+        <p class="text-center text-gray-500 text-sm mt-6">
+            Questions? <a href="mailto:support@whoiswrong.io" class="text-red-400 hover:text-red-300">Contact Support</a>
+        </p>
+    </div>
+    
+    <script>
+        // Parse URL parameters
+        const params = new URLSearchParams(window.location.search);
+        const purchaseType = params.get('type');
+        const judgeId = params.get('judge');
+        
+        // Update purchase details
+        const detailsEl = document.getElementById('purchaseType');
+        const messageEl = document.getElementById('successMessage');
+        
+        if (purchaseType === 'all') {
+            detailsEl.innerHTML = '⭐ All Celebrity Judges Unlocked<br><span class="text-gray-400 text-sm">Lifetime access to 100+ judges</span>';
+            messageEl.textContent = 'Amazing! You now have access to all 100+ celebrity judges. Every judge is ready to deliver their unique verdicts on your debates!';
+        } else if (purchaseType === 'single' && judgeId) {
+            detailsEl.innerHTML = `🎭 Single Judge Unlocked<br><span class="text-gray-400 text-sm">Judge ID: ${judgeId}</span>`;
+            messageEl.textContent = 'Your new celebrity judge is unlocked and ready to judge your debates! Head back to start using them.';
+        } else {
+            detailsEl.innerHTML = '✅ Purchase Confirmed<br><span class="text-gray-400 text-sm">Thank you for your purchase</span>';
+        }
+        
+        // Create confetti
+        function createConfetti() {
+            const container = document.getElementById('confetti-container');
+            const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7'];
+            
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                container.appendChild(confetti);
+            }
+            
+            // Clean up confetti after animation
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+        
+        // Run confetti on load
+        createConfetti();
+    </script>
+    
+    <script defer src="https://va.vercel-scripts.com/v1/script.js" data-sdkn="@vercel/analytics" data-sdkv="1.6.0"></script>
+</body>
+</html>
