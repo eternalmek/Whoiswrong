@@ -8,6 +8,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Explicit public client export to align with route imports
+const supabasePublic = supabase;
 
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseServiceRole = serviceRoleKey
@@ -33,6 +35,7 @@ async function requireUser(req) {
 
 module.exports = {
   supabase,
+  supabasePublic,
   supabaseServiceRole,
   requireUser,
   getBearerToken,
