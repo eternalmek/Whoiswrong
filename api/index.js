@@ -42,10 +42,12 @@ function json(res, statusCode, payload) {
 }
 
 async function readJsonBody(req) {
-  if (req.body && typeof req.body === 'object') {
+  // If req.body is already a non-empty parsed object, return it directly
+  if (req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
     return req.body;
   }
 
+  // Otherwise, read from the stream (may be empty if body was already consumed)
   return new Promise((resolve, reject) => {
     let body = '';
     req.on('data', (chunk) => {
@@ -53,7 +55,15 @@ async function readJsonBody(req) {
     });
     req.on('end', () => {
       try {
-        resolve(body ? JSON.parse(body) : {});
+        // If we got data from the stream, parse it
+        if (body) {
+          resolve(JSON.parse(body));
+        } else if (req.body && typeof req.body === 'object') {
+          // Stream was empty but req.body exists (already parsed by middleware)
+          resolve(req.body);
+        } else {
+          resolve({});
+        }
       } catch (err) {
         reject(err);
       }
