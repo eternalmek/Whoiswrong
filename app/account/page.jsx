@@ -553,7 +553,8 @@ export default function AccountPage() {
         </button>
       </section>
 
-      <section className="account-card">
+      <section className="account-card" style={{ borderColor: 'rgba(127, 29, 29, 0.5)' }}>
+        <p style={{ color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>Danger Zone</p>
         <h2>Delete Account</h2>
         <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
         {!showDeleteConfirm ? (
@@ -574,7 +575,7 @@ export default function AccountPage() {
                 disabled={deletingAccount}
                 style={{ backgroundColor: '#dc2626', color: 'white' }}
               >
-                {deletingAccount ? 'Deleting…' : 'Yes, delete my account'}
+                {deletingAccount ? 'Deleting...' : 'Yes, delete my account'}
               </button>
               <button
                 type="button"
