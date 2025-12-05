@@ -62,27 +62,12 @@ async function ensureProfile(userId, email) {
   }
 }
 
-async function ensureSettings(userId) {
-  if (!supabaseServiceRole) return null;
-
-  const defaults = { user_id: userId, theme: 'light', email_notifications: true, language: 'en' };
-  const { data: existing } = await supabaseServiceRole
-    .from('user_settings')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
-  if (existing) return existing;
-
-  const { data } = await supabaseServiceRole.from('user_settings').insert(defaults).select().single();
-  return data;
-}
-
 async function fetchFriendships(userId) {
   try {
     const { data, error } = await supabaseServiceRole
-      .from('friends')
+      .from('friendships')
       .select('*')
-      .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
+      .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`);
     if (error) throw error;
     return data || [];
   } catch (friendsError) {
@@ -98,7 +83,6 @@ router.get('/profile', requireUser, async (req, res, next) => {
     console.info('[account] loading profile', { userId: user.id });
 
     const profile = await ensureProfile(user.id, user.email);
-    const settings = await ensureSettings(user.id);
     if (!profile) {
       return res.status(503).json({ error: 'Profile could not be loaded. Please try again shortly.' });
     }
@@ -116,10 +100,10 @@ router.get('/profile', requireUser, async (req, res, next) => {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id),
       supabaseServiceRole
-        .from('friends')
+        .from('friendships')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'accepted')
-        .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`),
+        .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`),
       supabaseServiceRole
         .from('user_purchases')
         .select('id', { count: 'exact', head: true })
@@ -156,7 +140,7 @@ router.get('/profile', requireUser, async (req, res, next) => {
       const friendships = await fetchFriendships(user.id);
       const friendIds = friendships
         .filter((f) => f.status === 'accepted')
-        .map((f) => (f.requester_id === user.id ? f.addressee_id : f.requester_id));
+        .map((f) => (f.requester_id === user.id ? f.receiver_id : f.requester_id));
 
       if (friendIds.length > 0) {
         const { data: friendProfiles } = await supabaseServiceRole
@@ -195,8 +179,7 @@ router.get('/profile', requireUser, async (req, res, next) => {
       ok: true,
       profile,
       stats,
-        friendsDebates,
-      settings,
+      friendsDebates,
       auth: {
         email: user.email,
         email_confirmed_at: user.email_confirmed_at,
@@ -320,15 +303,15 @@ router.get('/search', requireUser, async (req, res, next) => {
     let statusMap = new Map();
     if (targetIds.length > 0) {
       const { data: relations } = await supabaseServiceRole
-        .from('friends')
+        .from('friendships')
         .select('*')
-        .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+        .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`);
 
       const filtered = (relations || []).filter((r) => {
-        const otherId = r.requester_id === user.id ? r.addressee_id : r.requester_id;
+        const otherId = r.requester_id === user.id ? r.receiver_id : r.requester_id;
         return targetIds.includes(otherId);
       });
-      statusMap = new Map(filtered.map((r) => [r.requester_id === user.id ? r.addressee_id : r.requester_id, r]));
+      statusMap = new Map(filtered.map((r) => [r.requester_id === user.id ? r.receiver_id : r.requester_id, r]));
     }
 
     const results = (profiles || []).map((p) => ({
@@ -352,15 +335,15 @@ router.get('/friends', requireUser, async (req, res, next) => {
     const { user } = req.auth;
 
     const { data: friendships, error } = await supabaseServiceRole
-      .from('friends')
+      .from('friendships')
       .select('*')
-      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+      .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order('created_at', { ascending: false });
     if (error) throw error;
 
     const relatedIds = Array.from(
       new Set(
-        (friendships || []).map((f) => (f.requester_id === user.id ? f.addressee_id : f.requester_id))
+        (friendships || []).map((f) => (f.requester_id === user.id ? f.receiver_id : f.requester_id))
       )
     );
 
@@ -380,11 +363,11 @@ router.get('/friends', requireUser, async (req, res, next) => {
     const friends = [];
 
     (friendships || []).forEach((f) => {
-      const otherId = f.requester_id === user.id ? f.addressee_id : f.requester_id;
+      const otherId = f.requester_id === user.id ? f.receiver_id : f.requester_id;
       const profile = profileMap.get(otherId) || null;
       const item = { ...f, other_user: profile };
       if (f.status === 'pending') {
-        if (f.addressee_id === user.id) incoming.push(item);
+        if (f.receiver_id === user.id) incoming.push(item);
         else outgoing.push(item);
       } else if (f.status === 'accepted') {
         friends.push(item);
@@ -439,9 +422,9 @@ router.post('/friends/request', requireUser, async (req, res, next) => {
     }
 
     const { data: existing } = await supabaseServiceRole
-      .from('friends')
+      .from('friendships')
       .select('*')
-      .or(`and(requester_id.eq.${user.id},addressee_id.eq.${receiver_id}),and(requester_id.eq.${receiver_id},addressee_id.eq.${user.id})`)
+      .or(`and(requester_id.eq.${user.id},receiver_id.eq.${receiver_id}),and(requester_id.eq.${receiver_id},receiver_id.eq.${user.id})`)
       .maybeSingle();
 
     if (existing) {
@@ -454,10 +437,10 @@ router.post('/friends/request', requireUser, async (req, res, next) => {
     }
 
     const { data, error } = await supabaseServiceRole
-      .from('friends')
+      .from('friendships')
       .insert({
         requester_id: user.id,
-        addressee_id: receiver_id,
+        receiver_id,
         status: 'pending',
         action_user_id: user.id,
       })
@@ -487,35 +470,28 @@ router.post('/friends/respond', requireUser, async (req, res, next) => {
     }
 
     const { data: friendship } = await supabaseServiceRole
-      .from('friends')
+      .from('friendships')
       .select('*')
       .eq('id', friendship_id)
       .maybeSingle();
 
-    if (!friendship || friendship.addressee_id !== user.id) {
+    if (!friendship || friendship.receiver_id !== user.id) {
       return res.status(403).json({ error: 'You cannot update this request.' });
     }
 
     let status;
     if (action === 'accept') status = 'accepted';
-    else if (action === 'decline') status = 'blocked';
+    else if (action === 'decline') status = 'declined';
     else if (action === 'block') status = 'blocked';
     else return res.status(400).json({ error: 'Invalid action' });
 
-    let data;
-    if (action === 'decline') {
-      await supabaseServiceRole.from('friends').delete().eq('id', friendship_id);
-      data = null;
-    } else {
-      const response = await supabaseServiceRole
-        .from('friends')
-        .update({ status, action_user_id: user.id })
-        .eq('id', friendship_id)
-        .select()
-        .single();
-      if (response.error) throw response.error;
-      data = response.data;
-    }
+    const { data, error } = await supabaseServiceRole
+      .from('friendships')
+      .update({ status, action_user_id: user.id })
+      .eq('id', friendship_id)
+      .select()
+      .single();
+    if (error) throw error;
 
     res.json({ ok: true, friendship: data });
   } catch (err) {
@@ -532,7 +508,7 @@ router.post('/friends/cancel', requireUser, async (req, res, next) => {
     if (!friendship_id) return res.status(400).json({ error: 'friendship_id is required' });
 
     const { data: friendship } = await supabaseServiceRole
-      .from('friends')
+      .from('friendships')
       .select('*')
       .eq('id', friendship_id)
       .maybeSingle();
@@ -542,8 +518,8 @@ router.post('/friends/cancel', requireUser, async (req, res, next) => {
     }
 
     const { data, error } = await supabaseServiceRole
-      .from('friends')
-      .update({ status: 'blocked', action_user_id: user.id })
+      .from('friendships')
+      .update({ status: 'cancelled', action_user_id: user.id })
       .eq('id', friendship_id)
       .select()
       .single();
@@ -564,98 +540,24 @@ router.post('/friends/remove', requireUser, async (req, res, next) => {
     if (!friendship_id) return res.status(400).json({ error: 'friendship_id is required' });
 
     const { data: friendship } = await supabaseServiceRole
-      .from('friends')
+      .from('friendships')
       .select('*')
       .eq('id', friendship_id)
       .maybeSingle();
 
-    if (!friendship || (friendship.requester_id !== user.id && friendship.addressee_id !== user.id)) {
+    if (!friendship || (friendship.requester_id !== user.id && friendship.receiver_id !== user.id)) {
       return res.status(403).json({ error: 'You cannot modify this friendship.' });
     }
 
     const { data, error } = await supabaseServiceRole
-      .from('friends')
-      .update({ status: 'blocked', action_user_id: user.id })
+      .from('friendships')
+      .update({ status: 'removed', action_user_id: user.id })
       .eq('id', friendship_id)
       .select()
       .single();
     if (error) throw error;
 
     res.json({ ok: true, friendship: data });
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.get('/notifications', requireUser, async (req, res, next) => {
-  try {
-    if (!ensureSupabase(res)) return;
-    const { user } = req.auth;
-
-    const notificationsPromise = supabaseServiceRole
-      .from('notifications')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(25);
-
-    let friendsDebates = [];
-    try {
-      const friendships = await fetchFriendships(user.id);
-      const friendIds = friendships
-        .filter((f) => f.status === 'accepted')
-        .map((f) => (f.requester_id === user.id ? f.addressee_id : f.requester_id));
-
-      if (friendIds.length > 0) {
-        const { data: friendProfiles } = await supabaseServiceRole
-          .from('profiles')
-          .select('id, display_name, username, show_debates_on_wall, avatar_url')
-          .in('id', friendIds);
-
-        const shareableIds = new Set(
-          (friendProfiles || [])
-            .filter((p) => p.show_debates_on_wall !== false)
-            .map((p) => p.id)
-        );
-
-        if (shareableIds.size > 0) {
-          const { data: debates } = await supabaseServiceRole
-            .from('judgements')
-            .select('id, context, option_a, option_b, wrong, right, reason, roast, user_id, created_at')
-            .in('user_id', Array.from(shareableIds))
-            .order('created_at', { ascending: false })
-            .limit(10);
-
-          const profileMap = new Map((friendProfiles || []).map((p) => [p.id, p]));
-          friendsDebates = (debates || []).map((item) => ({
-            ...item,
-            profile: profileMap.get(item.user_id) || null,
-          }));
-        }
-      }
-    } catch (friendsError) {
-      console.warn('Failed to load friend notifications', friendsError);
-    }
-
-    const { data: notifications, error } = await notificationsPromise;
-    if (error) throw error;
-
-    res.json({ ok: true, notifications: notifications || [], friendsDebates });
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.post('/notifications/read', requireUser, async (req, res, next) => {
-  try {
-    if (!ensureSupabase(res)) return;
-    const { user } = req.auth;
-    await supabaseServiceRole
-      .from('notifications')
-      .update({ read_at: new Date().toISOString() })
-      .eq('user_id', user.id)
-      .is('read_at', null);
-    res.json({ ok: true });
   } catch (err) {
     next(err);
   }

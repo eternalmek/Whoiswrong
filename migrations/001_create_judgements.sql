@@ -1,3 +1,4 @@
+-- Run this SQL in your Supabase SQL editor or via migration tooling.
 -- Creates a judgements table to persist each AI verdict.
 
 create table if not exists public.judgements (
@@ -16,3 +17,6 @@ create table if not exists public.judgements (
 
 -- index for fetching recent entries
 create index if not exists idx_judgements_created_at on public.judgements (created_at desc);
+
+-- Migration: Add roast column if table already exists
+-- ALTER TABLE public.judgements ADD COLUMN IF NOT EXISTS roast text;

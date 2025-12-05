@@ -1,70 +1,76 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+/**
+ * Supabase Configuration
+ *
+ * To get these values from your Supabase project:
+ * 1. Go to https://supabase.com and open your project
+ * 2. Navigate to: Settings → API
+ * 3. Copy the values:
+ *    - SUPABASE_URL: from "Project URL"
+ *    - SUPABASE_ANON_KEY: from "anon public" key (safe for client-side)
+ *    - SUPABASE_SERVICE_ROLE_KEY: from "service_role" key (server-side ONLY!)
+ */
+// Prefer Vercel/Next-style env vars to avoid surprises when deploying
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  process.env.SUPABASE_URL ||
+  process.env.SUPABASE_PROJECT_URL;
 
-// Track configuration issues for debugging
+// Service role key must NEVER be shipped to the browser. Only read server-side names.
+const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE ||
+  process.env.SUPABASE_SERVICE_KEY;
+
+// Anonymous key is safe for the client, so we accept the public names first.
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_ANON_KEY;
+
 const supabaseConfigIssues = [];
-if (!supabaseUrl) supabaseConfigIssues.push('NEXT_PUBLIC_SUPABASE_URL is missing');
-if (!supabaseAnonKey) supabaseConfigIssues.push('NEXT_PUBLIC_SUPABASE_ANON_KEY is missing');
+if (!SUPABASE_URL) supabaseConfigIssues.push('NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL) is missing');
+if (!SUPABASE_SERVICE_ROLE_KEY)
+  supabaseConfigIssues.push('SUPABASE_SERVICE_ROLE_KEY is missing on the server (do NOT expose this publicly)');
+if (!SUPABASE_ANON_KEY)
+  supabaseConfigIssues.push('NEXT_PUBLIC_SUPABASE_ANON_KEY (or SUPABASE_ANON_KEY) is missing');
 
-// Create clients only if configured
-let supabase = null;
-let supabasePublic = null;
-let supabaseServiceRole = null;
-
-if (supabaseUrl && supabaseAnonKey) {
-  supabase = createClient(supabaseUrl, supabaseAnonKey);
-  supabasePublic = supabase;
-  
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (serviceRoleKey) {
-    supabaseServiceRole = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false },
-    });
-  }
-} else if (process.env.NODE_ENV === 'production') {
-  // Only throw in production - allow dev/testing without Supabase
-  console.error('Supabase configuration missing:', supabaseConfigIssues.join(', '));
+if (supabaseConfigIssues.length) {
+  console.warn('Supabase configuration issues detected:', supabaseConfigIssues.join('; '));
 }
 
-function getBearerToken(req) {
-  const authHeader = req.headers?.authorization || '';
-  if (!authHeader.toLowerCase().startsWith('bearer ')) return null;
-  return authHeader.slice(7).trim();
-}
+const supabaseServiceRole = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: {
+        persistSession: false,
+      },
+    })
+  : null;
 
-async function requireUser(req) {
-  const token = getBearerToken(req);
-  if (!token) return { user: null, error: 'Missing bearer token' };
-
-  if (!supabase) {
-    return { user: null, error: 'Database not configured' };
-  }
-
-  const client = supabaseServiceRole || supabase;
-  const { data, error } = await client.auth.getUser(token);
-  return { user: data?.user || null, error: error?.message || null, token };
-}
+const supabasePublic = SUPABASE_URL && SUPABASE_ANON_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: false,
+      },
+    })
+  : null;
 
 async function verifyAuthToken(token) {
-  if (!token) return { user: null, error: 'Missing token' };
-
-  if (!supabase) {
-    return { user: null, error: 'Database not configured' };
+  if (!token) {
+    return { user: null, error: new Error('Missing token') };
   }
 
-  const client = supabaseServiceRole || supabase;
-  const { data, error } = await client.auth.getUser(token);
-  return { user: data?.user || null, error: error?.message || null };
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !supabaseServiceRole) {
+    return { user: null, error: new Error('Supabase not configured') };
+  }
+
+  const { data, error } = await supabaseServiceRole.auth.getUser(token);
+  return { user: data?.user || null, error };
 }
 
 module.exports = {
-  supabase,
-  supabasePublic,
   supabaseServiceRole,
-  requireUser,
-  getBearerToken,
+  supabasePublic,
   verifyAuthToken,
   supabaseConfigIssues,
 };

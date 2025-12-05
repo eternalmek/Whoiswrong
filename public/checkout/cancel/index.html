@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Purchase Cancelled – WhoIsWrong.io</title>
-    <meta name="description" content="Your purchase was cancelled. No charges were made.">
-    
-    <!-- Theme Color -->
-    <meta name="theme-color" content="#0a0a0a">
+    <title>Payment Cancelled - Who Is Wrong?</title>
+    <meta name="description" content="Your payment was cancelled. No worries - you can try again anytime!">
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
@@ -34,7 +31,6 @@
             font-family: 'Inter', sans-serif;
             background-color: #0a0a0a;
             color: white;
-            overflow-x: hidden;
         }
         
         h1, h2, h3, .font-display {
@@ -53,54 +49,50 @@
     <div class="max-w-md w-full">
         <div class="glass-panel p-8 rounded-2xl text-center">
             
-            <!-- Cancelled Icon -->
+            <!-- Cancel Icon -->
             <div class="mb-6">
-                <div class="w-24 h-24 mx-auto bg-gray-500/20 rounded-full flex items-center justify-center">
-                    <i class="fas fa-times-circle text-6xl text-gray-400"></i>
+                <div class="inline-flex items-center justify-center w-24 h-24 bg-gray-700/50 rounded-full">
+                    <span class="text-6xl">😕</span>
                 </div>
             </div>
             
+            <!-- Title -->
+            <h1 class="font-display text-3xl font-bold mb-4 text-gray-300">
+                Payment Cancelled
+            </h1>
+            
             <!-- Message -->
-            <h1 class="font-display text-3xl sm:text-4xl font-bold mb-4 text-gray-300">Purchase Cancelled</h1>
-            <p class="text-gray-400 mb-6">No worries! Your purchase was cancelled and no charges were made. You can still use the free AI Judge or try again whenever you're ready.</p>
+            <p class="text-gray-400 text-lg mb-6">
+                No worries! Your payment was cancelled and you haven't been charged.
+            </p>
             
-            <!-- Reassurance -->
-            <div class="bg-gray-900 rounded-xl p-4 mb-6 text-left">
-                <p class="text-gray-500 text-xs uppercase font-bold mb-2">What happens now?</p>
-                <ul class="text-gray-300 text-sm space-y-2">
-                    <li class="flex items-start gap-2">
-                        <i class="fas fa-check text-green-400 mt-1"></i>
-                        <span>No charges were made to your card</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <i class="fas fa-check text-green-400 mt-1"></i>
-                        <span>You can still use the free AI Judge</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <i class="fas fa-check text-green-400 mt-1"></i>
-                        <span>Celebrity judges are available anytime</span>
-                    </li>
-                </ul>
+            <!-- Info box -->
+            <div class="bg-gray-800/50 rounded-lg p-4 mb-6 text-left">
+                <div class="flex items-start gap-3 text-gray-400">
+                    <i class="fas fa-info-circle mt-1"></i>
+                    <span>You can still use the free Normal AI Judge, or try a celebrity judge with your remaining free tries.</span>
+                </div>
             </div>
             
-            <!-- Actions -->
-            <div class="space-y-3">
-                <a href="/" class="block w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition">
-                    <i class="fas fa-gavel mr-2"></i>Continue with Free Judge
-                </a>
-                <a href="/#judge-section" class="block w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-bold py-3 px-6 rounded-xl transition">
-                    <i class="fas fa-star mr-2"></i>Browse Celebrity Judges
-                </a>
-            </div>
+            <!-- Back to home button -->
+            <a href="/" class="inline-flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-xl text-lg transition">
+                <i class="fas fa-home"></i>
+                Back to Home
+            </a>
+            
+            <p class="text-gray-500 text-sm mt-4">
+                Changed your mind? You can unlock judges anytime.
+            </p>
             
         </div>
         
-        <!-- Footer -->
-        <p class="text-center text-gray-500 text-sm mt-6">
-            Questions? <a href="mailto:support@whoiswrong.io" class="text-red-400 hover:text-red-300">Contact Support</a>
-        </p>
+        <!-- Footer link -->
+        <div class="text-center mt-6">
+            <a href="/#judge-section" class="text-gray-400 hover:text-white text-sm">
+                <i class="fas fa-gavel mr-1"></i> Try Free Judge
+            </a>
+        </div>
     </div>
     
-    <script defer src="https://va.vercel-scripts.com/v1/script.js" data-sdkn="@vercel/analytics" data-sdkv="1.6.0"></script>
 </body>
 </html>
