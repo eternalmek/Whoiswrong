@@ -4,14 +4,13 @@ const { supabaseServiceRole } = require('../supabaseClient');
 const IMAGE_PROVIDER = (process.env.IMAGE_GENERATION_PROVIDER || 'OPENAI').toUpperCase();
 const IMAGE_API_KEY = process.env.IMAGE_GENERATION_API_KEY;
 const BUCKET = 'judge-photos';
-const avatarPromptTemplate = (name, category) =>
-  `Create a stylized digital portrait avatar of a person who looks like ${name}.
-Style: Semi-realistic digital art with soft painterly brushwork, slightly stylized features.
-The portrait should capture the recognizable essence and distinctive features of ${name} including their typical expression, hairstyle, and facial structure.
-Centered head and shoulders portrait, professional studio lighting, gradient background.
-High quality, artistic interpretation, no text, no watermark, no logos.
-Category context: ${category || 'Celebrity'}.
-The image should be instantly recognizable as resembling ${name} while being an original artistic creation.`;
+const avatarPromptTemplate = (name) =>
+  `Create an AI-generated avatar portrait of ${name}.
+The avatar must be original and NOT a real photo.
+Style: hyper-realistic with slight anime or semi-stylized shading.
+Clear lighting, expressive, iconic look.
+Resemble the celebrity but avoid 1:1 likeness or copyrighted photo replication.
+Centered portrait, high quality, no text, no watermark.`;
 
 let generating = null;
 
@@ -100,7 +99,7 @@ async function doEnsure() {
 
   const { data: missing, error } = await supabaseServiceRole
     .from('judges')
-    .select('id, slug, name, category, photo_url')
+    .select('id, slug, name, photo_url')
     .is('photo_url', null)
     .eq('is_active', true);
 
@@ -111,7 +110,7 @@ async function doEnsure() {
 
   for (const judge of missing || []) {
     try {
-      const prompt = avatarPromptTemplate(judge.name, judge.category);
+      const prompt = avatarPromptTemplate(judge.name);
       const imageBuffer = await generateImage(prompt);
       const url = await uploadAvatar(judge.slug, imageBuffer);
       await supabaseServiceRole

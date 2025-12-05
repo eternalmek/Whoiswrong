@@ -1,0 +1,9 @@
+{
+  "name": "@vercel/analytics",
+  "version": "0.0.0-local",
+  "description": "Local stub for Vercel Analytics",
+  "type": "module",
+  "exports": {
+    "./next": "./next/index.js"
+  }
+}

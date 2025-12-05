@@ -48,12 +48,6 @@ This repository provides a small Node.js backend that:
 - supabase/migrations/ — Database migrations for Supabase
 - supabase/config.toml — Supabase local development configuration
 
-## Recent improvements (2024-06-05)
-
-- Refreshed the account dashboard hero copy to make the value proposition clearer and highlight upgrade and new-judgement CTAs.
-- Added structured headers, helper labels, and supportive microcopy so logged-out users know how to sign in and logged-in users can quickly find profile, history, and settings.
-- Tweaked shared styles to support the new layout (pill badges, ghost buttons, CTA rows) while keeping the existing dark theme intact.
-
 ## Setup
 
 ### Option 1: Local Development with Supabase CLI (Recommended)
@@ -173,58 +167,6 @@ Use this option if you prefer to connect to a hosted Supabase project.
    ```bash
    npm run dev
    ```
-
-## Account access troubleshooting
-
-If you can log in but the account page keeps asking you to sign in again, run through these checks:
-
-1. **Provide Supabase server credentials** — The API denies account requests with `503` unless `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SERVICE_ROLE`), and `SUPABASE_ANON_KEY` are set in your server environment.
-2. **Use the same origin for login and account** — Tokens are saved in `localStorage` by the login page and read by `/account` using `window.location.origin`. Logging in on a different domain/subdomain won’t share the token.
-3. **Confirm tokens exist after login** — After signing in, open DevTools → Application → Local Storage and check that `access_token` and `refresh_token` are present for your site. If they’re missing or blocked, the account page can’t call `/api/account/profile`.
-4. **Send the Authorization header** — The frontend does this automatically when tokens exist. If you’re testing with cURL/Postman, include `Authorization: Bearer <access_token>` on `/api/account/*` requests.
-5. **Handle expired sessions** — If the access token expires and no refresh token is stored, the app will log you out. Re-login to issue fresh tokens.
-
-Once the env vars are set and the browser has valid tokens for the same origin, the account page should load your profile instead of redirecting you to log in.
-
-### Quick setup checklist
-
-1. Create a `.env` file (or set these in your hosting dashboard) with your Supabase credentials:
-   ```bash
-   SUPABASE_URL="https://<your-project>.supabase.co"
-   SUPABASE_ANON_KEY="<anon public key>"
-   SUPABASE_SERVICE_ROLE_KEY="<service_role key>"  # server only
-   ```
-2. Restart the server so it reads the new environment variables:
-   ```bash
-   npm run dev
-   # or
-   npm start
-   ```
-3. Log in on the **same origin** where the account page lives (e.g., `https://whoiswrong.io/login.html` then `https://whoiswrong.io/account`).
-4. Open DevTools → Application → Local Storage and confirm `accessToken` and `refreshToken` exist for your site. If they’re missing, re-login.
-5. If you still see “Login Required,” hit the API directly with your token to confirm it works:
-   ```bash
-   curl -i -H "Authorization: Bearer $ACCESS_TOKEN" ${ORIGIN:-http://localhost:8080}/api/account/profile
-   ```
-   A `200` response with JSON means the server is configured; a `401` means the token is missing/expired; a `503` means Supabase env vars are still missing on the server.
-
-## Account system guide
-
-- **Single Supabase client:** All server routes read credentials from `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SERVICE_ROLE`). Keep these values aligned between the backend and your Vercel/hosting environment.
-- **Front-end auth:** `public/auth.js` stores Supabase access/refresh tokens in `localStorage`. The account page (`public/account.html`) now always uses those tokens to call `/api/account/*` so it will not break if Supabase client env vars are missing in the browser.
-- **Key API routes:**
-  - `POST /api/auth/signup` / `POST /api/auth/login` – issue Supabase sessions.
-  - `GET /api/account/profile` – profile + stats + settings snapshot.
-  - `PUT /api/account/profile` – profile and privacy updates.
-  - `GET /api/account/friends` / `POST /friends/*` – social graph management.
-  - `GET /api/account/notifications` – unread badge + recent friend debates.
-- **Database tables:** Apply migrations (including `20250330000000_account_rebuild.sql`) to ensure `profiles`, `user_settings`, `judgements` (with `user_id` uuid), `friends`, and `notifications` exist with row-level security.
-- **Production env vars:** Set on Vercel/hosting: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `FRONTEND_ORIGIN`, `OPENAI_API_KEY`, `STRIPE_SECRET_KEY` (if used). Restart after changing.
-- **Local testing:**
-  1. `npm install`
-  2. Provide a `.env` with Supabase keys (matching your project).
-  3. `npm run dev` and open `http://localhost:8080/login.html` → log in → visit `/account.html`.
-  4. Use the same origin for login/account so stored tokens are reused.
 
 ## API Endpoints
 
