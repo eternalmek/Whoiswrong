@@ -162,9 +162,14 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     if (webhookSecret) {
       const sig = req.headers['stripe-signature'];
       event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } else if (process.env.NODE_ENV !== 'production') {
+      // Only allow bypassing signature in non-production environments
+      console.warn('Webhook signature verification bypassed in development mode');
+      event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     } else {
-      // For testing without webhook signing
-      event = req.body;
+      // In production, require webhook secret
+      console.error('STRIPE_WEBHOOK_SECRET is required in production');
+      return res.status(500).send('Webhook secret not configured');
     }
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);

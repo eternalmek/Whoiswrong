@@ -45,7 +45,7 @@ router.post('/', requireUser, async (req, res, next) => {
       return res.status(503).json({ error: 'Database not configured' });
     }
 
-    const { userId, judgementId, reaction } = req.body || {};
+    const { judgementId, reaction } = req.body || {};
     const user = req.auth?.user;
 
     // Validate inputs
@@ -57,7 +57,7 @@ router.post('/', requireUser, async (req, res, next) => {
       return res.status(400).json({ error: 'reaction must be "like" or "dislike"' });
     }
 
-    // Use the authenticated user's ID
+    // Use the authenticated user's ID (secured by requireUser middleware)
     const actualUserId = user.id;
 
     // Check if judgement exists
