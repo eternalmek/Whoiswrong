@@ -1,15 +1,17 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // Track configuration issues for debugging
 const supabaseConfigIssues = [];
-if (!supabaseUrl) supabaseConfigIssues.push('NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL is missing');
-if (!supabaseAnonKey) supabaseConfigIssues.push('NEXT_PUBLIC_SUPABASE_ANON_KEY or SUPABASE_ANON_KEY is missing');
+if (!supabaseUrl) supabaseConfigIssues.push('NEXT_PUBLIC_SUPABASE_URL is missing');
+if (!supabaseAnonKey) supabaseConfigIssues.push('NEXT_PUBLIC_SUPABASE_ANON_KEY is missing');
 
 if (supabaseConfigIssues.length > 0) {
-  throw new Error('Supabase configuration missing. Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set.');
+  throw new Error(
+    'Supabase configuration missing. Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set.'
+  );
 }
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
