@@ -199,6 +199,33 @@
                     <p class="text-gray-500 text-xs mt-3">Signing out clears your session from this device.</p>
                 </section>
                 
+                <!-- Delete Account Section -->
+                <section class="glass-panel p-6 sm:p-8 rounded-2xl border-red-900/50">
+                    <div class="mb-6">
+                        <p class="text-red-500 uppercase tracking-wider text-xs font-bold mb-1">Danger Zone</p>
+                        <h2 class="font-display text-xl sm:text-2xl font-bold">Delete Account</h2>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-4">Permanently delete your account and all associated data. This action cannot be undone.</p>
+                    <div id="deleteAccountContainer">
+                        <button onclick="showDeleteConfirmation()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition flex items-center justify-center gap-2">
+                            <i class="fas fa-trash-alt"></i>
+                            Delete Account
+                        </button>
+                    </div>
+                    <div id="deleteConfirmContainer" class="hidden">
+                        <p class="text-white font-bold mb-4">Are you sure you want to delete your account?</p>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button onclick="confirmDeleteAccount()" id="confirmDeleteBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition flex items-center justify-center gap-2">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Yes, delete my account
+                            </button>
+                            <button onclick="cancelDeleteAccount()" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-bold py-3 px-6 rounded-xl transition">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </section>
+                
             </div>
             
             <!-- CTA to homepage -->
@@ -552,8 +579,57 @@
             }
         });
         
+        // Delete account functions
+        function showDeleteConfirmation() {
+            document.getElementById('deleteAccountContainer').classList.add('hidden');
+            document.getElementById('deleteConfirmContainer').classList.remove('hidden');
+        }
+        
+        function cancelDeleteAccount() {
+            document.getElementById('deleteConfirmContainer').classList.add('hidden');
+            document.getElementById('deleteAccountContainer').classList.remove('hidden');
+        }
+        
+        async function confirmDeleteAccount() {
+            const btn = document.getElementById('confirmDeleteBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/me`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to delete account');
+                }
+                
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+                localStorage.removeItem('currentUser');
+                
+                showToast('Account deleted successfully', 'success');
+                setTimeout(() => window.location.href = '/', 1500);
+            } catch (error) {
+                console.error('Delete account error:', error);
+                showToast(error.message || 'Failed to delete account', 'error');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+        
         // Expose functions globally
         window.handleLogout = handleLogout;
+        window.showDeleteConfirmation = showDeleteConfirmation;
+        window.cancelDeleteAccount = cancelDeleteAccount;
+        window.confirmDeleteAccount = confirmDeleteAccount;
     </script>
     
     <script defer src="https://va.vercel-scripts.com/v1/script.js" data-sdkn="@vercel/analytics" data-sdkv="1.6.0"></script>
