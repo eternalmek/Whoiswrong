@@ -20,6 +20,18 @@ let priceCache = null;
 let priceCacheTime = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
+// Get the price ID for single judge purchase
+// Supports both STRIPE_PRICE_JUDGE_ONCE (from requirements) and STRIPE_PRICE_SINGLE_JUDGE (legacy)
+function getSingleJudgePriceId() {
+  return process.env.STRIPE_PRICE_JUDGE_ONCE || process.env.STRIPE_PRICE_SINGLE_JUDGE;
+}
+
+// Get the price ID for all judges subscription
+// Supports both STRIPE_PRICE_SUB_ALL_JUDGES (from requirements) and STRIPE_PRICE_ALL_JUDGES (legacy)
+function getAllJudgesPriceId() {
+  return process.env.STRIPE_PRICE_SUB_ALL_JUDGES || process.env.STRIPE_PRICE_ALL_JUDGES;
+}
+
 /**
  * GET /api/prices
  * 
@@ -47,8 +59,8 @@ router.get('/', async (req, res) => {
       return res.status(200).json(priceCache);
     }
 
-    const singleJudgePriceId = process.env.STRIPE_PRICE_SINGLE_JUDGE;
-    const allJudgesPriceId = process.env.STRIPE_PRICE_ALL_JUDGES;
+    const singleJudgePriceId = getSingleJudgePriceId();
+    const allJudgesPriceId = getAllJudgesPriceId();
 
     if (!singleJudgePriceId || !allJudgesPriceId) {
       console.error('Stripe price IDs not configured');

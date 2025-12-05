@@ -11,6 +11,18 @@ function getBaseUrl() {
   return process.env.NEXT_PUBLIC_BASE_URL || '';
 }
 
+// Get the price ID for single judge purchase
+// Supports both STRIPE_PRICE_JUDGE_ONCE (from requirements) and STRIPE_PRICE_SINGLE_JUDGE (legacy)
+function getSingleJudgePriceId() {
+  return process.env.STRIPE_PRICE_JUDGE_ONCE || process.env.STRIPE_PRICE_SINGLE_JUDGE;
+}
+
+// Get the price ID for all judges subscription
+// Supports both STRIPE_PRICE_SUB_ALL_JUDGES (from requirements) and STRIPE_PRICE_ALL_JUDGES (legacy)
+function getAllJudgesPriceId() {
+  return process.env.STRIPE_PRICE_SUB_ALL_JUDGES || process.env.STRIPE_PRICE_ALL_JUDGES;
+}
+
 async function createCheckoutSession({ userId, productType, priceId, judgeId, mode }) {
   if (!stripe) {
     throw new Error('Stripe not configured');
@@ -72,9 +84,7 @@ async function handleCheckoutRequest(req, res, productType) {
     }
 
     const isSubscription = finalProductType === 'all_judges';
-    const priceId = isSubscription
-      ? process.env.STRIPE_PRICE_ALL_JUDGES
-      : process.env.STRIPE_PRICE_SINGLE_JUDGE;
+    const priceId = isSubscription ? getAllJudgesPriceId() : getSingleJudgePriceId();
     const sessionMode = isSubscription ? 'subscription' : 'payment';
 
     const session = await createCheckoutSession({
@@ -94,8 +104,16 @@ async function handleCheckoutRequest(req, res, productType) {
 
 router.post('/', (req, res) => handleCheckoutRequest(req, res, req.body?.product_type || 'single_judge'));
 
+// Endpoint: /api/checkout/single (for single judge purchase)
+router.post('/single', (req, res) => handleCheckoutRequest(req, res, 'single_judge'));
+
+// Legacy endpoint (for backward compatibility)
 router.post('/single-judge', (req, res) => handleCheckoutRequest(req, res, 'single_judge'));
 
+// Endpoint: /api/checkout/subscription (for all judges subscription)
+router.post('/subscription', (req, res) => handleCheckoutRequest(req, res, 'all_judges'));
+
+// Legacy endpoint (for backward compatibility)
 router.post('/all-judges', (req, res) => handleCheckoutRequest(req, res, 'all_judges'));
 
 module.exports = router;
