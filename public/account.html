@@ -161,19 +161,6 @@
                     </div>
                 </section>
                 
-                <!-- Unlocked Judges Section -->
-                <section class="glass-panel p-6 sm:p-8 rounded-2xl">
-                    <div class="flex items-center justify-between mb-6">
-                        <div>
-                            <p class="text-red-500 uppercase tracking-wider text-xs font-bold mb-1">Purchases</p>
-                            <h2 class="font-display text-xl sm:text-2xl font-bold">Unlocked Judges</h2>
-                        </div>
-                    </div>
-                    <div id="unlockedJudges" class="space-y-3">
-                        <p class="text-gray-500 text-center py-4">Loading your purchases...</p>
-                    </div>
-                </section>
-                
                 <!-- Account Actions Section -->
                 <section class="glass-panel p-6 sm:p-8 rounded-2xl">
                     <div class="mb-6">
@@ -263,7 +250,6 @@
         const profileUsername = document.getElementById('profileUsername');
         const profilePill = document.getElementById('profilePill');
         const judgementsFeed = document.getElementById('judgementsFeed');
-        const unlockedJudges = document.getElementById('unlockedJudges');
         
         // Toast function
         function showToast(message, type = 'success') {
@@ -367,9 +353,6 @@
                 // Load verdicts
                 loadVerdicts();
                 
-                // Load purchases
-                loadPurchases();
-                
                 return data;
             } catch (error) {
                 console.error('Failed to load account:', error);
@@ -417,57 +400,6 @@
             } catch (error) {
                 console.error('Failed to load verdicts:', error);
                 judgementsFeed.innerHTML = '<p class="text-gray-500 text-center py-4">Could not load verdicts.</p>';
-            }
-        }
-        
-        // Load user's purchases
-        async function loadPurchases() {
-            try {
-                const response = await fetch(`${API_BASE}/api/purchases`, {
-                    headers: getAuthHeaders()
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    const judges = data.unlockedJudges || [];
-                    const hasAllAccess = data.hasAllAccess || false;
-                    
-                    if (hasAllAccess) {
-                        unlockedJudges.innerHTML = `
-                            <div class="bg-gradient-to-r from-red-600/20 to-orange-500/20 border border-red-500/30 rounded-xl p-4 text-center">
-                                <div class="text-3xl mb-2">👑</div>
-                                <p class="text-white font-bold">All Access Subscription</p>
-                                <p class="text-gray-400 text-sm">You have access to all celebrity judges!</p>
-                            </div>
-                        `;
-                    } else if (judges.length === 0) {
-                        unlockedJudges.innerHTML = `
-                            <div class="text-center py-6">
-                                <div class="text-4xl mb-2">🔒</div>
-                                <p class="text-gray-400">No judges unlocked yet.</p>
-                                <p class="text-gray-500 text-sm">The default AI judge is always free!</p>
-                                <a href="/" class="text-red-400 hover:text-red-300 text-sm">Unlock celebrity judges →</a>
-                            </div>
-                        `;
-                    } else {
-                        unlockedJudges.innerHTML = `
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                ${judges.map(judgeId => `
-                                    <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
-                                        <div class="text-2xl mb-1">⭐</div>
-                                        <p class="text-white text-sm font-semibold">${judgeId}</p>
-                                        <span class="text-xs text-green-400">Unlocked</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        `;
-                    }
-                } else {
-                    unlockedJudges.innerHTML = '<p class="text-gray-500 text-center py-4">Could not load purchases.</p>';
-                }
-            } catch (error) {
-                console.error('Failed to load purchases:', error);
-                unlockedJudges.innerHTML = '<p class="text-gray-500 text-center py-4">Could not load purchases.</p>';
             }
         }
         

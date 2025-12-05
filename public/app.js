@@ -3,15 +3,12 @@
 // ==========================================
 
 // --- Configuration ---
-// Use existing API_BASE from auth.js if available, otherwise define it
 const APP_API_BASE = (typeof API_BASE !== 'undefined') ? API_BASE : window.location.origin;
 
 // --- Auth State ---
 let currentUser = null;
-// Get token from localStorage and validate it's not a stringified null/undefined
 const storedToken = localStorage.getItem('accessToken');
 let accessToken = (storedToken && storedToken !== 'null' && storedToken !== 'undefined') ? storedToken : null;
-// Use existing REFRESH_TOKEN_KEY from auth.js if available
 const APP_REFRESH_TOKEN_KEY = (typeof REFRESH_TOKEN_KEY !== 'undefined') ? REFRESH_TOKEN_KEY : 'refreshToken';
 const storedRefreshToken = localStorage.getItem(APP_REFRESH_TOKEN_KEY);
 let refreshToken = (storedRefreshToken && storedRefreshToken !== 'null' && storedRefreshToken !== 'undefined') ? storedRefreshToken : null;
@@ -36,36 +33,13 @@ const LAST_JUDGEMENT_KEY = 'lastJudgement';
 
 // --- Judge State ---
 const JUDGE_SELECTED_KEY = 'selectedJudgeId';
-const UNLOCKED_KEY = 'unlockedJudgeIds';
-const ALL_ACCESS_KEY = 'hasAllJudgeAccess';
 
 const baseAvatar = (name) =>
     `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name || 'Judge')}&radius=50&backgroundColor=f8fafc`;
 
-// Priority order for judges (most viral/TikTok-friendly first)
-const JUDGE_PRIORITY = [
-    'normal',
-    'taylor-swift',
-    'cristiano-ronaldo',
-    'lionel-messi',
-    'donald-trump',
-    'elon-musk',
-    'barack-obama',
-    'mrbeast',
-    'kim-kardashian',
-    'andrew-tate',
-    'gordon-ramsay',
-    'beyonce',
-    'rihanna',
-    'snoop-dogg',
-    'pewdiepie',
-    'eminem',
-    'morgan-freeman',
-];
-
 const FALLBACK_JUDGES = (Array.isArray(window.celebrityJudges) && window.celebrityJudges.length)
     ? window.celebrityJudges
-    : [{ id: 'normal', name: 'Default AI Judge', emoji: '🤖', description: 'Decisive and balanced.', category: 'Default', systemPrompt: '' }];
+    : [{ id: 'normal', name: 'AI Judge', emoji: '🤖', description: 'Balanced, decisive, and straight to the point.', category: 'Core', systemPrompt: '' }];
 
 function normalizeJudge(judge) {
     return {
@@ -81,28 +55,7 @@ function getAvatarUrl(judge) {
     return (judge && (judge.avatar_url || judge.photo_url || judge.avatar_placeholder)) || baseAvatar(judge?.name || 'Judge');
 }
 
-function sortJudges(list) {
-    return [...list].sort((a, b) => {
-        const aIndex = JUDGE_PRIORITY.indexOf(a.id);
-        const bIndex = JUDGE_PRIORITY.indexOf(b.id);
-        if (aIndex === -1 && bIndex === -1) return (a.name || '').localeCompare(b.name || '');
-        if (aIndex === -1) return 1;
-        if (bIndex === -1) return -1;
-        return aIndex - bIndex;
-    });
-}
-
-let availableJudges = sortJudges(FALLBACK_JUDGES.map(normalizeJudge));
-
-function safeParseArray(value, fallback = []) {
-    if (!value) return fallback;
-    try {
-        const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed : fallback;
-    } catch (e) {
-        return fallback;
-    }
-}
+let availableJudges = FALLBACK_JUDGES.map(normalizeJudge);
 
 async function loadJudgesFromApi() {
     try {
@@ -110,7 +63,7 @@ async function loadJudgesFromApi() {
         const data = await response.json();
 
         if (data?.judges?.length) {
-            availableJudges = sortJudges(data.judges.map(normalizeJudge));
+            availableJudges = data.judges.map(normalizeJudge);
             if (!availableJudges.find((j) => j.id === selectedJudgeId)) {
                 selectedJudgeId = 'normal';
             }
@@ -118,14 +71,10 @@ async function loadJudgesFromApi() {
         }
     } catch (error) {
         console.warn('Falling back to local judges', error);
-        availableJudges = sortJudges(FALLBACK_JUDGES.map(normalizeJudge));
+        availableJudges = FALLBACK_JUDGES.map(normalizeJudge);
         updateJudgeUI();
     }
 }
-
-// Server-synced purchases for logged-in users
-let serverUnlockedJudges = [];
-let serverHasAllAccess = false;
 
 let lastSavedJudgementId = null;
 let lastShareUrl = '';
@@ -154,22 +103,6 @@ if (!availableJudges.find((j) => j.id === selectedJudgeId)) {
     selectedJudgeId = 'normal';
 }
 
-let unlockedJudgeIds = safeParseArray(localStorage.getItem(UNLOCKED_KEY), []);
-let hasAllAccess = localStorage.getItem(ALL_ACCESS_KEY) === 'true';
-
-// --- Stripe Prices State ---
-// Default/fallback prices (used until Stripe prices are fetched)
-let stripePrices = {
-    singleJudge: { formatted: '$0.99', amount: 0.99, currency: 'AUD' },
-    allJudges: { formatted: '$3.99', amount: 3.99, currency: 'AUD', interval: 'month' }
-};
-let pricesLoaded = false;
-// Tracks whether Stripe payment service is available
-let paymentServiceConfigured = false;
-
-// Common error message for unavailable payments
-const PAYMENT_UNAVAILABLE_MESSAGE = 'Payments are not available yet. Please try again later.';
-
 // Loading messages for variety
 const LOADING_MESSAGES = [
     "Reviewing the evidence...",
@@ -194,81 +127,41 @@ const SAMPLE_DEBATES = [
     {
         id: 'demo-pineapple',
         title: 'Is pineapple on pizza a crime?',
-        judge: 'Gordon Ramsay',
-        judgeId: 'gordon-ramsay',
-        summary: 'The chef says pineapple belongs in dessert, not on your pizza. Verdict: pineapple is wrong.',
+        judge: 'AI Judge',
+        judgeId: 'normal',
+        summary: 'The AI says pineapple belongs in dessert, not on your pizza. Verdict: pineapple is wrong.',
         isDemo: true
     },
     {
         id: 'demo-messi-ronaldo',
         title: 'Ronaldo vs Messi',
-        judge: 'Cristiano Ronaldo',
-        judgeId: 'cristiano-ronaldo',
-        summary: 'With GOAT energy, Ronaldo declares Messi wrong for ducking free kicks. Stadium erupts.',
+        judge: 'AI Judge',
+        judgeId: 'normal',
+        summary: 'With GOAT energy, the AI declares the debate settled. One is clearly wrong.',
         isDemo: true
     },
     {
         id: 'demo-tiktok',
         title: 'Is TikTok better than YouTube?',
-        judge: 'MrBeast',
-        judgeId: 'mrbeast',
-        summary: 'MrBeast picks YouTube for depth, but dares you to prove him wrong with a viral TikTok.',
+        judge: 'AI Judge',
+        judgeId: 'normal',
+        summary: 'The AI picks YouTube for depth, but dares you to prove it wrong with a viral TikTok.',
         isDemo: true
     },
     {
         id: 'demo-text-back',
         title: 'Should you text back immediately?',
-        judge: 'Taylor Swift',
-        judgeId: 'taylor-swift',
-        summary: 'Taylor says leaving them on read writes a better bridge. Verdict: texting back instantly is wrong.',
+        judge: 'AI Judge',
+        judgeId: 'normal',
+        summary: 'The AI says leaving them on read writes a better story. Verdict: texting back instantly is wrong.',
         isDemo: true
     },
     {
         id: 'demo-cats-dogs',
         title: 'Cats or dogs?',
-        judge: 'Elon Musk',
-        judgeId: 'elon-musk',
-        summary: 'Elon declares dogs are better because they can be trained to fetch. Cats are wrong.',
-        isDemo: true
-    },
-    {
-        id: 'demo-iphone-samsung',
-        title: 'iPhone vs Samsung?',
-        judge: 'MrBeast',
-        judgeId: 'mrbeast',
-        summary: 'MrBeast says iPhones win for creator tools. Samsung users are wrong. Challenge accepted.',
-        isDemo: true
-    },
-    {
-        id: 'demo-aliens',
-        title: 'Should aliens be allowed to vote?',
-        judge: 'Elon Musk',
-        judgeId: 'elon-musk',
-        summary: 'Elon says only after they pass a SpaceX citizenship test. Earth-only voters are wrong.',
-        isDemo: true
-    },
-    {
-        id: 'demo-morning-night',
-        title: 'Are morning people or night owls more productive?',
-        judge: 'Barack Obama',
-        judgeId: 'barack-obama',
-        summary: 'Obama delivers a measured verdict: Early risers have the edge. Night owls are wrong, but valued.',
-        isDemo: true
-    },
-    {
-        id: 'demo-hot-cold',
-        title: 'Hot shower or cold shower?',
-        judge: 'Andrew Tate',
-        judgeId: 'andrew-tate',
-        summary: 'Top G energy only. Cold showers build discipline. Hot shower people are wrong.',
-        isDemo: true
-    },
-    {
-        id: 'demo-cereal-milk',
-        title: 'Cereal before milk or milk before cereal?',
-        judge: 'Gordon Ramsay',
-        judgeId: 'gordon-ramsay',
-        summary: 'WHAT ARE YOU? Cereal first, always. Milk-firsters are WRONG and should be ashamed.',
+        judge: 'AI Judge',
+        judgeId: 'normal',
+        summary: 'The AI declares dogs are better because they can be trained to fetch. Cats are wrong.',
         isDemo: true
     }
 ];
@@ -285,7 +178,6 @@ function showLoading() {
     errorSection.classList.add('hidden');
     loadingSection.classList.remove('hidden');
     
-    // Cycle through loading messages
     const loadingMsg = document.getElementById('loadingMessage');
     if (loadingMsg) {
         let msgIndex = 0;
@@ -320,14 +212,11 @@ function showResult(data) {
         judgeLabel.innerText = `${judge.emoji || '🤖'} Verdict by ${judge.name}`;
     }
 
-    // Hide signup prompt if user is logged in
     if (signupPrompt) {
         signupPrompt.style.display = currentUser ? 'none' : 'block';
     }
 
-    // Reset button state
     resetSubmitButton();
-
 }
 
 function showInput() {
@@ -488,81 +377,13 @@ function resetApp() {
 
 function persistJudgeState() {
     localStorage.setItem(JUDGE_SELECTED_KEY, selectedJudgeId);
-    localStorage.setItem(UNLOCKED_KEY, JSON.stringify(unlockedJudgeIds));
-    localStorage.setItem(ALL_ACCESS_KEY, hasAllAccess ? 'true' : 'false');
-}
-
-function getJudgeAccessInfo(judgeId) {
-    const judge = availableJudges.find((j) => j.id === judgeId) || availableJudges[0];
-    // Use the judge's is_default_free property to determine if it's free by default
-    // This is data-driven rather than position-based
-    const isFreeByDefault = judge.is_default_free === true;
-    
-    // Check both local storage and server-synced purchases
-    // Server takes precedence for logged-in users
-    const localUnlocked = hasAllAccess || unlockedJudgeIds.includes(judge.id);
-    const serverUnlocked = serverHasAllAccess || serverUnlockedJudges.includes(judge.id);
-    const unlocked = isFreeByDefault || localUnlocked || serverUnlocked;
-
-    let label = 'Free';
-    if (isFreeByDefault) label = 'Free';
-    else if (unlocked) label = '✓ Unlocked';
-    else label = '$0.99';
-
-    return { judge, unlocked, label };
-}
-
-function showPurchaseModal(judge) {
-    const modal = document.getElementById('purchaseModal');
-    const emoji = document.getElementById('purchaseJudgeEmoji');
-    const name = document.getElementById('purchaseJudgeName');
-    const desc = document.getElementById('purchaseJudgeDesc');
-    const purchaseSingleBtn = document.getElementById('purchaseSingleBtn');
-    const purchaseAllBtn = document.getElementById('purchaseAllBtn');
-    
-    if (!modal) return;
-    
-    if (emoji) emoji.textContent = judge.emoji || '🎭';
-    if (name) name.textContent = judge.name;
-    if (desc) {
-        if (!paymentServiceConfigured) {
-            desc.textContent = 'Payments coming soon! Check back later to unlock this judge.';
-        } else {
-            desc.textContent = judge.description || 'Get unique verdicts with personality!';
-        }
-    }
-
-    // Disable purchase buttons if payment service is not configured
-    if (purchaseSingleBtn) {
-        purchaseSingleBtn.disabled = !paymentServiceConfigured;
-        purchaseSingleBtn.classList.toggle('opacity-50', !paymentServiceConfigured);
-    }
-    if (purchaseAllBtn) {
-        purchaseAllBtn.disabled = !paymentServiceConfigured;
-        purchaseAllBtn.classList.toggle('opacity-50', !paymentServiceConfigured);
-    }
-    
-    // Set the selected judge so unlock works correctly
-    selectedJudgeId = judge.id;
-    persistJudgeState();
-    
-    showModal('purchaseModal');
-}
-
-function ensureJudgeAccess() {
-    const info = getJudgeAccessInfo(selectedJudgeId);
-    if (info.unlocked) {
-        return { allowed: true };
-    }
-
-    return { allowed: false, reason: 'Unlock this judge or choose a free option.' };
 }
 
 function updateJudgeHint() {
     const hintEl = document.getElementById('judgeSelectionHint');
-    const info = getJudgeAccessInfo(selectedJudgeId);
+    const judge = availableJudges.find((j) => j.id === selectedJudgeId) || availableJudges[0];
     if (hintEl) {
-        hintEl.textContent = `${info.judge.emoji || '🤖'} ${info.judge.name}`;
+        hintEl.textContent = `${judge.emoji || '🤖'} ${judge.name}`;
     }
 }
 
@@ -573,9 +394,7 @@ function renderJudgeChips() {
     container.innerHTML = '';
 
     availableJudges.forEach((judge) => {
-        const info = getJudgeAccessInfo(judge.id);
         const isSelected = judge.id === selectedJudgeId;
-        const isLocked = !info.unlocked;
         
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -585,26 +404,13 @@ function renderJudgeChips() {
             isSelected 
                 ? 'border-red-500 bg-red-500/20 ring-2 ring-red-500/50' 
                 : 'border-gray-700 bg-gray-900/60 hover:border-gray-500'
-        } ${isLocked ? 'judge-locked' : ''}`;
+        }`;
         
         btn.addEventListener('click', () => {
-            if (isLocked) {
-                // Show purchase modal for locked judges
-                showPurchaseModal(judge);
-            } else {
-                selectedJudgeId = judge.id;
-                persistJudgeState();
-                updateJudgeUI();
-            }
+            selectedJudgeId = judge.id;
+            persistJudgeState();
+            updateJudgeUI();
         });
-
-        // Lock icon for locked judges
-        if (isLocked) {
-            const lockIcon = document.createElement('span');
-            lockIcon.className = 'lock-icon text-gray-400';
-            lockIcon.innerHTML = '<i class="fas fa-lock text-xs"></i>';
-            btn.appendChild(lockIcon);
-        }
 
         // Avatar and name
         const header = document.createElement('div');
@@ -614,313 +420,24 @@ function renderJudgeChips() {
         avatar.innerHTML = `<img src="${getAvatarUrl(judge)}" alt="${judge.name}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=AnimeJudge'" />`;
         const meta = document.createElement('div');
         meta.className = 'flex-1';
-        meta.innerHTML = `<p class="font-semibold text-white text-sm leading-tight truncate">${judge.name}</p><p class="text-[11px] text-gray-400 truncate">${judge.description || 'Celebrity AI judge'}</p>`;
+        meta.innerHTML = `<p class="font-semibold text-white text-sm leading-tight truncate">${judge.name}</p><p class="text-[11px] text-gray-400 truncate">${judge.description || 'AI judge'}</p>`;
         header.appendChild(avatar);
         header.appendChild(meta);
         btn.appendChild(header);
 
         // Status badge
         const badge = document.createElement('span');
-        badge.className = `inline-block text-[10px] px-2 py-0.5 rounded-full font-medium mb-1 ${
-            info.unlocked 
-                ? 'bg-green-500/20 text-green-300' 
-                : 'bg-gray-700 text-gray-400'
-        }`;
-        badge.textContent = info.label;
+        badge.className = 'inline-block text-[10px] px-2 py-0.5 rounded-full font-medium mb-1 bg-green-500/20 text-green-300';
+        badge.textContent = 'Free';
         btn.appendChild(badge);
 
         container.appendChild(btn);
     });
 }
 
-function updateUnlockButtons() {
-    const unlockOneBtn = document.getElementById('unlockSelectedJudge');
-    const unlockAllBtn = document.getElementById('unlockAllJudges');
-    const info = getJudgeAccessInfo(selectedJudgeId);
-
-    if (unlockOneBtn) {
-        // Disable if already unlocked OR if payment service is not available
-        const shouldDisableSingle = info.unlocked || !paymentServiceConfigured;
-        unlockOneBtn.disabled = shouldDisableSingle;
-        unlockOneBtn.classList.toggle('opacity-50', shouldDisableSingle);
-        const label = unlockOneBtn.querySelector('span');
-        if (label) {
-            if (!paymentServiceConfigured) {
-                label.innerText = 'Coming soon';
-            } else if (info.unlocked) {
-                label.innerText = 'Already unlocked';
-            } else {
-                label.innerText = 'Unlock this judge';
-            }
-        }
-    }
-
-    if (unlockAllBtn) {
-        // Disable if already has all access OR if payment service is not available
-        const shouldDisableAll = hasAllAccess || !paymentServiceConfigured;
-        unlockAllBtn.disabled = shouldDisableAll;
-        unlockAllBtn.classList.toggle('opacity-50', shouldDisableAll);
-        const label = unlockAllBtn.querySelector('span');
-        if (label) {
-            if (!paymentServiceConfigured) {
-                const interval = formatInterval(stripePrices.allJudges.interval);
-                label.innerText = `All ${stripePrices.allJudges.formatted}${interval} (Coming soon)`;
-            } else {
-                const interval = formatInterval(stripePrices.allJudges.interval);
-                label.innerText = hasAllAccess ? 'All judges unlocked' : `All ${stripePrices.allJudges.formatted}${interval}`;
-            }
-        }
-    }
-}
-
 function updateJudgeUI() {
     renderJudgeChips();
     updateJudgeHint();
-    updateUnlockButtons();
-    updatePriceUI();
-}
-
-/**
- * Fetch current prices from Stripe API
- * 
- * This function fetches the actual prices configured in Stripe
- * and updates the global stripePrices state.
- * Prices are cached on the server for 5 minutes.
- */
-async function fetchStripePrices() {
-    try {
-        const response = await fetch(`${APP_API_BASE}/api/prices`);
-
-        if (!response.ok) {
-            console.warn('Failed to fetch Stripe prices, using defaults');
-            paymentServiceConfigured = false;
-            return;
-        }
-
-        const data = await response.json();
-
-        // Check if payment service is configured on the server
-        paymentServiceConfigured = data.paymentServiceConfigured === true;
-
-        if (data.singleJudge && data.allJudges) {
-            stripePrices = data;
-            pricesLoaded = true;
-            
-            // Update UI with new prices
-            updateJudgeUI();
-        }
-    } catch (error) {
-        console.warn('Error fetching Stripe prices:', error);
-        paymentServiceConfigured = false;
-        // Keep using default prices
-    }
-}
-
-/**
- * Format interval string for display
- * @param {string} interval - Stripe interval (e.g., 'month', 'year')
- * @returns {string} Formatted interval string (e.g., '/mo', '/yr')
- */
-function formatInterval(interval) {
-    if (interval === 'month') return '/mo';
-    if (interval === 'year') return '/yr';
-    return '';
-}
-
-/**
- * Update price displays in the UI with Stripe prices
- */
-function updatePriceUI() {
-    // Update unlock single button
-    const unlockSelectedBtn = document.getElementById('unlockSelectedJudge');
-    if (unlockSelectedBtn) {
-        const priceSpan = unlockSelectedBtn.querySelector('span');
-        if (priceSpan) {
-            priceSpan.textContent = stripePrices.singleJudge.formatted;
-        }
-    }
-
-    // Update unlock all button
-    const unlockAllBtn = document.getElementById('unlockAllJudges');
-    if (unlockAllBtn) {
-        const priceSpan = unlockAllBtn.querySelector('span');
-        if (priceSpan) {
-            const interval = formatInterval(stripePrices.allJudges.interval);
-            priceSpan.textContent = `All ${stripePrices.allJudges.formatted}${interval}`;
-        }
-    }
-
-    // Update purchase modal buttons
-    const purchaseSingleBtn = document.getElementById('purchaseSingleBtn');
-    if (purchaseSingleBtn) {
-        const span = purchaseSingleBtn.querySelector('span');
-        if (span) {
-            span.textContent = `Unlock This Judge – ${stripePrices.singleJudge.formatted}`;
-        }
-    }
-
-    const purchaseAllBtn = document.getElementById('purchaseAllBtn');
-    if (purchaseAllBtn) {
-        const span = purchaseAllBtn.querySelector('span');
-        if (span) {
-            const interval = formatInterval(stripePrices.allJudges.interval);
-            span.textContent = `Unlock ALL Judges – ${stripePrices.allJudges.formatted}${interval}`;
-        }
-    }
-}
-
-/**
- * Handle unlocking a single judge via Stripe checkout
- * 
- * @param {string} judgeId - The ID of the judge to unlock (must not be "normal")
- * 
- * This function:
- * 1. Validates the judgeId is not "normal" (free) and the judge is not already unlocked
- * 2. Calls /api/checkout with mode: "single" and the judgeId
- * 3. Redirects to the Stripe checkout session
- * 
- * The actual unlock happens on the success page after payment completion.
- */
-async function handleUnlockSingle(judgeId) {
-    // Validate judgeId
-    if (!judgeId || judgeId === 'normal') {
-        showToast('The Normal AI Judge is free!', 'info');
-        return;
-    }
-
-    // Check if the judge is free by default
-    const judgeInfo = getJudgeAccessInfo(judgeId);
-    if (judgeInfo.judge && judgeInfo.judge.is_default_free) {
-        showToast('This judge is free!', 'info');
-        return;
-    }
-
-    // Check if payment service is available
-    if (!paymentServiceConfigured) {
-        showToast(PAYMENT_UNAVAILABLE_MESSAGE, 'error');
-        return;
-    }
-
-    if (!accessToken || !currentUser) {
-        showToast('Please log in to unlock judges.', 'info');
-        showModal('loginModal');
-        return;
-    }
-
-    const info = getJudgeAccessInfo(judgeId);
-    if (info.unlocked) {
-        showToast('This judge is already unlocked', 'info');
-        return;
-    }
-
-    try {
-        showToast('Redirecting to checkout...', 'info');
-
-        const response = await fetch(`${APP_API_BASE}/api/checkout`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-            },
-            body: JSON.stringify({
-                mode: 'single',
-                celebrityId: judgeId,
-            }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            // Provide clearer error message for payment service not configured
-            if (data.error === 'Payment service not configured') {
-                throw new Error(PAYMENT_UNAVAILABLE_MESSAGE);
-            }
-            throw new Error(data.error || 'Failed to create checkout session');
-        }
-
-        if (data.url) {
-            // Redirect to Stripe checkout
-            window.location.href = data.url;
-        } else {
-            throw new Error('No checkout URL returned');
-        }
-    } catch (error) {
-        console.error('Checkout error:', error);
-        showToast(error.message || 'Failed to start checkout. Please try again.', 'error');
-    }
-}
-
-/**
- * Handle unlocking all judges via Stripe subscription checkout
- * 
- * This function:
- * 1. Checks if user already has all access
- * 2. Calls /api/checkout with mode: "subscription"
- * 3. Redirects to the Stripe checkout session
- * 
- * The actual unlock happens on the success page after payment completion.
- */
-async function handleUnlockAll() {
-    if (hasAllAccess) {
-        showToast('You already have access to all judges!', 'info');
-        return;
-    }
-
-    // Check if payment service is available
-    if (!paymentServiceConfigured) {
-        showToast(PAYMENT_UNAVAILABLE_MESSAGE, 'error');
-        return;
-    }
-
-    if (!accessToken || !currentUser) {
-        showToast('Please log in to unlock judges.', 'info');
-        showModal('loginModal');
-        return;
-    }
-
-    try {
-        showToast('Redirecting to checkout...', 'info');
-
-        const response = await fetch(`${APP_API_BASE}/api/checkout`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-            },
-            body: JSON.stringify({
-                mode: 'subscription',
-            }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            // Provide clearer error message for payment service not configured
-            if (data.error === 'Payment service not configured') {
-                throw new Error(PAYMENT_UNAVAILABLE_MESSAGE);
-            }
-            throw new Error(data.error || 'Failed to create checkout session');
-        }
-
-        if (data.url) {
-            // Redirect to Stripe checkout
-            window.location.href = data.url;
-        } else {
-            throw new Error('No checkout URL returned');
-        }
-    } catch (error) {
-        console.error('Checkout error:', error);
-        showToast(error.message || 'Failed to start checkout. Please try again.', 'error');
-    }
-}
-
-// Legacy functions for backwards compatibility - now calls Stripe checkout
-function unlockSelectedJudge() {
-    handleUnlockSingle(selectedJudgeId);
-}
-
-function unlockAllJudges() {
-    handleUnlockAll();
 }
 
 // ==========================================
@@ -960,8 +477,6 @@ function clearSessionTokens() {
     accessToken = null;
     refreshToken = null;
     currentUser = null;
-    serverUnlockedJudges = [];
-    serverHasAllAccess = false;
     localStorage.removeItem('accessToken');
     localStorage.removeItem(APP_REFRESH_TOKEN_KEY);
 }
@@ -992,123 +507,6 @@ async function refreshSession() {
     }
 }
 
-/**
- * Fetch user's purchases from the server
- * Updates serverUnlockedJudges and serverHasAllAccess variables
- */
-async function fetchUserPurchases() {
-    if (!accessToken) {
-        serverUnlockedJudges = [];
-        serverHasAllAccess = false;
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${APP_API_BASE}/api/purchases`, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            serverUnlockedJudges = data.unlockedJudges || [];
-            serverHasAllAccess = data.hasAllAccess || false;
-            
-            // Sync server purchases to localStorage for offline access
-            if (serverUnlockedJudges.length > 0 || serverHasAllAccess) {
-                // Merge server unlocked judges with local
-                const mergedUnlocked = [...new Set([...unlockedJudgeIds, ...serverUnlockedJudges])];
-                unlockedJudgeIds = mergedUnlocked;
-                localStorage.setItem(UNLOCKED_KEY, JSON.stringify(mergedUnlocked));
-                
-                if (serverHasAllAccess) {
-                    hasAllAccess = true;
-                    localStorage.setItem(ALL_ACCESS_KEY, 'true');
-                }
-            }
-            
-            // Update the UI to reflect server purchases
-            updateJudgeUI();
-        } else {
-            console.warn('Failed to fetch purchases');
-            serverUnlockedJudges = [];
-            serverHasAllAccess = false;
-        }
-    } catch (error) {
-        console.error('Fetch purchases failed:', error);
-        serverUnlockedJudges = [];
-        serverHasAllAccess = false;
-    }
-}
-
-// Pending purchase expiry time (24 hours in milliseconds)
-const PENDING_PURCHASE_EXPIRY_MS = 24 * 60 * 60 * 1000;
-
-/**
- * Check if user just returned from a successful Stripe payment
- * The success page stores the session_id in localStorage
- */
-async function handleStripeSuccessReturn() {
-    const sessionId = localStorage.getItem('stripe_success_session_id');
-    if (!sessionId) return;
-    
-    // Clear the session ID immediately to prevent duplicate processing
-    localStorage.removeItem('stripe_success_session_id');
-    
-    console.log('Detected return from Stripe checkout, refreshing purchases...');
-    
-    // Refresh purchases from the server to get newly unlocked content
-    await fetchUserPurchases();
-    
-    // Update the UI
-    updateJudgeUI();
-    
-    // Show success message
-    showToast('Payment successful! Your judges are now unlocked.', 'success');
-}
-
-/**
- * Save any pending purchases that were made before account creation
- */
-async function savePendingPurchase() {
-    const PENDING_PURCHASE_KEY = 'pendingPurchase';
-    const pendingPurchaseStr = localStorage.getItem(PENDING_PURCHASE_KEY);
-    
-    if (!pendingPurchaseStr || !accessToken) return;
-    
-    try {
-        const pendingPurchase = JSON.parse(pendingPurchaseStr);
-        
-        // Only save if purchase is recent (within 24 hours)
-        const ageMs = Date.now() - (pendingPurchase.timestamp || 0);
-        if (ageMs > PENDING_PURCHASE_EXPIRY_MS) {
-            localStorage.removeItem(PENDING_PURCHASE_KEY);
-            return;
-        }
-        
-        const response = await fetch(`${APP_API_BASE}/api/purchases/save`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`
-            },
-            body: JSON.stringify({
-                purchaseType: pendingPurchase.purchaseType,
-                judgeId: pendingPurchase.judgeId,
-                stripeSessionId: pendingPurchase.stripeSessionId
-            })
-        });
-        
-        if (response.ok) {
-            localStorage.removeItem(PENDING_PURCHASE_KEY);
-            console.log('Pending purchase saved successfully');
-        }
-    } catch (error) {
-        console.error('Failed to save pending purchase:', error);
-    }
-}
-
 async function checkAuth(hasRefreshed = false) {
     if (!accessToken) {
         const refreshed = await refreshSession();
@@ -1128,15 +526,6 @@ async function checkAuth(hasRefreshed = false) {
         if (response.ok) {
             const data = await response.json();
             currentUser = data.user;
-
-            // Save any pending purchases from before account creation
-            await savePendingPurchase();
-
-            // Check if user just returned from Stripe payment success
-            await handleStripeSuccessReturn();
-
-            // Fetch user's purchases from the server
-            await fetchUserPurchases();
         } else if (response.status === 401 && !hasRefreshed) {
             const refreshed = await refreshSession();
             if (refreshed) {
@@ -1173,16 +562,10 @@ async function signup(email, password) {
         if (data.access_token) {
             persistSessionTokens(data);
             currentUser = data.user;
-
-            // Save any pending purchases and fetch user purchases
-            await savePendingPurchase();
-            await fetchUserPurchases();
-
             updateAuthUI();
             hideModal('signupModal');
             showToast('Account created successfully!', 'success');
         } else {
-            // Email confirmation required
             showToast('Please check your email to confirm your account', 'info');
             hideModal('signupModal');
         }
@@ -1216,10 +599,6 @@ async function login(email, password) {
         persistSessionTokens(data);
         currentUser = data.user;
         
-        // Save any pending purchases and fetch user purchases
-        await savePendingPurchase();
-        await fetchUserPurchases();
-        
         updateAuthUI();
         hideModal('loginModal');
         showToast('Welcome back!', 'success');
@@ -1233,7 +612,6 @@ async function login(email, password) {
 function logout() {
     clearSessionTokens();
     updateAuthUI();
-    updateJudgeUI(); // Refresh judge UI to show only local/free access
     showToast('Logged out successfully', 'info');
 }
 
@@ -1250,18 +628,6 @@ async function judgeNow(e) {
 
     if (!optionA || !optionB) {
         showToast("Enter both options to get a verdict!", 'error');
-        return;
-    }
-
-    const accessCheck = ensureJudgeAccess();
-    if (!accessCheck.allowed) {
-        // Show purchase modal instead of just error
-        const judge = availableJudges.find((j) => j.id === selectedJudgeId);
-        if (judge) {
-            showPurchaseModal(judge);
-        } else {
-            showToast(accessCheck.reason || 'Unlock this judge to continue.', 'error');
-        }
         return;
     }
 
@@ -1322,7 +688,6 @@ function copyResult() {
     const reason = document.getElementById('explanationText').innerText;
     const textToCopy = `Who is Wrong?\n❌ WRONG: ${wrong}\n🗣️ JUDGE SAYS: ${reason}\n\nJudge your battles at ${window.location.origin}`;
     
-    // Use Clipboard API with fallback
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(textToCopy).then(() => {
             showCopySuccess();
@@ -1395,10 +760,8 @@ function shareDebate(platform) {
         return;
     }
 
-    // For other platforms or generic share
     if (navigator.share) {
         navigator.share(shareData).catch(() => {
-            // Ignore cancellation, copy link as fallback
             copyShareLink();
         });
     } else {
@@ -1430,7 +793,6 @@ function renderFeed(items = []) {
     const empty = document.getElementById('feedEmpty');
     if (!grid) return;
 
-    // If no items from the database, use demo debates instead of showing "no debates"
     const displayItems = items.length > 0 ? items : SAMPLE_DEBATES.map(demo => ({
         id: demo.id,
         question_text: demo.title,
@@ -1440,7 +802,6 @@ function renderFeed(items = []) {
         votes: { agree: Math.floor(Math.random() * 50) + 10, disagree: Math.floor(Math.random() * 20) + 5 }
     }));
 
-    // Always hide the "empty" message since we show demos
     if (empty) empty.classList.add('hidden');
     grid.innerHTML = '';
 
@@ -1472,7 +833,6 @@ function renderFeed(items = []) {
         votesRow.className = 'flex items-center justify-between gap-2';
         
         if (isDemo) {
-            // Demo debates show static votes without interactive buttons
             votesRow.innerHTML = `
                 <div class="flex items-center gap-2 text-xs text-gray-400">
                     <span class="px-2 py-1 rounded-full bg-green-500/10 text-green-300">Agree: <strong>${votes.agree}</strong></span>
@@ -1598,7 +958,6 @@ function hideModal(modalId) {
         modal.classList.add('hidden');
         document.body.style.overflow = '';
         
-        // Clear form errors
         const errorEl = modal.querySelector('[id$="Error"]');
         if (errorEl) {
             errorEl.classList.add('hidden');
@@ -1620,7 +979,6 @@ function showToast(message, type = 'success') {
     
     toastMessage.innerText = message;
     
-    // Set icon based on type
     toastIcon.className = 'fas';
     switch (type) {
         case 'success':
@@ -1659,36 +1017,18 @@ function hydrateInitialView() {
 // ==========================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Check authentication status
     checkAuth();
-
-    // Fetch Stripe prices and update UI
-    fetchStripePrices();
-
-    // Render judge selection UI
     updateJudgeUI();
     loadJudgesFromApi();
     loadFeed();
     renderSamples([]);
     hydrateInitialView();
 
-    const unlockSelectedJudgeBtn = document.getElementById('unlockSelectedJudge');
-    if (unlockSelectedJudgeBtn) {
-        unlockSelectedJudgeBtn.addEventListener('click', unlockSelectedJudge);
-    }
-
-    const unlockAllJudgesBtn = document.getElementById('unlockAllJudges');
-    if (unlockAllJudgesBtn) {
-        unlockAllJudgesBtn.addEventListener('click', unlockAllJudges);
-    }
-
-    // Judge form submission
     const judgeForm = document.getElementById('judgeForm');
     if (judgeForm) {
         judgeForm.addEventListener('submit', judgeNow);
     }
     
-    // Add input listeners for button state
     const optionA = document.getElementById('optionA');
     const optionB = document.getElementById('optionB');
     if (optionA) {
@@ -1698,10 +1038,8 @@ document.addEventListener('DOMContentLoaded', () => {
         optionB.addEventListener('input', updateSubmitButtonState);
     }
     
-    // Initial button state
     updateSubmitButtonState();
     
-    // Login form
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -1720,7 +1058,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Signup form
     const signupForm = document.getElementById('signupForm');
     if (signupForm) {
         signupForm.addEventListener('submit', async (e) => {
@@ -1746,12 +1083,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Close modals on escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             hideModal('loginModal');
             hideModal('signupModal');
-            hideModal('purchaseModal');
         }
     });
 });
@@ -1766,5 +1101,3 @@ window.copyResult = copyResult;
 window.shareOnTwitter = shareOnTwitter;
 window.shareDebate = shareDebate;
 window.copyShareLink = copyShareLink;
-window.unlockSelectedJudge = unlockSelectedJudge;
-window.unlockAllJudges = unlockAllJudges;
