@@ -167,6 +167,9 @@ let pricesLoaded = false;
 // Tracks whether Stripe payment service is available
 let paymentServiceConfigured = false;
 
+// Common error message for unavailable payments
+const PAYMENT_UNAVAILABLE_MESSAGE = 'Payments are not available yet. Please try again later.';
+
 // Loading messages for variety
 const LOADING_MESSAGES = [
     "Reviewing the evidence...",
@@ -794,7 +797,7 @@ async function handleUnlockSingle(judgeId) {
 
     // Check if payment service is available
     if (!paymentServiceConfigured) {
-        showToast('Payments are not available yet. Please try again later.', 'error');
+        showToast(PAYMENT_UNAVAILABLE_MESSAGE, 'error');
         return;
     }
 
@@ -830,7 +833,7 @@ async function handleUnlockSingle(judgeId) {
         if (!response.ok) {
             // Provide clearer error message for payment service not configured
             if (data.error === 'Payment service not configured') {
-                throw new Error('Payments are not available yet. Please try again later.');
+                throw new Error(PAYMENT_UNAVAILABLE_MESSAGE);
             }
             throw new Error(data.error || 'Failed to create checkout session');
         }
@@ -865,7 +868,7 @@ async function handleUnlockAll() {
 
     // Check if payment service is available
     if (!paymentServiceConfigured) {
-        showToast('Payments are not available yet. Please try again later.', 'error');
+        showToast(PAYMENT_UNAVAILABLE_MESSAGE, 'error');
         return;
     }
 
@@ -894,7 +897,7 @@ async function handleUnlockAll() {
         if (!response.ok) {
             // Provide clearer error message for payment service not configured
             if (data.error === 'Payment service not configured') {
-                throw new Error('Payments are not available yet. Please try again later.');
+                throw new Error(PAYMENT_UNAVAILABLE_MESSAGE);
             }
             throw new Error(data.error || 'Failed to create checkout session');
         }
