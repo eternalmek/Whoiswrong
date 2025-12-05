@@ -121,7 +121,7 @@ async function loadJudgesFromApi() {
     }
 }
 
-// Number of judges that are free by default (1 default + 3 celebrities)
+// Number of judges that are free by default (first N judges from JUDGE_PRIORITY: normal, taylor-swift, cristiano-ronaldo, lionel-messi)
 const FREE_JUDGES_COUNT = 4;
 
 // Server-synced purchases for logged-in users
