@@ -21,7 +21,7 @@ router.get('/', async (_req, res) => {
           'roast',
           'judge_id',
           'created_at',
-          'judges(name, slug, avatar_url)',
+          'judges(name, slug, photo_url)',
         ].join(', ')
       )
       .eq('is_public', true)
