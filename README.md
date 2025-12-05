@@ -48,6 +48,12 @@ This repository provides a small Node.js backend that:
 - supabase/migrations/ — Database migrations for Supabase
 - supabase/config.toml — Supabase local development configuration
 
+## Recent improvements (2024-06-05)
+
+- Refreshed the account dashboard hero copy to make the value proposition clearer and highlight upgrade and new-judgement CTAs.
+- Added structured headers, helper labels, and supportive microcopy so logged-out users know how to sign in and logged-in users can quickly find profile, history, and settings.
+- Tweaked shared styles to support the new layout (pill badges, ghost buttons, CTA rows) while keeping the existing dark theme intact.
+
 ## Setup
 
 ### Option 1: Local Development with Supabase CLI (Recommended)
