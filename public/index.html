@@ -221,21 +221,9 @@
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-3">
                             <i class="fas fa-gavel mr-1"></i> Step 3 – Choose Your Judge
                         </label>
-                        <p id="judgeSelectionHint" class="text-gray-400 text-sm mb-3">🤖 Normal AI Judge – Free</p>
+                        <p id="judgeSelectionHint" class="text-gray-400 text-sm mb-3">🤖 AI Judge – Free</p>
                         <div id="judgeChips" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-h-64 overflow-y-auto p-1" role="listbox" aria-label="Select a judge">
                             <!-- Judge chips populated by JavaScript -->
-                        </div>
-                        
-                        <!-- Unlock Buttons -->
-                        <div class="flex flex-wrap gap-2 mt-4">
-                            <button type="button" id="unlockSelectedJudge" class="text-xs bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 px-3 py-2 rounded-lg transition flex items-center gap-1">
-                                <i class="fas fa-unlock"></i>
-                                <span>Unlock this judge</span>
-                            </button>
-                            <button type="button" id="unlockAllJudges" class="text-xs bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white px-3 py-2 rounded-lg transition flex items-center gap-1">
-                                <i class="fas fa-crown"></i>
-                                <span>All $3.99/mo</span>
-                            </button>
                         </div>
                     </div>
                     
@@ -417,31 +405,6 @@
                 Already have an account? 
                 <button onclick="hideModal('signupModal'); showModal('loginModal')" class="text-red-400 hover:text-red-300 font-semibold">Login</button>
             </p>
-        </div>
-    </div>
-    
-    <!-- Purchase Modal -->
-    <div id="purchaseModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-        <div class="glass-panel rounded-2xl p-6 w-full max-w-md relative">
-            <button onclick="hideModal('purchaseModal')" class="absolute top-4 right-4 text-gray-500 hover:text-white">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="text-center mb-4">
-                <span id="purchaseJudgeEmoji" class="text-5xl">🎭</span>
-                <h2 id="purchaseJudgeName" class="font-display text-2xl font-bold mt-2">Judge Name</h2>
-                <p id="purchaseJudgeDesc" class="text-gray-400 text-sm mt-1">Get unique verdicts with personality!</p>
-            </div>
-            <div class="space-y-3">
-                <button id="purchaseSingleBtn" onclick="unlockSelectedJudge()" class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
-                    <i class="fas fa-unlock"></i>
-                    <span>Unlock This Judge – $0.99</span>
-                </button>
-                <button id="purchaseAllBtn" onclick="unlockAllJudges()" class="w-full bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
-                    <i class="fas fa-crown"></i>
-                    <span>Unlock ALL Judges – $3.99/mo</span>
-                </button>
-            </div>
-            <p class="text-gray-500 text-xs text-center mt-4">Secure payment via Stripe</p>
         </div>
     </div>
     
