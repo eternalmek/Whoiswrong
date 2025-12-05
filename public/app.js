@@ -39,7 +39,7 @@ const baseAvatar = (name) =>
 
 const FALLBACK_JUDGES = (Array.isArray(window.celebrityJudges) && window.celebrityJudges.length)
     ? window.celebrityJudges
-    : [{ id: 'normal', name: 'AI Judge', emoji: '🤖', description: 'Decisive and balanced.', category: 'Default', systemPrompt: '' }];
+    : [{ id: 'normal', name: 'AI Judge', emoji: '🤖', description: 'Balanced, decisive, and straight to the point.', category: 'Core', systemPrompt: '' }];
 
 function normalizeJudge(judge) {
     return {
