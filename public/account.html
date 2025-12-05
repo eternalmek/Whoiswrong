@@ -10,119 +10,145 @@
     <script src="/account.js" defer></script>
   </head>
   <body>
-    <header class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow">Account</p>
-        <h1>Your verdict HQ</h1>
-        <p class="lede">Stay signed in, see your receipts, and spin up a fresh judgement in seconds.</p>
-        <div class="cta-row">
-          <a class="primary" href="/">Start a new judgement</a>
-          <a class="ghost" href="/pricing">Upgrade for celebrity judges</a>
-        </div>
-        <p class="muted">No fluff: you always keep your history and can leave with one click.</p>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a class="brand" href="/">
+          <span class="brand-mark">⚖️</span>
+          <span class="brand-wordmark">Who Is <strong>Wrong?</strong></span>
+        </a>
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="/about.html">About</a>
+          <a href="/legal.html">Legal</a>
+          <a href="/login.html">Log in</a>
+          <a class="nav-pill" href="/signup.html">Sign up</a>
+        </nav>
       </div>
     </header>
 
-    <main class="layout">
-      <p id="account-status" class="muted"></p>
-      <div id="login-prompt" class="card hidden">
-        <h2>Welcome back</h2>
-        <p>Log in to sync your debates, verdicts, and any premium upgrades.</p>
-        <form id="login-form" class="stack">
-          <label>
-            <span>Email</span>
-            <input id="login-email" type="email" required placeholder="you@example.com" />
-          </label>
-          <button type="submit" class="primary">Send magic link</button>
-        </form>
-        <p class="muted small">We only email a login link—no passwords to remember.</p>
-      </div>
+    <div class="site-main">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Account</p>
+          <h1>Your verdict HQ</h1>
+          <p class="lede">Stay signed in, see your receipts, and spin up a fresh judgement in seconds.</p>
+          <div class="cta-row">
+            <a class="primary" href="/">Start a new judgement</a>
+            <a class="ghost" href="/pricing">Upgrade for celebrity judges</a>
+          </div>
+          <p class="muted">No fluff: you always keep your history and can leave with one click.</p>
+        </div>
+      </header>
 
-      <div class="account-grid">
-        <section class="card">
-          <header class="card-header">
-            <div>
-              <p class="label">Profile</p>
-              <h2>Identity</h2>
-            </div>
-            <span class="pill pill-success">Secure</span>
-          </header>
-          <p id="profile"></p>
-        </section>
-
-        <section class="card">
-          <header class="card-header">
-            <div>
-              <p class="label">Activity</p>
-              <h2>Last questions</h2>
-            </div>
-            <a class="text-link" href="/">Ask new</a>
-          </header>
-          <ul id="questions" class="feed"></ul>
-        </section>
-
-        <section class="card">
-          <header class="card-header">
-            <div>
-              <p class="label">Verdicts</p>
-              <h2>Recent calls</h2>
-            </div>
-            <a class="text-link" href="/">Get a verdict</a>
-          </header>
-          <ul id="judgements" class="feed"></ul>
-        </section>
-
-        <section class="card">
-          <header class="card-header">
-            <div>
-              <p class="label">Social</p>
-              <h2>Friends</h2>
-            </div>
-            <span class="pill">Beta</span>
-          </header>
-          <ul id="friends" class="feed"></ul>
-        </section>
-
-        <section class="card">
-          <header class="card-header">
-            <div>
-              <p class="label">Preferences</p>
-              <h2>Settings</h2>
-            </div>
-            <a class="text-link" href="mailto:founder@whoiswrong.io?subject=Help%20with%20my%20account">Need help?</a>
-          </header>
-          <form id="settings-form" class="stack">
+      <main class="layout">
+        <p id="account-status" class="muted"></p>
+        <div id="login-prompt" class="card hidden">
+          <h2>Welcome back</h2>
+          <p>Log in to sync your debates, verdicts, and any premium upgrades.</p>
+          <form id="login-form" class="stack">
             <label>
-              <span>Theme</span>
-              <select id="setting-theme">
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-              </select>
+              <span>Email</span>
+              <input id="login-email" type="email" required placeholder="you@example.com" />
             </label>
-            <label>
-              <span>Language</span>
-              <select id="setting-language">
-                <option value="en">English</option>
-              </select>
-            </label>
-            <label>
-              <input id="setting-marketing" type="checkbox" /> Marketing opt-in
-            </label>
-            <button type="submit" class="primary">Save settings</button>
+            <button type="submit" class="primary">Send magic link</button>
           </form>
-        </section>
+          <p class="muted small">We only email a login link—no passwords to remember.</p>
+        </div>
 
-        <section class="card">
-          <header class="card-header">
-            <div>
-              <p class="label">Session</p>
-              <h2>Stay in control</h2>
+        <div id="account-content" class="hidden grid">
+          <section class="card">
+            <header class="card-header">
+              <div>
+                <p class="label">Profile</p>
+                <h2>Your details</h2>
+              </div>
+              <div class="pill" id="profile-pill"></div>
+            </header>
+            <form id="profile-form" class="stack">
+              <label>
+                <span>Display name</span>
+                <input id="profile-full-name" type="text" placeholder="Alex Doe" />
+              </label>
+              <label>
+                <span>Username</span>
+                <input id="profile-username" type="text" placeholder="alex" />
+              </label>
+              <button type="submit" class="primary">Save profile</button>
+            </form>
+            <p class="muted small">Usernames are optional and can be changed anytime.</p>
+          </section>
+
+          <section class="card">
+            <header class="card-header">
+              <div>
+                <p class="label">Judgements</p>
+                <h2>Recent verdicts</h2>
+              </div>
+              <a class="text-link" href="/">Request a new one</a>
+            </header>
+            <div id="judgements-feed" class="feed">
+              <p class="muted">Loading your history...</p>
             </div>
-          </header>
-          <button id="logout-btn" class="primary">Log out</button>
-          <p class="muted small">Signing out instantly clears your browser session.</p>
-        </section>
-      </div>
-    </main>
+          </section>
+
+          <section class="card">
+            <header class="card-header">
+              <div>
+                <p class="label">Receipts</p>
+                <h2>Saved receipts</h2>
+              </div>
+              <a class="text-link" href="/">Generate another</a>
+            </header>
+            <ul id="receipts-list" class="feed">
+              <p class="muted">If you saved a receipt after a verdict, it shows up here.</p>
+            </ul>
+          </section>
+
+          <section class="card">
+            <header class="card-header">
+              <div>
+                <p class="label">Preferences</p>
+                <h2>Settings</h2>
+              </div>
+              <a class="text-link" href="mailto:founder@whoiswrong.io?subject=Help%20with%20my%20account">Need help?</a>
+            </header>
+            <form id="settings-form" class="stack">
+              <label>
+                <span>Theme</span>
+                <select id="setting-theme">
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </label>
+              <label>
+                <span>Language</span>
+                <select id="setting-language">
+                  <option value="en">English</option>
+                </select>
+              </label>
+              <label>
+                <input id="setting-marketing" type="checkbox" /> Marketing opt-in
+              </label>
+              <button type="submit" class="primary">Save settings</button>
+            </form>
+          </section>
+
+          <section class="card">
+            <header class="card-header">
+              <div>
+                <p class="label">Session</p>
+                <h2>Stay in control</h2>
+              </div>
+            </header>
+            <button id="logout-btn" class="primary">Log out</button>
+            <p class="muted small">Signing out instantly clears your browser session.</p>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <footer class="site-footer">
+      <p>WhoIsWrong.io — Settle any debate with a decisive AI judge.</p>
+    </footer>
   </body>
 </html>

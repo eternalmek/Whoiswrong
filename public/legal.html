@@ -8,7 +8,8 @@
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
-    
+
+    <link rel="stylesheet" href="/styles.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -52,26 +53,20 @@
     </style>
 </head>
 <body class="min-h-screen">
-    
-    <!-- Navigation -->
-    <nav class="fixed top-0 left-0 right-0 z-50 glass-panel">
-        <div class="max-w-6xl mx-auto px-4 py-3">
-            <div class="flex items-center justify-between">
-                <a href="/" class="flex items-center gap-2">
-                    <span class="text-2xl">⚖️</span>
-                    <span class="font-display text-xl font-bold">
-                        Who Is <span class="text-red-500">Wrong?</span>
-                    </span>
-                </a>
-                
-                <div class="flex items-center gap-3">
-                    <a href="/" class="text-gray-400 hover:text-white transition text-sm">
-                        <i class="fas fa-gavel mr-1"></i> Judge
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a class="brand" href="/">
+          <span class="brand-mark">⚖️</span>
+          <span class="brand-wordmark">Who Is <strong>Wrong?</strong></span>
+        </a>
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="/about.html">About</a>
+          <a href="/legal.html">Legal</a>
+          <a class="nav-pill" href="/signup.html">Start judging</a>
+        </nav>
+      </div>
+    </header>
     
     <!-- Legal Content -->
     <div class="pt-24 pb-16 px-4">
