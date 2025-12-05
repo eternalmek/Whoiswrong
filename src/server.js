@@ -28,6 +28,9 @@ const FRONTEND_ORIGIN = process.env.NEXT_PUBLIC_BASE_URL || process.env.FRONTEND
 
 const app = express();
 
+// Trust proxy for correct IP detection behind Vercel/reverse proxies
+app.set('trust proxy', 1);
+
 app.use(
   helmet({
     contentSecurityPolicy: false,
