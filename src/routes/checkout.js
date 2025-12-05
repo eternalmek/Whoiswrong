@@ -3,19 +3,24 @@ const Stripe = require('stripe');
 const { requireUser } = require('../supabaseClient');
 
 const router = express.Router();
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+const stripeKey = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeKey ? new Stripe(stripeKey) : null;
 
 function getBaseUrl() {
   return process.env.NEXT_PUBLIC_BASE_URL || '';
 }
 
-async function createCheckoutSession({ userId, productType, priceId, judgeId }) {
+async function createCheckoutSession({ userId, productType, priceId, judgeId, mode }) {
+  if (!stripe) {
+    throw new Error('Stripe not configured');
+  }
   if (!priceId) {
     throw new Error('Stripe price not configured');
   }
 
-  return stripe.checkout.sessions.create({
-    mode: 'payment',
+  const sessionConfig = {
+    mode: mode || 'payment',
     payment_method_types: ['card'],
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${getBaseUrl()}/success`,
@@ -24,35 +29,63 @@ async function createCheckoutSession({ userId, productType, priceId, judgeId }) 
       user_id: userId,
       product_type: productType,
       judge_id: judgeId || '',
+      mode: mode || 'payment',
+      celebrityId: judgeId || '',
     },
-  });
+  };
+
+  return stripe.checkout.sessions.create(sessionConfig);
 }
 
 async function handleCheckoutRequest(req, res, productType) {
   try {
-    const { judge_id } = req.body || {};
+    if (!stripe) {
+      return res.status(503).json({ error: 'Payment service not configured' });
+    }
+
+    // Support multiple parameter formats from frontend
+    const {
+      judge_id,
+      celebrityId,
+      mode: requestMode,
+      product_type: bodyProductType,
+    } = req.body || {};
+
+    const judgeId = judge_id || celebrityId;
+
+    // Determine product type from request
+    let finalProductType = productType;
+    if (bodyProductType) {
+      finalProductType = bodyProductType;
+    } else if (requestMode === 'subscription') {
+      finalProductType = 'all_judges';
+    } else if (requestMode === 'single') {
+      finalProductType = 'single_judge';
+    }
+
     const { user, error } = await requireUser(req);
     if (error || !user) {
       return res.status(401).json({ error: 'Login required' });
     }
 
-    const priceId =
-      productType === 'all_judges'
-        ? process.env.STRIPE_PRICE_ALL_JUDGES
-        : process.env.STRIPE_PRICE_SINGLE_JUDGE;
+    const isSubscription = finalProductType === 'all_judges';
+    const priceId = isSubscription
+      ? process.env.STRIPE_PRICE_ALL_JUDGES
+      : process.env.STRIPE_PRICE_SINGLE_JUDGE;
+    const sessionMode = isSubscription ? 'subscription' : 'payment';
 
     const session = await createCheckoutSession({
       userId: user.id,
-      productType,
+      productType: finalProductType,
       priceId,
-      judgeId: judge_id,
+      judgeId,
+      mode: sessionMode,
     });
 
     return res.json({ url: session.url });
   } catch (err) {
     console.error('Checkout error:', err);
-    const status = err.message?.includes('Stripe price not configured') ? 500 : 500;
-    return res.status(status).json({ error: err.message || 'Unable to start checkout' });
+    return res.status(500).json({ error: err.message || 'Unable to start checkout' });
   }
 }
 
