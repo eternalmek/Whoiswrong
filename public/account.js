@@ -1,9 +1,8 @@
 async function initAccount() {
   const statusEl = document.getElementById('account-status');
-  const profileEl = document.getElementById('profile');
-  const questionsEl = document.getElementById('questions');
-  const judgementsEl = document.getElementById('judgements');
-  const friendsEl = document.getElementById('friends');
+  const profilePillEl = document.getElementById('profile-pill');
+  const judgementsFeedEl = document.getElementById('judgements-feed');
+  const receiptsListEl = document.getElementById('receipts-list');
   const settingsForm = document.getElementById('settings-form');
 
   function setStatus(message) {
@@ -75,41 +74,27 @@ async function initAccount() {
   }
 
   async function loadLists() {
-    const [questions, judgements, friends] = await Promise.all([
-      supabase.from('questions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10),
+    const [judgements] = await Promise.all([
       supabase
         .from('judgements')
         .select('id, question_text, verdict_text, created_at, judges(name)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10),
-      supabase
-        .from('friends')
-        .select('*')
-        .or(`user_id.eq.${user.id},friend_user_id.eq.${user.id}`)
-        .limit(10),
     ]);
 
-    if (questions.error) throw questions.error;
     if (judgements.error) throw judgements.error;
-    if (friends.error) throw friends.error;
 
-    questionsEl.innerHTML = questions.data.length
-      ? questions.data.map((q) => `<li>${q.text}</li>`).join('')
-      : '<li>No questions yet.</li>';
-
-    judgementsEl.innerHTML = judgements.data.length
-      ? judgements.data
-          .map(
-            (j) =>
-              `<li><strong>${j.judges?.name || 'Judge'}:</strong> ${j.verdict_text}<div class="question">Q: ${j.question_text}</div></li>`
-          )
-          .join('')
-      : '<li>No judgements yet.</li>';
-
-    friendsEl.innerHTML = friends.data.length
-      ? friends.data.map((f) => `<li>${f.status} with ${f.friend_user_id}</li>`).join('')
-      : '<li>No friends yet.</li>';
+    if (judgementsFeedEl) {
+      judgementsFeedEl.innerHTML = judgements.data.length
+        ? judgements.data
+            .map(
+              (j) =>
+                `<div class="bg-gray-900 border border-gray-800 rounded-xl p-3"><p class="text-white text-sm font-semibold">${j.judges?.name || 'Judge'}</p><p class="text-gray-400 text-xs mt-1">${j.verdict_text}</p><p class="text-gray-500 text-xs mt-2">Q: ${j.question_text}</p></div>`
+            )
+            .join('')
+        : '<p class="text-gray-500 text-sm">No judgements yet.</p>';
+    }
   }
 
   try {
@@ -118,10 +103,20 @@ async function initAccount() {
     const settings = await fetchSettings();
     setStatus('');
 
-    profileEl.textContent = profile.username || user.email;
+    // Show account content
+    const accountContent = document.getElementById('account-content');
+    if (accountContent) accountContent.classList.remove('hidden');
+
+    if (profilePillEl) profilePillEl.textContent = profile.username || user.email;
     document.getElementById('setting-theme').value = settings.theme || 'light';
     document.getElementById('setting-language').value = settings.language || 'en';
     document.getElementById('setting-marketing').checked = !!settings.marketing_opt_in;
+
+    // Populate profile form fields
+    const fullNameInput = document.getElementById('profile-full-name');
+    const usernameInput = document.getElementById('profile-username');
+    if (fullNameInput) fullNameInput.value = profile.full_name || '';
+    if (usernameInput) usernameInput.value = profile.username || '';
 
     await loadLists();
   } catch (error) {
@@ -145,6 +140,27 @@ async function initAccount() {
       setStatus('Settings saved.');
     }
   });
+
+  // Profile form handler
+  const profileForm = document.getElementById('profile-form');
+  if (profileForm) {
+    profileForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const payload = {
+        id: user.id,
+        full_name: document.getElementById('profile-full-name').value,
+        username: document.getElementById('profile-username').value,
+      };
+      const { error } = await supabase.from('profiles').upsert(payload);
+      if (error) {
+        console.error('Supabase error:', error);
+        setStatus('Unable to save profile.');
+      } else {
+        setStatus('Profile saved.');
+        if (profilePillEl) profilePillEl.textContent = payload.username || user.email;
+      }
+    });
+  }
 
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await supabase.auth.signOut();
