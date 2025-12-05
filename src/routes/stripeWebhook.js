@@ -4,7 +4,7 @@ const { supabaseServiceRole } = require('../supabaseClient');
 
 const router = express.Router();
 const stripeKey = process.env.STRIPE_SECRET_KEY;
-const stripe = stripeKey ? new Stripe(stripeKey) : null;
+const stripe = stripeKey ? Stripe(stripeKey) : null;
 
 router.post('/', express.raw({ type: 'application/json' }), async (req, res) => {
   if (!stripe) {
