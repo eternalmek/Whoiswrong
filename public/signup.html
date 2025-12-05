@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign up – WhoIsWrong.io</title>
   <meta name="description" content="Create your WhoIsWrong.io account to save verdicts, friends, and unlock judges.">
+  <link rel="stylesheet" href="/styles.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -14,63 +15,58 @@
   </style>
   <script src="/auth.js"></script>
 </head>
-<body class="min-h-screen flex items-center justify-center px-4 py-12">
-  <div class="w-full max-w-md">
-    <a href="/" class="flex items-center gap-2 text-gray-300 hover:text-white mb-6"><span class="text-2xl">⚖️</span><span class="font-display text-xl font-bold">Who Is <span class="text-red-500">Wrong?</span></span></a>
-    <div class="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 shadow-xl">
-      <h1 class="font-display text-3xl font-bold mb-2">Create your account</h1>
-      <p class="text-gray-400 text-sm mb-6">Save your verdict history, manage friends, and keep purchases together.</p>
-      <form id="signupForm" class="space-y-4">
-        <div>
-          <label for="signupEmail" class="block text-xs font-bold text-gray-500 uppercase mb-2">Email</label>
-          <input id="signupEmail" name="email" type="email" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="you@example.com">
-        </div>
-        <div>
-          <label for="signupUsername" class="block text-xs font-bold text-gray-500 uppercase mb-2">Username (optional)</label>
-          <input id="signupUsername" name="username" type="text" minlength="3" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="taylor_swift">
-          <p class="text-gray-500 text-xs mt-1">Letters, numbers, and underscores only.</p>
-        </div>
-        <div>
-          <label for="signupPassword" class="block text-xs font-bold text-gray-500 uppercase mb-2">Password</label>
-          <input id="signupPassword" name="password" type="password" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="••••••••">
-        </div>
-        <div>
-          <label for="signupConfirm" class="block text-xs font-bold text-gray-500 uppercase mb-2">Confirm Password</label>
-          <input id="signupConfirm" name="confirm" type="password" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="••••••••">
-        </div>
-        <div id="signupError" class="hidden text-red-400 text-sm"></div>
-        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition">
-          Sign up
-        </button>
-      </form>
-      <p class="text-gray-400 text-sm text-center mt-4">Already have an account? <a href="/login.html" class="text-red-400 hover:text-red-300 font-semibold">Login</a></p>
+<body class="bg-[#0a0a0a] text-white">
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="/">
+        <span class="brand-mark">⚖️</span>
+        <span class="brand-wordmark">Who Is <strong>Wrong?</strong></span>
+      </a>
+      <nav class="site-nav">
+        <a href="/">Home</a>
+        <a href="/about.html">About</a>
+        <a href="/legal.html">Legal</a>
+        <a href="/login.html">Log in</a>
+      </nav>
     </div>
-  </div>
-  <script>
-    const form = document.getElementById('signupForm');
-    const errorEl = document.getElementById('signupError');
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const email = document.getElementById('signupEmail').value;
-      const username = document.getElementById('signupUsername').value.trim();
-      const password = document.getElementById('signupPassword').value;
-      const confirm = document.getElementById('signupConfirm').value;
+  </header>
 
-      if (password !== confirm) {
-        errorEl.textContent = 'Passwords do not match';
-        errorEl.classList.remove('hidden');
-        return;
-      }
+  <main class="site-main flex items-center justify-center py-10">
+    <div class="w-full max-w-md">
+      <a href="/" class="flex items-center gap-2 text-gray-300 hover:text-white mb-6"><span class="text-2xl">⚖️</span><span class="font-display text-xl font-bold">Who Is <span class="text-red-500">Wrong?</span></span></a>
+      <div class="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 shadow-xl">
+        <h1 class="font-display text-3xl font-bold mb-2">Create your account</h1>
+        <p class="text-gray-400 text-sm mb-6">Save your verdict history, manage friends, and keep purchases together.</p>
+        <form id="signupForm" class="space-y-4">
+          <div>
+            <label for="signupEmail" class="block text-xs font-bold text-gray-500 uppercase mb-2">Email</label>
+            <input id="signupEmail" name="email" type="email" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="you@example.com">
+          </div>
+          <div>
+            <label for="signupUsername" class="block text-xs font-bold text-gray-500 uppercase mb-2">Username (optional)</label>
+            <input id="signupUsername" name="username" type="text" minlength="3" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="taylor_swift">
+            <p class="text-gray-500 text-xs mt-1">Letters, numbers, and underscores only.</p>
+          </div>
+          <div>
+            <label for="signupPassword" class="block text-xs font-bold text-gray-500 uppercase mb-2">Password</label>
+            <input id="signupPassword" name="password" type="password" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="••••••••">
+          </div>
+          <div>
+            <label for="signupConfirm" class="block text-xs font-bold text-gray-500 uppercase mb-2">Confirm Password</label>
+            <input id="signupConfirm" name="confirm" type="password" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="••••••••">
+          </div>
+          <div id="signupError" class="hidden text-red-400 text-sm"></div>
+          <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition">
+            Create account
+          </button>
+        </form>
+        <p class="text-gray-400 text-sm text-center mt-4">Already have an account? <a href="/login.html" class="text-red-400 hover:text-red-300 font-semibold">Log in</a></p>
+      </div>
+    </div>
+  </main>
 
-      try {
-        errorEl.classList.add('hidden');
-        await window.authClient.signupUser(email, password, username || undefined);
-        window.location.href = '/account.html';
-      } catch (err) {
-        errorEl.textContent = err.message || 'Unable to sign up';
-        errorEl.classList.remove('hidden');
-      }
-    });
-  </script>
+  <footer class="site-footer">
+    <p>WhoIsWrong.io — Settle any debate with a decisive AI judge.</p>
+  </footer>
 </body>
 </html>
