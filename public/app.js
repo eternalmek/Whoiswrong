@@ -121,8 +121,8 @@ async function loadJudgesFromApi() {
     }
 }
 
-// Number of judges that are free by default
-const FREE_JUDGES_COUNT = 1;
+// Number of judges that are free by default (1 default + 3 celebrities)
+const FREE_JUDGES_COUNT = 4;
 
 // Server-synced purchases for logged-in users
 let serverUnlockedJudges = [];
