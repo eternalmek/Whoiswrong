@@ -19,6 +19,8 @@ export default function AccountPage() {
   const [settingsForm, setSettingsForm] = useState({ theme: 'light', language: 'en', marketing_opt_in: false })
   const [savingProfile, setSavingProfile] = useState(false)
   const [savingSettings, setSavingSettings] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -335,6 +337,46 @@ export default function AccountPage() {
     window.location.href = '/login'
   }
 
+  async function handleDeleteAccount() {
+    if (!user) return
+    setDeletingAccount(true)
+    setError(null)
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+
+      if (!token) {
+        setError('Unable to verify your session. Please log in again.')
+        setDeletingAccount(false)
+        return
+      }
+
+      const response = await fetch('/api/auth/me', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setError(result.error || 'Unable to delete account. Please try again.')
+        setDeletingAccount(false)
+        return
+      }
+
+      await supabase.auth.signOut()
+      window.location.href = '/'
+    } catch (err) {
+      console.error('Delete account error', err)
+      setError('Unable to delete account. Please try again.')
+      setDeletingAccount(false)
+    }
+  }
+
   if (loading) {
     return (
       <main className="account-page">
@@ -509,6 +551,42 @@ export default function AccountPage() {
         <button type="button" onClick={handleLogout}>
           Log out
         </button>
+      </section>
+
+      <section className="account-card" style={{ borderColor: 'rgba(127, 29, 29, 0.5)' }}>
+        <p style={{ color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>Danger Zone</p>
+        <h2>Delete Account</h2>
+        <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+        {!showDeleteConfirm ? (
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            style={{ backgroundColor: '#dc2626', color: 'white' }}
+          >
+            Delete Account
+          </button>
+        ) : (
+          <div>
+            <p><strong>Are you sure you want to delete your account?</strong></p>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+                style={{ backgroundColor: '#dc2626', color: 'white' }}
+              >
+                {deletingAccount ? 'Deleting...' : 'Yes, delete my account'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deletingAccount}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </main>
   )
