@@ -16,6 +16,8 @@ const accountRouter = require('./routes/account');
 const loadingMessagesRouter = require('./routes/loadingMessages');
 const receiptRouter = require('./routes/receipt');
 const configRouter = require('./routes/publicConfig');
+const reactionsRouter = require('./routes/reactions');
+const checkoutRouter = require('./routes/checkout');
 
 const PORT = process.env.PORT || 8080;
 const FRONTEND_ORIGIN = process.env.NEXT_PUBLIC_BASE_URL || process.env.FRONTEND_ORIGIN || '*';
@@ -51,6 +53,8 @@ app.use('/api/account', accountRouter);
 app.use('/api/loading-messages', loadingMessagesRouter);
 app.use('/api/receipt', receiptRouter);
 app.use('/api/public-config.js', configRouter);
+app.use('/api/reactions', reactionsRouter);
+app.use('/api/checkout', checkoutRouter);
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
