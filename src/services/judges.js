@@ -57,6 +57,7 @@ async function seedJudgesIfMissing() {
 
   // Determine which judges are free based on position in the list
   // First 4 judges are free (1 default + 3 celebrities)
+  // This ensures consistent free tier across fresh deployments
   const getFreeStatus = (judgeId) => {
     const index = celebrityJudges.findIndex((j) => j.id === judgeId);
     return index >= 0 && index < FREE_JUDGES_COUNT;
@@ -79,12 +80,13 @@ async function seedJudgesIfMissing() {
           is_default_free: getFreeStatus(judge.id),
           is_free: getFreeStatus(judge.id),
           price: getPrice(judge.id),
-          photo_url: judge.photo_url,
+          // Use photo_url as primary image field, avatar_placeholder as fallback
+          photo_url: judge.photo_url || judge.avatar_placeholder,
           avatar_url: judge.avatar_placeholder,
           image_url: judge.photo_url || judge.avatar_placeholder,
           description: judge.description,
+          // personality_prompt is the canonical field for prompt storage
           personality_prompt: judge.personality_prompt,
-          system_prompt: judge.personality_prompt,
           is_active: judge.is_active,
         })),
         { onConflict: 'slug' }
@@ -118,6 +120,8 @@ async function seedJudgesIfMissing() {
       .upsert(
         needsPatch.map((judge) => {
           const current = existingBySlug.get(judge.slug) || {};
+          // Preserve existing photo_url if set, otherwise use fallbacks
+          const photoUrl = current.photo_url || judge.photo_url || judge.avatar_placeholder;
           return {
             id: judge.id,
             slug: judge.slug,
@@ -127,8 +131,8 @@ async function seedJudgesIfMissing() {
             is_default_free: getFreeStatus(judge.id),
             is_free: getFreeStatus(judge.id),
             price: getPrice(judge.id),
-            photo_url: current.photo_url || judge.photo_url,
-            image_url: current.photo_url || current.image_url || judge.photo_url || judge.avatar_placeholder,
+            photo_url: photoUrl,
+            image_url: photoUrl,
             description: judge.description,
             personality_prompt: judge.personality_prompt,
             is_active: judge.is_active,
