@@ -39,13 +39,8 @@ create policy if not exists "Public judgements are viewable by everyone"
   on public.judgements for select
   using (is_public = true or auth.uid() = user_id::uuid);
 
--- RLS Policy: Authenticated users can insert judgements
-create policy if not exists "Authenticated users can insert judgements"
-  on public.judgements for insert
-  with check (true);
-
--- RLS Policy: Anonymous users can insert judgements (for free tier)
-create policy if not exists "Anonymous users can insert judgements"
+-- RLS Policy: Anyone can insert judgements (for free tier and anonymous users)
+create policy if not exists "Anyone can insert judgements"
   on public.judgements for insert
   with check (true);
 

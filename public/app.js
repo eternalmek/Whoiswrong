@@ -180,6 +180,13 @@ const LOADING_MESSAGES = [
     "Almost ready..."
 ];
 
+// Share text configuration
+const SHARE_CONFIG = {
+    twitter: "Who is wrong? Check this AI verdict on whoiswrong.io ⚖️👀",
+    tiktok: "Link copied! Paste it in your TikTok description or comments.",
+    instagram: "Link copied! Paste it in your Instagram story or post."
+};
+
 // Demo debates to show when database is empty
 const SAMPLE_DEBATES = [
     {
@@ -1293,8 +1300,7 @@ function getShareDetails() {
 
 function shareOnTwitter() {
     const { link } = getShareDetails();
-    const shareText = `Who is wrong? Check this AI verdict on whoiswrong.io ⚖️👀`;
-    const encodedText = encodeURIComponent(shareText);
+    const encodedText = encodeURIComponent(SHARE_CONFIG.twitter);
     const encodedUrl = encodeURIComponent(link);
     window.open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`, '_blank');
 }
@@ -1309,12 +1315,12 @@ function shareDebate(platform) {
     }
 
     if (platform === 'tiktok') {
-        copyShareLink('Link copied! Paste it in your TikTok description or comments.');
+        copyShareLink(SHARE_CONFIG.tiktok);
         return;
     }
     
     if (platform === 'instagram') {
-        copyShareLink('Link copied! Paste it in your Instagram story or post.');
+        copyShareLink(SHARE_CONFIG.instagram);
         return;
     }
 
