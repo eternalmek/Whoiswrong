@@ -426,8 +426,9 @@ function persistJudgeState() {
 
 function getJudgeAccessInfo(judgeId) {
     const judge = availableJudges.find((j) => j.id === judgeId) || availableJudges[0];
-    const judgeIndex = availableJudges.findIndex((j) => j.id === judgeId);
-    const isFreeByDefault = judgeIndex >= 0 && judgeIndex < FREE_JUDGES_COUNT;
+    
+    // Use is_free field from API response if available, otherwise fall back to position-based logic
+    const isFreeByDefault = judge.is_free === true || judge.is_default_free === true;
     
     // Check both local storage and server-synced purchases
     // Server takes precedence for logged-in users
@@ -438,7 +439,7 @@ function getJudgeAccessInfo(judgeId) {
     let label = 'Free';
     if (isFreeByDefault) label = 'Free';
     else if (unlocked) label = '✓ Unlocked';
-    else label = '$0.99';
+    else label = judge.price ? `$${judge.price.toFixed(2)}` : '$0.99';
 
     return { judge, unlocked, label };
 }
