@@ -2,14 +2,8 @@ const express = require('express');
 const { OpenAI } = require('openai');
 const { supabaseServiceRole, supabase, requireUser } = require('../supabaseClient');
 
-// Import celebrity judges for local fallback
-let celebrityJudges = [];
-try {
-  const judgesModule = require('../../public/celebrityJudges.js');
-  celebrityJudges = judgesModule.celebrityJudges || [];
-} catch (e) {
-  console.warn('Could not load celebrity judges:', e.message);
-}
+// Import celebrity judges from the data directory (shared location)
+const { celebrityJudges } = require('../data/judges');
 
 const router = express.Router();
 
@@ -115,22 +109,29 @@ router.post('/', async (req, res) => {
     // Parse the JSON response
     let judgement;
     try {
-      // Try to extract JSON from the response
-      const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        judgement = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
+      // First, try to parse the entire response as JSON
+      judgement = JSON.parse(responseContent);
+    } catch (directParseError) {
+      // If that fails, try to find JSON between first { and last }
+      try {
+        const firstBrace = responseContent.indexOf('{');
+        const lastBrace = responseContent.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace > firstBrace) {
+          const jsonSubstring = responseContent.substring(firstBrace, lastBrace + 1);
+          judgement = JSON.parse(jsonSubstring);
+        } else {
+          throw new Error('No JSON braces found in response');
+        }
+      } catch (parseError) {
+        console.warn('Failed to parse AI response as JSON:', parseError.message);
+        // Fallback: construct a response from raw text
+        judgement = {
+          wrong: sideA,
+          right: sideB,
+          reason: responseContent || 'The judge has spoken.',
+          roast: 'Better luck next time!',
+        };
       }
-    } catch (parseError) {
-      console.warn('Failed to parse AI response as JSON:', parseError.message);
-      // Fallback: construct a response from raw text
-      judgement = {
-        wrong: sideA,
-        right: sideB,
-        reason: responseContent || 'The judge has spoken.',
-        roast: 'Better luck next time!',
-      };
     }
 
     // Ensure all required fields exist
