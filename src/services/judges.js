@@ -1,9 +1,57 @@
+// src/services/judges.js
+// Responsible for seeding judges and resolving judge ids (slug <-> uuid)
+
 const { supabaseServiceRole } = require('../supabaseClient');
 const { celebrityJudges } = require('../data/judges');
 const { ensureJudgeAvatars } = require('./judgeAvatars');
 
 // Number of free judges (1 default + 3 celebrities = 4 total free)
 const FREE_JUDGES_COUNT = 4;
+
+// UUID regex for v1-5 pattern check
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/**
+ * Returns true if value is a UUID v1-5 (basic pattern check)
+ */
+function isUuid(value) {
+  return typeof value === 'string' && UUID_REGEX.test(value);
+}
+
+/**
+ * Resolve an input which may be a UUID or a slug to a judge UUID.
+ * Throws if not found.
+ * @param {object} supabase - Supabase client instance (optional, defaults to supabaseServiceRole)
+ * @param {string} identifier - uuid or slug
+ * @returns {Promise<string>} judge uuid
+ */
+async function resolveJudgeId(supabase, identifier) {
+  const client = supabase || supabaseServiceRole;
+  if (!client) {
+    throw new Error('Supabase client is required');
+  }
+
+  if (!identifier) {
+    throw new Error('No judge identifier provided');
+  }
+
+  if (isUuid(identifier)) return identifier;
+
+  // Treat as slug - look up id
+  const { data, error } = await client
+    .from('judges')
+    .select('id')
+    .eq('slug', identifier)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`DB error resolving judge slug "${identifier}": ${error.message || JSON.stringify(error)}`);
+  }
+  if (!data || !data.id) {
+    throw new Error(`Judge not found for slug: ${identifier}`);
+  }
+  return data.id;
+}
 
 async function ensureJudgesTable() {
   if (!supabaseServiceRole) {
@@ -25,12 +73,28 @@ async function ensureJudgesTable() {
   return true;
 }
 
-async function seedJudgesIfMissing() {
-  if (!supabaseServiceRole) {
-    throw new Error('Supabase service role not configured');
+/**
+ * Seed judges if missing.
+ * - Upserts by slug to be idempotent.
+ * - Maps input fields to DB column names and computes price_cents if price provided.
+ *
+ * @param {object} supabase - Supabase client instance (optional, defaults to supabaseServiceRole)
+ * @param {Array<object>} judges - array of judge objects to seed (optional, defaults to celebrityJudges)
+ */
+async function seedJudgesIfMissing(supabase, judges) {
+  const client = supabase || supabaseServiceRole;
+  const judgeList = Array.isArray(judges) && judges.length > 0 ? judges : celebrityJudges;
+
+  if (!client) {
+    throw new Error('Supabase client is required');
   }
 
-  const { data: existing, error } = await supabaseServiceRole
+  if (!Array.isArray(judgeList) || judgeList.length === 0) {
+    // nothing to seed
+    return;
+  }
+
+  const { data: existing, error } = await client
     .from('judges')
     .select('id, slug, personality_prompt, photo_url, category, price, is_free');
 
@@ -40,16 +104,16 @@ async function seedJudgesIfMissing() {
 
   const existingSlugs = new Set((existing || []).map((j) => j.slug));
   const existingBySlug = new Map((existing || []).map((row) => [row.slug, row]));
-  const missing = celebrityJudges.filter((judge) => !existingSlugs.has(judge.slug));
+  const missing = judgeList.filter((judge) => !existingSlugs.has(judge.slug));
 
   // Check for judges that need pricing updates
-  const needsPricingUpdate = celebrityJudges.filter((judge) => {
+  const needsPricingUpdate = judgeList.filter((judge) => {
     const current = existingBySlug.get(judge.slug);
     if (!current) return false;
     return current.price === null || current.is_free === null;
   });
 
-  const needsPatch = celebrityJudges.filter((judge) => {
+  const needsPatch = judgeList.filter((judge) => {
     const current = existingBySlug.get(judge.slug);
     if (!current) return false;
     return !current.personality_prompt || !current.category;
@@ -59,7 +123,7 @@ async function seedJudgesIfMissing() {
   // First 4 judges are free (1 default + 3 celebrities)
   // This ensures consistent free tier across fresh deployments
   const getFreeStatus = (judgeId) => {
-    const index = celebrityJudges.findIndex((j) => j.id === judgeId);
+    const index = judgeList.findIndex((j) => j.id === judgeId);
     return index >= 0 && index < FREE_JUDGES_COUNT;
   };
 
@@ -67,30 +131,41 @@ async function seedJudgesIfMissing() {
     return getFreeStatus(judgeId) ? 0 : 0.99;
   };
 
+  // Prepare rows: normalize fields
+  const prepareRow = (j) => {
+    const price = Number(j.price || j.price_cents || 0) || 0;
+    const computedPrice = price > 0 ? price : getPrice(j.id);
+    const slugSource = (j.slug || j.name || '').toString().toLowerCase();
+    const normalizedSlug = slugSource
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || `judge-${Math.random().toString(36).slice(2, 9)}`;
+
+    return {
+      id: j.id || normalizedSlug,
+      name: j.name || null,
+      slug: normalizedSlug,
+      description: j.description || j.bio || null,
+      base_prompt: j.base_prompt || j.personality_prompt || null,
+      personality_prompt: j.personality_prompt || null,
+      category: j.category || null,
+      is_default: !!j.is_default,
+      is_celebrity: !!j.is_celebrity,
+      is_free: j.is_free !== undefined ? !!j.is_free : getFreeStatus(j.id),
+      is_default_free: j.is_default_free !== undefined ? !!j.is_default_free : getFreeStatus(j.id),
+      price: computedPrice,
+      price_cents: Math.round(computedPrice * 100),
+      image_url: j.image_url || j.photo_url || j.avatar_url || j.avatar_placeholder || null,
+      avatar_url: j.avatar_url || j.avatar_placeholder || null,
+      photo_url: j.photo_url || j.avatar_placeholder || null,
+      is_active: typeof j.is_active === 'boolean' ? j.is_active : true,
+    };
+  };
+
   if (missing.length > 0) {
-    const { error: insertError } = await supabaseServiceRole
+    const rows = missing.map(prepareRow);
+    const { error: insertError } = await client
       .from('judges')
-      .upsert(
-        missing.map((judge) => ({
-          id: judge.id,
-          slug: judge.slug,
-          name: judge.name,
-          category: judge.category,
-          is_celebrity: judge.is_celebrity,
-          is_default_free: getFreeStatus(judge.id),
-          is_free: getFreeStatus(judge.id),
-          price: getPrice(judge.id),
-          // Use photo_url as primary image field, avatar_placeholder as fallback
-          photo_url: judge.photo_url || judge.avatar_placeholder,
-          avatar_url: judge.avatar_placeholder,
-          image_url: judge.photo_url || judge.avatar_placeholder,
-          description: judge.description,
-          // personality_prompt is the canonical field for prompt storage
-          personality_prompt: judge.personality_prompt,
-          is_active: judge.is_active,
-        })),
-        { onConflict: 'slug' }
-      );
+      .upsert(rows, { onConflict: 'slug' });
 
     if (insertError) {
       throw new Error(`Unable to seed judges table: ${insertError.message}`);
@@ -100,7 +175,7 @@ async function seedJudgesIfMissing() {
   // Update pricing for existing judges if needed
   if (needsPricingUpdate.length > 0) {
     for (const judge of needsPricingUpdate) {
-      const { error: priceError } = await supabaseServiceRole
+      const { error: priceError } = await client
         .from('judges')
         .update({
           is_free: getFreeStatus(judge.id),
@@ -115,35 +190,48 @@ async function seedJudgesIfMissing() {
   }
 
   if (needsPatch.length > 0) {
-    const { error: patchError } = await supabaseServiceRole
+    const rows = needsPatch.map((judge) => {
+      const current = existingBySlug.get(judge.slug) || {};
+      // Preserve existing photo_url if set, otherwise use fallbacks
+      const photoUrl = current.photo_url || judge.photo_url || judge.avatar_placeholder;
+      return {
+        id: judge.id,
+        slug: judge.slug,
+        name: judge.name,
+        category: judge.category,
+        is_celebrity: judge.is_celebrity,
+        is_default_free: getFreeStatus(judge.id),
+        is_free: getFreeStatus(judge.id),
+        price: getPrice(judge.id),
+        photo_url: photoUrl,
+        image_url: photoUrl,
+        description: judge.description,
+        personality_prompt: judge.personality_prompt,
+        is_active: judge.is_active,
+      };
+    });
+
+    const { error: patchError } = await client
       .from('judges')
-      .upsert(
-        needsPatch.map((judge) => {
-          const current = existingBySlug.get(judge.slug) || {};
-          // Preserve existing photo_url if set, otherwise use fallbacks
-          const photoUrl = current.photo_url || judge.photo_url || judge.avatar_placeholder;
-          return {
-            id: judge.id,
-            slug: judge.slug,
-            name: judge.name,
-            category: judge.category,
-            is_celebrity: judge.is_celebrity,
-            is_default_free: getFreeStatus(judge.id),
-            is_free: getFreeStatus(judge.id),
-            price: getPrice(judge.id),
-            photo_url: photoUrl,
-            image_url: photoUrl,
-            description: judge.description,
-            personality_prompt: judge.personality_prompt,
-            is_active: judge.is_active,
-          };
-        }),
-        { onConflict: 'slug' }
-      );
+      .upsert(rows, { onConflict: 'slug' });
 
     if (patchError) {
       console.warn('Unable to patch judges fields', patchError);
     }
+  }
+}
+
+/**
+ * Safe wrapper to seed judges but not crash on failure.
+ * Use this in request handlers where seeding is opportunistic.
+ */
+async function trySeedJudgesIfMissing(supabase, judges) {
+  try {
+    return await seedJudgesIfMissing(supabase, judges);
+  } catch (err) {
+    // Log and continue; don't let seeding break request flows.
+    console.error('Non-fatal: seedJudgesIfMissing failed:', err.message || err);
+    return null;
   }
 }
 
@@ -191,10 +279,29 @@ async function getJudgeById(id) {
   return found || judges[0];
 }
 
+/**
+ * Get local judges data without database access.
+ * Useful as fallback when DB is unavailable.
+ */
+function getLocalJudges() {
+  return celebrityJudges.map((judge) => ({
+    ...judge,
+    image_url: judge.photo_url || judge.avatar_placeholder || null,
+    photo_url: judge.photo_url || judge.avatar_placeholder || null,
+    personality_prompt: judge.personality_prompt,
+    is_free: judge.is_default_free ?? false,
+    price: judge.is_default_free ? 0 : 0.99,
+  }));
+}
+
 module.exports = {
+  isUuid,
+  resolveJudgeId,
   getJudgeById,
   fetchJudges,
   seedJudgesIfMissing,
+  trySeedJudgesIfMissing,
   ensureJudgesTable,
+  getLocalJudges,
   FREE_JUDGES_COUNT,
 };
