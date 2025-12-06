@@ -1,6 +1,6 @@
 -- Judges catalogue for celebrity and default options
 create table if not exists public.judges (
-  id text primary key,
+  id uuid primary key,
   slug text not null unique,
   name text not null,
   is_celebrity boolean default false,
@@ -13,7 +13,7 @@ create table if not exists public.judges (
 );
 
 -- Attach judge to judgements
-alter table if exists public.judgements add column if not exists judge_id text;
+alter table if exists public.judgements add column if not exists judge_id uuid;
 create index if not exists idx_judgements_judge on public.judgements (judge_id);
 
 -- Votes for public feed

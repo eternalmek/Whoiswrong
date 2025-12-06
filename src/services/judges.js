@@ -328,6 +328,8 @@ async function getJudgeById(id) {
 function getLocalJudges() {
   return celebrityJudges.map((judge, index) => ({
     ...judge,
+    // Generate a deterministic UUID from the slug for consistency
+    id: slugToUuid(judge.slug),
     image_url: judge.photo_url || judge.avatar_placeholder || null,
     photo_url: judge.photo_url || judge.avatar_placeholder || null,
     personality_prompt: judge.personality_prompt,
