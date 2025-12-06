@@ -1,6 +1,7 @@
 // src/services/judges.js
 // Responsible for seeding judges and resolving judge ids (slug <-> uuid)
 
+const crypto = require('crypto');
 const { supabaseServiceRole } = require('../supabaseClient');
 const { celebrityJudges } = require('../data/judges');
 const { ensureJudgeAvatars } = require('./judgeAvatars');
@@ -16,6 +17,39 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-
  */
 function isUuid(value) {
   return typeof value === 'string' && UUID_REGEX.test(value);
+}
+
+/**
+ * Generate a deterministic UUID v5 from a slug.
+ * This ensures the same slug always produces the same UUID.
+ * @param {string} slug - The slug to convert to UUID
+ * @returns {string} A valid UUID v5
+ */
+function slugToUuid(slug) {
+  if (!slug) return crypto.randomUUID();
+  
+  // Generate UUID v5 using namespace-based hashing
+  // Namespace UUID for "whoiswrong.io judges" (DNS namespace)
+  const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+  const namespaceBytes = Buffer.from(namespace.replace(/-/g, ''), 'hex');
+  const nameBytes = Buffer.from('whoiswrong-judge-' + slug, 'utf8');
+  
+  // Create SHA-1 hash
+  const hash = crypto.createHash('sha1')
+    .update(namespaceBytes)
+    .update(nameBytes)
+    .digest('hex');
+  
+  // Format as UUID v5
+  const uuid = [
+    hash.slice(0, 8),
+    hash.slice(8, 12),
+    '5' + hash.slice(13, 16), // Version 5
+    ((parseInt(hash.slice(16, 18), 16) & 0x3f) | 0x80).toString(16).padStart(2, '0') + hash.slice(18, 20), // Variant
+    hash.slice(20, 32)
+  ].join('-');
+  
+  return uuid;
 }
 
 /**
@@ -132,8 +166,8 @@ async function seedJudgesIfMissing(supabase, judges) {
   };
 
   // Prepare rows: normalize fields
-  // Note: We don't include 'id' in inserts - let the database generate UUIDs
-  // The 'slug' field is used for identifying judges instead
+  // Generate a deterministic UUID from the slug for the id field
+  // This ensures consistent UUIDs across restarts and handles both uuid and text id columns
   const prepareRow = (j) => {
     // Handle price: if price_cents is provided, convert to dollars; otherwise use price
     const price = j.price !== undefined ? Number(j.price) : (j.price_cents ? j.price_cents / 100 : 0);
@@ -146,7 +180,8 @@ async function seedJudgesIfMissing(supabase, judges) {
       .replace(/^-+|-+$/g, '') || fallbackSlug;
 
     return {
-      // Don't include 'id' - let the database generate a UUID
+      // Generate a deterministic UUID from the slug
+      id: slugToUuid(normalizedSlug),
       name: j.name || null,
       slug: normalizedSlug,
       description: j.description || j.bio || null,
@@ -199,8 +234,10 @@ async function seedJudgesIfMissing(supabase, judges) {
       const current = existingBySlug.get(judge.slug) || {};
       // Preserve existing photo_url if set, otherwise use fallbacks
       const photoUrl = current.photo_url || judge.photo_url || judge.avatar_placeholder;
+      // For updates, use existing id if present, otherwise generate from slug
+      const judgeId = current.id || slugToUuid(judge.slug);
       return {
-        // Don't include 'id' - let the database handle it
+        id: judgeId,
         slug: judge.slug,
         name: judge.name,
         category: judge.category,
