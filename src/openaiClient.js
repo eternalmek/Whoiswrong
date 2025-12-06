@@ -59,6 +59,8 @@ Return the JSON object described in the system instruction.
         { role: 'system', content: systemInstruction },
         { role: 'user', content: prompt },
       ],
+      // Force the model to return strict JSON so downstream parsing does not fail.
+      response_format: { type: 'json_object' },
       temperature: 0.2,
       max_tokens: 200,
     },
