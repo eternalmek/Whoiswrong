@@ -1,6 +1,7 @@
 // src/services/judges.js
 // Responsible for seeding judges and resolving judge ids (slug <-> uuid)
 
+const crypto = require('crypto');
 const { supabaseServiceRole } = require('../supabaseClient');
 const { celebrityJudges } = require('../data/judges');
 const { ensureJudgeAvatars } = require('./judgeAvatars');
@@ -16,6 +17,39 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-
  */
 function isUuid(value) {
   return typeof value === 'string' && UUID_REGEX.test(value);
+}
+
+/**
+ * Generate a deterministic UUID v5 from a slug.
+ * This ensures the same slug always produces the same UUID.
+ * @param {string} slug - The slug to convert to UUID
+ * @returns {string} A valid UUID v5
+ */
+function slugToUuid(slug) {
+  if (!slug) return crypto.randomUUID();
+  
+  // Generate UUID v5 using namespace-based hashing
+  // Namespace UUID for "whoiswrong.io judges" (DNS namespace)
+  const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+  const namespaceBytes = Buffer.from(namespace.replace(/-/g, ''), 'hex');
+  const nameBytes = Buffer.from('whoiswrong-judge-' + slug, 'utf8');
+  
+  // Create SHA-1 hash
+  const hash = crypto.createHash('sha1')
+    .update(namespaceBytes)
+    .update(nameBytes)
+    .digest('hex');
+  
+  // Format as UUID v5
+  const uuid = [
+    hash.slice(0, 8),
+    hash.slice(8, 12),
+    '5' + hash.slice(13, 16), // Version 5
+    ((parseInt(hash.slice(16, 18), 16) & 0x3f) | 0x80).toString(16).padStart(2, '0') + hash.slice(18, 20), // Variant
+    hash.slice(20, 32)
+  ].join('-');
+  
+  return uuid;
 }
 
 /**
@@ -122,20 +156,22 @@ async function seedJudgesIfMissing(supabase, judges) {
   // Determine which judges are free based on position in the list
   // First 4 judges are free (1 default + 3 celebrities)
   // This ensures consistent free tier across fresh deployments
-  const getFreeStatus = (judgeId) => {
-    const index = judgeList.findIndex((j) => j.id === judgeId);
+  const getFreeStatus = (judgeSlug) => {
+    const index = judgeList.findIndex((j) => j.slug === judgeSlug);
     return index >= 0 && index < FREE_JUDGES_COUNT;
   };
 
-  const getPrice = (judgeId) => {
-    return getFreeStatus(judgeId) ? 0 : 0.99;
+  const getPrice = (judgeSlug) => {
+    return getFreeStatus(judgeSlug) ? 0 : 0.99;
   };
 
   // Prepare rows: normalize fields
+  // Generate a deterministic UUID from the slug for the id field
+  // This ensures consistent UUIDs across restarts and handles both uuid and text id columns
   const prepareRow = (j) => {
     // Handle price: if price_cents is provided, convert to dollars; otherwise use price
     const price = j.price !== undefined ? Number(j.price) : (j.price_cents ? j.price_cents / 100 : 0);
-    const computedPrice = price > 0 ? price : getPrice(j.id);
+    const computedPrice = price > 0 ? price : getPrice(j.slug);
     const slugSource = (j.slug || j.name || '').toString().toLowerCase();
     // Use a deterministic fallback based on name hash if slug is empty
     const fallbackSlug = j.name ? `judge-${j.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : `judge-unknown`;
@@ -144,7 +180,8 @@ async function seedJudgesIfMissing(supabase, judges) {
       .replace(/^-+|-+$/g, '') || fallbackSlug;
 
     return {
-      id: j.id || normalizedSlug,
+      // Generate a deterministic UUID from the slug
+      id: slugToUuid(normalizedSlug),
       name: j.name || null,
       slug: normalizedSlug,
       description: j.description || j.bio || null,
@@ -153,8 +190,8 @@ async function seedJudgesIfMissing(supabase, judges) {
       category: j.category || null,
       is_default: !!j.is_default,
       is_celebrity: !!j.is_celebrity,
-      is_free: j.is_free !== undefined ? !!j.is_free : getFreeStatus(j.id),
-      is_default_free: j.is_default_free !== undefined ? !!j.is_default_free : getFreeStatus(j.id),
+      is_free: j.is_free !== undefined ? !!j.is_free : getFreeStatus(j.slug),
+      is_default_free: j.is_default_free !== undefined ? !!j.is_default_free : getFreeStatus(j.slug),
       price: computedPrice,
       price_cents: Math.round(computedPrice * 100),
       image_url: j.image_url || j.photo_url || j.avatar_url || j.avatar_placeholder || null,
@@ -181,10 +218,10 @@ async function seedJudgesIfMissing(supabase, judges) {
       const { error: priceError } = await client
         .from('judges')
         .update({
-          is_free: getFreeStatus(judge.id),
-          price: getPrice(judge.id),
+          is_free: getFreeStatus(judge.slug),
+          price: getPrice(judge.slug),
         })
-        .eq('id', judge.id);
+        .eq('slug', judge.slug);
 
       if (priceError) {
         console.warn(`Unable to update pricing for ${judge.name}:`, priceError);
@@ -197,15 +234,17 @@ async function seedJudgesIfMissing(supabase, judges) {
       const current = existingBySlug.get(judge.slug) || {};
       // Preserve existing photo_url if set, otherwise use fallbacks
       const photoUrl = current.photo_url || judge.photo_url || judge.avatar_placeholder;
+      // For updates, use existing id if present, otherwise generate from slug
+      const judgeId = current.id || slugToUuid(judge.slug);
       return {
-        id: judge.id,
+        id: judgeId,
         slug: judge.slug,
         name: judge.name,
         category: judge.category,
         is_celebrity: judge.is_celebrity,
-        is_default_free: getFreeStatus(judge.id),
-        is_free: getFreeStatus(judge.id),
-        price: getPrice(judge.id),
+        is_default_free: getFreeStatus(judge.slug),
+        is_free: getFreeStatus(judge.slug),
+        price: getPrice(judge.slug),
         photo_url: photoUrl,
         image_url: photoUrl,
         description: judge.description,

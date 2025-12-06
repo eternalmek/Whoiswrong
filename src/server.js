@@ -27,6 +27,10 @@ const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
 
 const app = express();
 
+// Trust proxy settings for running behind reverse proxies (Vercel, nginx, etc.)
+// This is required for express-rate-limit to work correctly with X-Forwarded-For headers
+app.set('trust proxy', 1);
+
 // Middlewares - use helmet with relaxed CSP for CDN scripts and Vercel Analytics
 app.use(helmet({
   contentSecurityPolicy: {
