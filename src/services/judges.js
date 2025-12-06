@@ -26,13 +26,14 @@ function isUuid(value) {
  * @returns {string} A valid UUID v5
  */
 function slugToUuid(slug) {
-  if (!slug) return crypto.randomUUID();
+  // Use a default slug if none provided to maintain deterministic behavior
+  const effectiveSlug = slug || 'default-judge';
   
   // Generate UUID v5 using namespace-based hashing
   // Namespace UUID for "whoiswrong.io judges" (DNS namespace)
   const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
   const namespaceBytes = Buffer.from(namespace.replace(/-/g, ''), 'hex');
-  const nameBytes = Buffer.from('whoiswrong-judge-' + slug, 'utf8');
+  const nameBytes = Buffer.from('whoiswrong-judge-' + effectiveSlug, 'utf8');
   
   // Create SHA-1 hash
   const hash = crypto.createHash('sha1')
@@ -41,10 +42,12 @@ function slugToUuid(slug) {
     .digest('hex');
   
   // Format as UUID v5
+  // UUID format: xxxxxxxx-xxxx-5xxx-yxxx-xxxxxxxxxxxx
+  // Where 5 = version, and y = variant (8, 9, a, or b)
   const uuid = [
     hash.slice(0, 8),
     hash.slice(8, 12),
-    '5' + hash.slice(13, 16), // Version 5
+    '5' + hash.slice(12, 15), // Version 5 at correct position
     ((parseInt(hash.slice(16, 18), 16) & 0x3f) | 0x80).toString(16).padStart(2, '0') + hash.slice(18, 20), // Variant
     hash.slice(20, 32)
   ].join('-');
@@ -169,15 +172,16 @@ async function seedJudgesIfMissing(supabase, judges) {
   // Generate a deterministic UUID from the slug for the id field
   // This ensures consistent UUIDs across restarts and handles both uuid and text id columns
   const prepareRow = (j) => {
-    // Handle price: if price_cents is provided, convert to dollars; otherwise use price
-    const price = j.price !== undefined ? Number(j.price) : (j.price_cents ? j.price_cents / 100 : 0);
-    const computedPrice = price > 0 ? price : getPrice(j.slug);
     const slugSource = (j.slug || j.name || '').toString().toLowerCase();
     // Use a deterministic fallback based on name hash if slug is empty
     const fallbackSlug = j.name ? `judge-${j.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : `judge-unknown`;
     const normalizedSlug = slugSource
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '') || fallbackSlug;
+
+    // Handle price: if price_cents is provided, convert to dollars; otherwise use price
+    const price = j.price !== undefined ? Number(j.price) : (j.price_cents ? j.price_cents / 100 : 0);
+    const computedPrice = price > 0 ? price : getPrice(normalizedSlug);
 
     return {
       // Generate a deterministic UUID from the slug
@@ -190,8 +194,8 @@ async function seedJudgesIfMissing(supabase, judges) {
       category: j.category || null,
       is_default: !!j.is_default,
       is_celebrity: !!j.is_celebrity,
-      is_free: j.is_free !== undefined ? !!j.is_free : getFreeStatus(j.slug),
-      is_default_free: j.is_default_free !== undefined ? !!j.is_default_free : getFreeStatus(j.slug),
+      is_free: j.is_free !== undefined ? !!j.is_free : getFreeStatus(normalizedSlug),
+      is_default_free: j.is_default_free !== undefined ? !!j.is_default_free : getFreeStatus(normalizedSlug),
       price: computedPrice,
       price_cents: Math.round(computedPrice * 100),
       image_url: j.image_url || j.photo_url || j.avatar_url || j.avatar_placeholder || null,
