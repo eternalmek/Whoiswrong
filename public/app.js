@@ -81,6 +81,12 @@ function getAvatarUrl(judge) {
 
 function sortJudges(list) {
     return [...list].sort((a, b) => {
+        // Free judges always come first
+        const aFree = a.is_free === true || a.is_default_free === true;
+        const bFree = b.is_free === true || b.is_default_free === true;
+        if (aFree && !bFree) return -1;
+        if (!aFree && bFree) return 1;
+
         const aIndex = JUDGE_PRIORITY.indexOf(a.id);
         const bIndex = JUDGE_PRIORITY.indexOf(b.id);
         if (aIndex === -1 && bIndex === -1) return (a.name || '').localeCompare(b.name || '');
