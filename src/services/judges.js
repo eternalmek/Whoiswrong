@@ -133,12 +133,15 @@ async function seedJudgesIfMissing(supabase, judges) {
 
   // Prepare rows: normalize fields
   const prepareRow = (j) => {
-    const price = Number(j.price || j.price_cents || 0) || 0;
+    // Handle price: if price_cents is provided, convert to dollars; otherwise use price
+    const price = j.price !== undefined ? Number(j.price) : (j.price_cents ? j.price_cents / 100 : 0);
     const computedPrice = price > 0 ? price : getPrice(j.id);
     const slugSource = (j.slug || j.name || '').toString().toLowerCase();
+    // Use a deterministic fallback based on name hash if slug is empty
+    const fallbackSlug = j.name ? `judge-${j.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : `judge-unknown`;
     const normalizedSlug = slugSource
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || `judge-${Math.random().toString(36).slice(2, 9)}`;
+      .replace(/^-+|-+$/g, '') || fallbackSlug;
 
     return {
       id: j.id || normalizedSlug,
@@ -284,13 +287,14 @@ async function getJudgeById(id) {
  * Useful as fallback when DB is unavailable.
  */
 function getLocalJudges() {
-  return celebrityJudges.map((judge) => ({
+  return celebrityJudges.map((judge, index) => ({
     ...judge,
     image_url: judge.photo_url || judge.avatar_placeholder || null,
     photo_url: judge.photo_url || judge.avatar_placeholder || null,
     personality_prompt: judge.personality_prompt,
-    is_free: judge.is_default_free ?? false,
-    price: judge.is_default_free ? 0 : 0.99,
+    // Use same logic as seeding: first FREE_JUDGES_COUNT judges are free
+    is_free: index < FREE_JUDGES_COUNT,
+    price: index < FREE_JUDGES_COUNT ? 0 : 0.99,
   }));
 }
 
