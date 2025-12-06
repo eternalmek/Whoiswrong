@@ -13,7 +13,6 @@ const defaultPrompt = (name, flavor) =>
 
 const celebrityJudges = [
   {
-    id: 'normal',
     slug: 'normal',
     name: 'Default AI Judge',
     category: 'Core',
@@ -28,7 +27,6 @@ const celebrityJudges = [
   },
   // Global Superstars
   {
-    id: 'cristiano-ronaldo',
     slug: 'cristiano-ronaldo',
     name: 'Cristiano Ronaldo',
     category: 'Global Superstars',
@@ -41,7 +39,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Cristiano Ronaldo', 'Confident, competitive, champion mindset with stadium hype.'),
   },
   {
-    id: 'lionel-messi',
     slug: 'lionel-messi',
     name: 'Lionel Messi',
     category: 'Global Superstars',
@@ -54,7 +51,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Lionel Messi', 'Calm, humble, lets skill speak. Sharp, efficient verdicts.'),
   },
   {
-    id: 'taylor-swift',
     slug: 'taylor-swift',
     name: 'Taylor Swift',
     category: 'Global Superstars',
@@ -67,7 +63,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Taylor Swift', 'Storytelling, clever, a little petty—like writing liner notes.'),
   },
   {
-    id: 'justin-bieber',
     slug: 'justin-bieber',
     name: 'Justin Bieber',
     category: 'Global Superstars',
@@ -80,7 +75,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Justin Bieber', 'Casual, charming, slightly cheeky verdicts like a pop hook.'),
   },
   {
-    id: 'beyonce',
     slug: 'beyonce',
     name: 'Beyoncé',
     category: 'Global Superstars',
@@ -93,7 +87,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Beyoncé', 'Regal, empowering, perfectionist with stadium authority.'),
   },
   {
-    id: 'rihanna',
     slug: 'rihanna',
     name: 'Rihanna',
     category: 'Global Superstars',
@@ -106,7 +99,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Rihanna', 'Unbothered, stylish, and slyly savage when calling winners.'),
   },
   {
-    id: 'drake',
     slug: 'drake',
     name: 'Drake',
     category: 'Global Superstars',
@@ -119,7 +111,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Drake', 'Introspective flex, meme-ready lines, emotional but decisive.'),
   },
   {
-    id: 'eminem',
     slug: 'eminem',
     name: 'Eminem',
     category: 'Global Superstars',
@@ -132,7 +123,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Eminem', 'Rapid-fire, razor-sharp battle rap energy with savage punchlines.'),
   },
   {
-    id: 'billie-eilish',
     slug: 'billie-eilish',
     name: 'Billie Eilish',
     category: 'Global Superstars',
@@ -145,7 +135,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Billie Eilish', 'Deadpan, artsy, slightly eerie with clever shade.'),
   },
   {
-    id: 'ed-sheeran',
     slug: 'ed-sheeran',
     name: 'Ed Sheeran',
     category: 'Global Superstars',
@@ -159,7 +148,6 @@ const celebrityJudges = [
   },
   // Ultra-Viral Public Figures
   {
-    id: 'donald-trump',
     slug: 'donald-trump',
     name: 'Donald Trump',
     category: 'Ultra-Viral Public Figures',
@@ -172,7 +160,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Donald Trump', 'Bold, bragging, catchphrase-heavy, and absolutely certain.'),
   },
   {
-    id: 'barack-obama',
     slug: 'barack-obama',
     name: 'Barack Obama',
     category: 'Ultra-Viral Public Figures',
@@ -185,7 +172,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Barack Obama', 'Thoughtful, eloquent, hopeful cadence with decisive tone.'),
   },
   {
-    id: 'joe-biden',
     slug: 'joe-biden',
     name: 'Joe Biden',
     category: 'Ultra-Viral Public Figures',
@@ -198,7 +184,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Joe Biden', 'Folksy, empathetic, and direct with a straight-shooting finish.'),
   },
   {
-    id: 'elon-musk',
     slug: 'elon-musk',
     name: 'Elon Musk',
     category: 'Ultra-Viral Public Figures',
@@ -211,7 +196,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Elon Musk', 'Technical, futuristic, with dry meme humor and blunt certainty.'),
   },
   {
-    id: 'andrew-tate',
     slug: 'andrew-tate',
     name: 'Andrew Tate',
     category: 'Ultra-Viral Public Figures',
@@ -224,7 +208,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Andrew Tate', 'Alpha bravado, unapologetic certainty, sharp dismissals.'),
   },
   {
-    id: 'mrbeast',
     slug: 'mrbeast',
     name: 'MrBeast',
     category: 'Ultra-Viral Public Figures',
@@ -237,7 +220,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('MrBeast', 'Hype, challenge-obsessed, generous energy with decisive calls.'),
   },
   {
-    id: 'pewdiepie',
     slug: 'pewdiepie',
     name: 'PewDiePie',
     category: 'Ultra-Viral Public Figures',
@@ -250,7 +232,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('PewDiePie', 'Sarcastic, meme-filled, playful roasts with brofist flair.'),
   },
   {
-    id: 'dwayne-johnson',
     slug: 'dwayne-johnson',
     name: 'Dwayne Johnson (The Rock)',
     category: 'Ultra-Viral Public Figures',
@@ -263,7 +244,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Dwayne Johnson', 'Charismatic, wrestling promo energy with eyebrow-raising burns.'),
   },
   {
-    id: 'gordon-ramsay',
     slug: 'gordon-ramsay',
     name: 'Gordon Ramsay',
     category: 'Ultra-Viral Public Figures',
@@ -276,7 +256,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Gordon Ramsay', "Angry, hilarious chef energy with brutal honesty and insults."),
   },
   {
-    id: 'kim-kardashian',
     slug: 'kim-kardashian',
     name: 'Kim Kardashian',
     category: 'Ultra-Viral Public Figures',
@@ -290,7 +269,6 @@ const celebrityJudges = [
   },
   // Icons & Legends
   {
-    id: 'morgan-freeman',
     slug: 'morgan-freeman',
     name: 'Morgan Freeman',
     category: 'Icons & Legends',
@@ -303,7 +281,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Morgan Freeman', 'Warm, resonant narration with wise, decisive tone.'),
   },
   {
-    id: 'snoop-dogg',
     slug: 'snoop-dogg',
     name: 'Snoop Dogg',
     category: 'Icons & Legends',
@@ -316,7 +293,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Snoop Dogg', 'Chill West Coast slang, smooth and witty, always picking sides.'),
   },
   {
-    id: 'keanu-reeves',
     slug: 'keanu-reeves',
     name: 'Keanu Reeves',
     category: 'Icons & Legends',
@@ -329,7 +305,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Keanu Reeves', 'Humble, kind, but firm—cool-headed like an action hero.'),
   },
   {
-    id: 'leonardo-dicaprio',
     slug: 'leonardo-dicaprio',
     name: 'Leonardo DiCaprio',
     category: 'Icons & Legends',
@@ -342,7 +317,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Leonardo DiCaprio', 'Passionate, dramatic, and sharp like a leading man monologue.'),
   },
   {
-    id: 'robert-downey-jr',
     slug: 'robert-downey-jr',
     name: 'Robert Downey Jr',
     category: 'Icons & Legends',
@@ -355,7 +329,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Robert Downey Jr', 'Quippy, charismatic, Stark-level confidence and wit.'),
   },
   {
-    id: 'tom-cruise',
     slug: 'tom-cruise',
     name: 'Tom Cruise',
     category: 'Icons & Legends',
@@ -368,7 +341,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Tom Cruise', 'High-octane, confident, motivational like an action hero pep talk.'),
   },
   {
-    id: 'zendaya',
     slug: 'zendaya',
     name: 'Zendaya',
     category: 'Icons & Legends',
@@ -381,7 +353,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Zendaya', 'Smart, grounded, and stylish with sharp one-liners.'),
   },
   {
-    id: 'chris-hemsworth',
     slug: 'chris-hemsworth',
     name: 'Chris Hemsworth',
     category: 'Icons & Legends',
@@ -394,7 +365,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Chris Hemsworth', 'Playful, heroic, thunderous confidence with friendly charm.'),
   },
   {
-    id: 'johnny-depp',
     slug: 'johnny-depp',
     name: 'Johnny Depp',
     category: 'Icons & Legends',
@@ -407,7 +377,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Johnny Depp', 'Quirky, theatrical, with sly humor and decisive flair.'),
   },
   {
-    id: 'will-smith',
     slug: 'will-smith',
     name: 'Will Smith',
     category: 'Icons & Legends',
@@ -421,7 +390,6 @@ const celebrityJudges = [
   },
   // Bonus Real + Fictional
   {
-    id: 'shakira',
     slug: 'shakira',
     name: 'Shakira',
     category: 'Bonus',
@@ -434,7 +402,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Shakira', 'Rhythmic, spirited, and playful with sharp truth drops.'),
   },
   {
-    id: 'ariana-grande',
     slug: 'ariana-grande',
     name: 'Ariana Grande',
     category: 'Bonus',
@@ -447,7 +414,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Ariana Grande', 'Sweet but sharp, vocal-run drama with confident shade.'),
   },
   {
-    id: 'selena-gomez',
     slug: 'selena-gomez',
     name: 'Selena Gomez',
     category: 'Bonus',
@@ -460,7 +426,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Selena Gomez', 'Warm, honest, supportive but firm in choosing a side.'),
   },
   {
-    id: 'kylie-jenner',
     slug: 'kylie-jenner',
     name: 'Kylie Jenner',
     category: 'Bonus',
@@ -473,7 +438,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Kylie Jenner', 'Trendy, confident, influencer tone with quick shade.'),
   },
   {
-    id: 'neymar',
     slug: 'neymar',
     name: 'Neymar Jr',
     category: 'Bonus',
@@ -486,7 +450,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Neymar Jr', 'Flashy, passionate, dramatic flair like a samba dribble.'),
   },
   {
-    id: 'kylian-mbappe',
     slug: 'kylian-mbappe',
     name: 'Kylian Mbappé',
     category: 'Bonus',
@@ -499,7 +462,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Kylian Mbappé', 'Focused, hungry, and fearless with calm killer instinct.'),
   },
   {
-    id: 'post-malone',
     slug: 'post-malone',
     name: 'Post Malone',
     category: 'Bonus',
@@ -512,7 +474,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Post Malone', 'Chill, self-deprecating humor with genuine, decisive vibes.'),
   },
   {
-    id: 'travis-scott',
     slug: 'travis-scott',
     name: 'Travis Scott',
     category: 'Bonus',
@@ -525,7 +486,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Travis Scott', 'Hazy hype-man energy, ad-libs, and confident picks.'),
   },
   {
-    id: 'jack-black',
     slug: 'jack-black',
     name: 'Jack Black',
     category: 'Bonus',
@@ -538,7 +498,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Jack Black', 'Explosive, comedic, rock-god theatrics with decisive riffs.'),
   },
   {
-    id: 'samuel-l-jackson',
     slug: 'samuel-l-jackson',
     name: 'Samuel L. Jackson',
     category: 'Bonus',
@@ -551,7 +510,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Samuel L. Jackson', 'Commanding, sharp-tongued, cinematic with fierce conviction.'),
   },
   {
-    id: 'mark-zuckerberg',
     slug: 'mark-zuckerberg',
     name: 'Mark Zuckerberg',
     category: 'Bonus',
@@ -564,7 +522,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Mark Zuckerberg', 'Analytical, product-focused, slightly robotic with meme-aware humor.'),
   },
   {
-    id: 'oprah-winfrey',
     slug: 'oprah-winfrey',
     name: 'Oprah Winfrey',
     category: 'Bonus',
@@ -577,7 +534,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Oprah Winfrey', 'Warm, motivational, yet firm—like a life-changing interview moment.'),
   },
   {
-    id: 'jeff-bezos',
     slug: 'jeff-bezos',
     name: 'Jeff Bezos',
     category: 'Bonus',
@@ -590,7 +546,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Jeff Bezos', 'Data-driven, strategic, with dry billionaire confidence.'),
   },
   {
-    id: 'james-bond',
     slug: 'james-bond',
     name: 'James Bond',
     category: 'Bonus',
@@ -603,7 +558,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('James Bond', 'Cool, suave, witty spy confidence with lethal decisiveness.'),
   },
   {
-    id: 'batman',
     slug: 'batman',
     name: 'Batman',
     category: 'Bonus',
@@ -616,7 +570,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Batman', 'Brooding, tactical, uncompromising with terse verdicts.'),
   },
   {
-    id: 'deadpool',
     slug: 'deadpool',
     name: 'Deadpool',
     category: 'Bonus',
@@ -629,7 +582,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Deadpool', 'Chaotic, fourth-wall-breaking, sarcastic with violent punchlines.'),
   },
   {
-    id: 'goku',
     slug: 'goku',
     name: 'Goku',
     category: 'Bonus',
@@ -642,7 +594,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Goku', 'Energetic, optimistic warrior spirit with decisive battle cries.'),
   },
   {
-    id: 'naruto',
     slug: 'naruto',
     name: 'Naruto',
     category: 'Bonus',
@@ -655,7 +606,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Naruto', 'Loud, hopeful, never-give-up spirit with ninja determination.'),
   },
   {
-    id: 'saitama',
     slug: 'saitama',
     name: 'Saitama',
     category: 'Bonus',
@@ -668,7 +618,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Saitama', 'Deadpan, bored hero vibe with brutally simple verdicts.'),
   },
   {
-    id: 'luffy',
     slug: 'luffy',
     name: 'Luffy',
     category: 'Bonus',
@@ -681,7 +630,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Luffy', 'Joyful, fearless, loyal captain energy with gut-driven choices.'),
   },
   {
-    id: 'vegeta',
     slug: 'vegeta',
     name: 'Vegeta',
     category: 'Bonus',
@@ -694,7 +642,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Vegeta', 'Arrogant, intense, rivalry-fueled takedowns with decisive heat.'),
   },
   {
-    id: 'spongebob',
     slug: 'spongebob',
     name: 'SpongeBob',
     category: 'Bonus',
@@ -707,7 +654,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('SpongeBob', 'Hyper-optimistic, goofy, nautical nonsense with firm picks.'),
   },
   {
-    id: 'shrek',
     slug: 'shrek',
     name: 'Shrek',
     category: 'Bonus',
@@ -720,7 +666,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Shrek', 'Gruff, humorous ogre snark with heart and blunt truth.'),
   },
   {
-    id: 'homer-simpson',
     slug: 'homer-simpson',
     name: 'Homer Simpson',
     category: 'Bonus',
@@ -733,7 +678,6 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Homer Simpson', 'Lazy, lovable, impulsive dad humor with obvious choices.'),
   },
   {
-    id: 'peter-griffin',
     slug: 'peter-griffin',
     name: 'Peter Griffin',
     category: 'Bonus',
