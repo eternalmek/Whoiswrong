@@ -6,8 +6,8 @@ const { supabaseServiceRole } = require('../supabaseClient');
 const { celebrityJudges } = require('../data/judges');
 const { ensureJudgeAvatars } = require('./judgeAvatars');
 
-// Number of free judges (1 default + 3 celebrities = 4 total free)
-const FREE_JUDGES_COUNT = 4;
+// Number of free judges (AI + two celebrities = 3 total free)
+const FREE_JUDGES_COUNT = 3;
 
 // UUID regex for v1-5 pattern check
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -153,9 +153,9 @@ async function seedJudgesIfMissing(supabase, judges) {
     return !current.personality_prompt || !current.category;
   });
 
-  // Determine which judges are free based on position in the list
-  // First 4 judges are free (1 default + 3 celebrities)
-  // This ensures consistent free tier across fresh deployments
+    // Determine which judges are free based on position in the list
+    // First 3 judges are free (AI + two celebrities)
+    // This ensures consistent free tier across fresh deployments
   const getFreeStatus = (judgeSlug) => {
     const index = judgeList.findIndex((j) => j.slug === judgeSlug);
     return index >= 0 && index < FREE_JUDGES_COUNT;
@@ -184,6 +184,8 @@ async function seedJudgesIfMissing(supabase, judges) {
       id: slugToUuid(normalizedSlug),
       name: j.name || null,
       slug: normalizedSlug,
+      color_theme: j.color_theme || null,
+      is_ai_default: !!j.is_ai_default,
       description: j.description || j.bio || null,
       base_prompt: j.base_prompt || j.personality_prompt || null,
       personality_prompt: j.personality_prompt || null,
@@ -197,6 +199,7 @@ async function seedJudgesIfMissing(supabase, judges) {
       image_url: j.image_url || j.photo_url || j.avatar_url || j.avatar_placeholder || null,
       avatar_url: j.avatar_url || j.avatar_placeholder || null,
       photo_url: j.photo_url || j.avatar_placeholder || null,
+      price_id: j.price_id || null,
       is_active: typeof j.is_active === 'boolean' ? j.is_active : true,
     };
   };
