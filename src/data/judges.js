@@ -1,3 +1,6 @@
+// Import the new celebrity judges list
+const { newCelebrityJudges } = require('./newJudges');
+
 const baseAvatar = (name, tone = 'f4c2c2') =>
   `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name)}&radius=50&backgroundColor=f8fafc&skinColor=${tone}`;
 
@@ -11,7 +14,12 @@ const defaultPrompt = (name, flavor) =>
     'Never say you are an AI.'
   ].filter(Boolean).join(' ');
 
-const celebrityJudges = [
+// Use the new celebrity judges list - reset per spec
+// This replaces the old list with: 3 free (AI Judge, Elon Musk, Taylor Swift) + 17 paid celebrities
+const celebrityJudges = newCelebrityJudges;
+
+// Keep old list as backup/reference for migration purposes
+const legacyCelebrityJudges = [
   {
     slug: 'normal',
     name: 'Default AI Judge',
@@ -25,7 +33,8 @@ const celebrityJudges = [
     personality_prompt:
       'Act like a confident, witty host of a viral courtroom show. Make decisive calls with short, punchy explanations. Never hedge.',
   },
-  // Global Superstars
+  // Legacy judges kept for reference (not used in new system)
+  /*
   {
     slug: 'cristiano-ronaldo',
     name: 'Cristiano Ronaldo',
@@ -678,6 +687,9 @@ const celebrityJudges = [
     personality_prompt: defaultPrompt('Homer Simpson', 'Lazy, lovable, impulsive dad humor with obvious choices.'),
   },
   {
+  // Legacy judges list commented out - using new list from newJudges.js
+  /*
+  {
     slug: 'peter-griffin',
     name: 'Peter Griffin',
     category: 'Bonus',
@@ -689,6 +701,8 @@ const celebrityJudges = [
     avatar_placeholder: baseAvatar('Peter Griffin', 'f1c27d'),
     personality_prompt: defaultPrompt('Peter Griffin', 'Goofy, cutaway-gag humor with overconfident verdicts.'),
   },
+  */
 ];
 
-module.exports = { celebrityJudges };
+module.exports = { celebrityJudges, baseAvatar, defaultPrompt, legacyCelebrityJudges };
+
