@@ -4,10 +4,10 @@ const { supabaseServiceRole } = require('../supabaseClient');
 const { optionalUser } = require('../middleware/auth');
 const { callOpenAI } = require('../openaiClient');
 const { getJudgeById, getLocalJudges } = require('../services/judges');
-const { createPublicDebate } = require('../services/debates');
+const { createPublicDebate, createDebate } = require('../services/debates');
 
 // POST /api/judge
-// body: { context, optionA, optionB, judgeId }
+// body: { context, optionA, optionB, judgeId, makePublic, isAnonymous, category }
 router.post('/', optionalUser, async (req, res, next) => {
   try {
     const {
@@ -16,6 +16,8 @@ router.post('/', optionalUser, async (req, res, next) => {
       optionB,
       judgeId = 'normal',
       makePublic = true,
+      isAnonymous = false,
+      category = null,
       allowIndexing = true,
     } = req.body || {};
 
@@ -51,7 +53,11 @@ router.post('/', optionalUser, async (req, res, next) => {
       }
     }
 
-    // Persist into Supabase (table: judgements)
+    // Determine wrong/right sides (A or B)
+    const wrongSide = ai.wrong === optionA ? 'A' : 'B';
+    const rightSide = ai.right === optionA ? 'A' : 'B';
+
+    // Persist into Supabase (table: judgements) - for backward compatibility
     const insertPayload = {
       context,
       option_a: optionA,
@@ -69,25 +75,48 @@ router.post('/', optionalUser, async (req, res, next) => {
     if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY && supabaseServiceRole) {
       const { data, error } = await supabaseServiceRole.from('judgements').insert([insertPayload]).select().limit(1);
       if (error) {
-        console.warn('Supabase insert warning:', error);
+        console.warn('Supabase insert warning (judgements):', error);
       } else {
         saved = data?.[0] || null;
       }
     }
 
-    // Create public debate entry for SEO-friendly sharing when enabled
+    // NEW: Save to debates table for social features
+    let debate = null;
+    const verdictText = [ai.reason, ai.roast].filter(Boolean).join('\n\n');
+    
+    try {
+      debate = await createDebate({
+        userId: req.auth?.user?.id || null,
+        context,
+        optionA,
+        optionB,
+        wrongSide,
+        rightSide,
+        verdictText,
+        category,
+        isPublic: makePublic,
+        isAnonymous,
+        judgeId: judge.id,
+        judgeName: judge.name,
+        judgeSlug: judge.slug,
+        judgeStyle: judge.category || null,
+      });
+    } catch (err) {
+      console.warn('Failed to create debate entry:', err);
+    }
+
+    // Legacy: Create public debate entry for SEO-friendly sharing when enabled
     if (makePublic && saved) {
       const derivedTitle = context?.trim()
         ? context.trim()
         : `${optionA} vs ${optionB} — Who is wrong?`;
 
-      const verdictSummary = [ai.reason, ai.roast].filter(Boolean).join('\n\n');
-
       createPublicDebate({
         title: derivedTitle,
         content: context || `Option A: ${optionA}\nOption B: ${optionB}`,
         judgeId: judge.id,
-        verdict: verdictSummary,
+        verdict: verdictText,
         userId: req.auth?.user?.id || null,
         isPublic: true,
         isIndexable: !!allowIndexing,
@@ -105,6 +134,7 @@ router.post('/', optionalUser, async (req, res, next) => {
         reason: ai.reason,
         roast: ai.roast || ''
       },
+      debate: debate ? { id: debate.id } : null,
       saved
     });
   } catch (err) {
