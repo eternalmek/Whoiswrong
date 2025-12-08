@@ -1265,6 +1265,23 @@ function getJudgeVisual(judgeId) {
     };
 }
 
+function normalizeFeedItem(item) {
+    const judgeId = item.judge_id || item.judge_slug || item.judge?.id || 'normal';
+    const titleFromOptions = [item.option_a || item.optionA, item.option_b || item.optionB].filter(Boolean).join(' vs ');
+
+    return {
+        id: item.id,
+        slug: item.slug || item.public_slug,
+        judgeId,
+        title: item.context || titleFromOptions || item.title || 'Debate',
+        summary: item.verdict_text || item.reason || item.roast || item.summary || 'See the verdict inside.',
+        wrong: item.wrong || item.wrong_side || item.wrongSide || item.loser || 'Wrong side',
+        votes: item.votes || null,
+        likes: typeof item.like_count === 'number' ? item.like_count : item.likes,
+        comments: typeof item.comment_count === 'number' ? item.comment_count : item.comments,
+    };
+}
+
 function renderFeed(items = []) {
     const grid = document.getElementById('feedGrid');
     const empty = document.getElementById('feedEmpty');
@@ -1280,50 +1297,66 @@ function renderFeed(items = []) {
     if (empty) empty.classList.add('hidden');
     grid.innerHTML = '';
 
-    items.forEach((item) => {
-        const judge = getJudgeVisual(item.judge_id || item.judge?.id || 'normal');
+    items.map(normalizeFeedItem).forEach((item) => {
+        const judge = getJudgeVisual(item.judgeId);
         const votes = item.votes || { agree: 0, disagree: 0 };
         const card = document.createElement('article');
         card.className = 'glass-panel p-4 rounded-xl border border-gray-800 hover:border-red-500 transition flex flex-col gap-3';
 
         const header = document.createElement('div');
         header.className = 'flex items-center gap-3';
-        header.innerHTML = `<div class="w-10 h-10 rounded-full overflow-hidden bg-gray-800"><img src="${judge.avatar}" alt="${judge.name}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Judge'" /></div><div><p class="text-xs uppercase text-gray-500">${judge.name}</p><h4 class="text-lg font-display font-bold leading-snug">${item.context || item.option_a + ' vs ' + item.option_b}</h4></div>`;
+        header.innerHTML = `<div class="w-10 h-10 rounded-full overflow-hidden bg-gray-800"><img src="${judge.avatar}" alt="${judge.name}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=Judge'" /></div><div><p class="text-xs uppercase text-gray-500">${judge.name}</p><h4 class="text-lg font-display font-bold leading-snug">${item.title}</h4></div>`;
         card.appendChild(header);
 
         const summary = document.createElement('p');
         summary.className = 'text-sm text-gray-300';
-        summary.textContent = item.reason || item.roast || 'See the verdict inside.';
+        summary.textContent = item.summary;
         card.appendChild(summary);
 
         const verdict = document.createElement('div');
         verdict.className = 'text-sm text-gray-400 flex items-center gap-2 flex-wrap';
-        verdict.innerHTML = `<span class="px-2 py-1 rounded-full bg-red-500/20 text-red-300 text-xs font-semibold">Verdict</span><span class="font-medium text-white">${item.wrong || 'Wrong side'} was wrong</span>`;
+        verdict.innerHTML = `<span class="px-2 py-1 rounded-full bg-red-500/20 text-red-300 text-xs font-semibold">Verdict</span><span class="font-medium text-white">${item.wrong} was wrong</span>`;
         card.appendChild(verdict);
 
-        const votesRow = document.createElement('div');
-        votesRow.className = 'flex items-center justify-between gap-2';
-        votesRow.innerHTML = `
-            <div class="flex items-center gap-2 text-xs text-gray-400">
-                <span class="px-2 py-1 rounded-full bg-green-500/10 text-green-300">Agree: <strong>${votes.agree}</strong></span>
-                <span class="px-2 py-1 rounded-full bg-red-500/10 text-red-300">Disagree: <strong>${votes.disagree}</strong></span>
-            </div>
-            <div class="flex items-center gap-2">
-                <button class="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg" data-vote="agree" data-id="${item.id}">Agree</button>
-                <button class="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg" data-vote="disagree" data-id="${item.id}">Disagree</button>
-            </div>`;
-        card.appendChild(votesRow);
+        if (item.votes) {
+            const votesRow = document.createElement('div');
+            votesRow.className = 'flex items-center justify-between gap-2';
+            votesRow.innerHTML = `
+                <div class="flex items-center gap-2 text-xs text-gray-400">
+                    <span class="px-2 py-1 rounded-full bg-green-500/10 text-green-300">Agree: <strong>${votes.agree}</strong></span>
+                    <span class="px-2 py-1 rounded-full bg-red-500/10 text-red-300">Disagree: <strong>${votes.disagree}</strong></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button class="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg" data-vote="agree" data-id="${item.id}">Agree</button>
+                    <button class="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg" data-vote="disagree" data-id="${item.id}">Disagree</button>
+                </div>`;
+            card.appendChild(votesRow);
+        } else {
+            const statsRow = document.createElement('div');
+            statsRow.className = 'flex items-center gap-3 text-xs text-gray-400';
+            const likePart = typeof item.likes === 'number'
+                ? `<span class="px-2 py-1 rounded-full bg-green-500/10 text-green-300">Likes: <strong>${item.likes}</strong></span>`
+                : '';
+            const commentPart = typeof item.comments === 'number'
+                ? `<span class="px-2 py-1 rounded-full bg-blue-500/10 text-blue-300">Comments: <strong>${item.comments}</strong></span>`
+                : '';
+            statsRow.innerHTML = `${likePart}${commentPart}` || '<span class="text-gray-500">Fresh debate – be the first to react.</span>';
+            card.appendChild(statsRow);
+        }
 
         const shareRow = document.createElement('div');
         shareRow.className = 'flex items-center gap-2 text-xs text-gray-400';
-        shareRow.innerHTML = `<button class="underline hover:text-white" data-copy-share="${item.id}">Copy link</button>`;
+        const shareTarget = item.slug || item.id;
+        shareRow.innerHTML = `<button class="underline hover:text-white" data-copy-share="${shareTarget}">Copy link</button>`;
         card.appendChild(shareRow);
 
         grid.appendChild(card);
     });
 
     grid.querySelectorAll('button[data-vote]').forEach((btn) => {
-        btn.addEventListener('click', () => voteOnDebate(btn.dataset.id, btn.dataset.vote));
+        if (btn.dataset.id) {
+            btn.addEventListener('click', () => voteOnDebate(btn.dataset.id, btn.dataset.vote));
+        }
     });
 
     grid.querySelectorAll('button[data-copy-share]').forEach((btn) => {
@@ -1335,17 +1368,42 @@ function renderFeed(items = []) {
 }
 
 async function loadFeed(forceRefresh = false) {
-    try {
-        const res = await fetch(`${API_BASE}/api/judgements/feed?limit=20${forceRefresh ? `&t=${Date.now()}` : ''}`);
+    const timestamp = forceRefresh ? `&t=${Date.now()}` : '';
+
+    const tryDebateFeed = async () => {
+        const res = await fetch(`${API_BASE}/api/feed?limit=20${timestamp}`);
+        if (!res.ok) return null;
         const data = await res.json();
-        const items = Array.isArray(data?.items) ? data.items : [];
-        renderFeed(items);
-        renderSamples(items);
+        return Array.isArray(data?.debates) ? data.debates : Array.isArray(data?.items) ? data.items : null;
+    };
+
+    const tryLegacyFeed = async () => {
+        const res = await fetch(`${API_BASE}/api/judgements/feed?limit=20${timestamp}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return Array.isArray(data?.items) ? data.items : null;
+    };
+
+    try {
+        const debates = await tryDebateFeed();
+        if (debates) {
+            renderFeed(debates);
+            renderSamples(debates);
+            return;
+        }
+
+        const legacyItems = await tryLegacyFeed();
+        if (legacyItems) {
+            renderFeed(legacyItems);
+            renderSamples(legacyItems);
+            return;
+        }
     } catch (error) {
         console.warn('Unable to load feed', error);
-        renderFeed([]);
-        renderSamples([]);
     }
+
+    renderFeed([]);
+    renderSamples([]);
 }
 
 async function voteOnDebate(id, vote) {
@@ -1371,11 +1429,12 @@ async function voteOnDebate(id, vote) {
 function renderSamples(items = []) {
     const grid = document.getElementById('sampleGrid');
     if (!grid) return;
-    const source = items.length ? items.slice(0, 6).map((item) => ({
-        title: item.context || `${item.option_a} vs ${item.option_b}`,
-        judge: getJudgeVisual(item.judge_id || item.judge?.id || 'normal').name,
-        judgeId: item.judge_id || item.judge?.id || 'normal',
-        summary: item.reason || item.roast || 'Decisive verdict rendered.'
+    const normalized = items.length ? items.slice(0, 6).map(normalizeFeedItem) : [];
+    const source = normalized.length ? normalized.map((item) => ({
+        title: item.title,
+        judge: getJudgeVisual(item.judgeId).name,
+        judgeId: item.judgeId,
+        summary: item.summary || 'Decisive verdict rendered.'
     })) : SAMPLE_DEBATES;
 
     grid.innerHTML = '';
