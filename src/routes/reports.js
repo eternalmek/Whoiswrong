@@ -6,6 +6,8 @@ const router = express.Router();
 const { createReport } = require('../services/reports');
 const { optionalUser } = require('../middleware/auth');
 
+const MAX_REPORT_REASON_LENGTH = 500;
+
 // POST /api/reports - Create a report
 router.post('/', optionalUser, async (req, res, next) => {
   try {
@@ -20,8 +22,8 @@ router.post('/', optionalUser, async (req, res, next) => {
       return res.status(400).json({ error: 'Reason is required' });
     }
 
-    if (reason.length > 500) {
-      return res.status(400).json({ error: 'Reason too long (max 500 characters)' });
+    if (reason.length > MAX_REPORT_REASON_LENGTH) {
+      return res.status(400).json({ error: `Reason too long (max ${MAX_REPORT_REASON_LENGTH} characters)` });
     }
 
     const report = await createReport({ debateId, commentId, reporterId, reason });

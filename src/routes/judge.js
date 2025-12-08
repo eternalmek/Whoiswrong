@@ -55,7 +55,7 @@ router.post('/', optionalUser, async (req, res, next) => {
 
     // Determine wrong/right sides (A or B)
     const wrongSide = ai.wrong === optionA ? 'A' : 'B';
-    const rightSide = ai.right === optionA ? 'A' : 'B';
+    const rightSide = wrongSide === 'A' ? 'B' : 'A';
 
     // Persist into Supabase (table: judgements) - for backward compatibility
     const insertPayload = {

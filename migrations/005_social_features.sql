@@ -141,8 +141,10 @@ CREATE POLICY "profiles_read" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "profiles_insert" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "profiles_update" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
--- Debates: Anyone can read public debates, users can insert/update their own
-CREATE POLICY "debates_read_public" ON public.debates FOR SELECT USING (is_public = true OR auth.uid() = user_id);
+-- Debates: Anyone can read public debates where user has permission, authenticated users can insert
+CREATE POLICY "debates_read_public" ON public.debates FOR SELECT USING (
+  is_public = true OR (user_id IS NOT NULL AND auth.uid() = user_id)
+);
 CREATE POLICY "debates_insert" ON public.debates FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
 CREATE POLICY "debates_update_own" ON public.debates FOR UPDATE USING (auth.uid() = user_id);
 

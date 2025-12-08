@@ -1,7 +1,22 @@
+// Constants
+const MAX_COMMENT_LENGTH = 1000;
+
 // src/services/comments.js
 // Service for managing debate comments
 
 const { supabaseServiceRole } = require('../supabaseClient');
+
+// Helper function to sanitize HTML to prevent XSS
+function sanitizeHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
+}
 
 /**
  * Create a comment on a debate
@@ -11,10 +26,13 @@ const { supabaseServiceRole } = require('../supabaseClient');
 async function createComment({ debateId, userId, body, parentId = null }) {
   if (!supabaseServiceRole || !debateId || !body) return null;
 
+  // Sanitize the comment body
+  const sanitizedBody = sanitizeHtml(body.trim());
+
   const payload = {
     debate_id: debateId,
     user_id: userId || null,
-    body: body.trim(),
+    body: sanitizedBody,
     parent_id: parentId || null,
   };
 
@@ -107,4 +125,5 @@ module.exports = {
   getDebateComments,
   getCommentReplies,
   deleteComment,
+  MAX_COMMENT_LENGTH,
 };

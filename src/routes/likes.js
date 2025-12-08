@@ -23,7 +23,7 @@ router.post('/', requireUser, async (req, res, next) => {
     }
 
     if (result.alreadyLiked) {
-      return res.status(200).json({ message: 'Already liked', liked: true });
+      return res.status(409).json({ error: 'Already liked this debate', liked: true });
     }
 
     res.status(201).json({ message: 'Like added', liked: true });

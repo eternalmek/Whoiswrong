@@ -47,7 +47,7 @@ async function resetJudges() {
   const { error: deleteError } = await supabaseServiceRole
     .from('judges')
     .delete()
-    .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all (using dummy condition)
+    .gte('created_at', '1970-01-01T00:00:00Z'); // Explicit condition: delete all records since epoch
 
   if (deleteError) {
     console.error('❌ Error deleting judges:', deleteError);

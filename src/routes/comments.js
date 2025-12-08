@@ -7,7 +7,8 @@ const {
   createComment, 
   getDebateComments, 
   getCommentReplies, 
-  deleteComment 
+  deleteComment,
+  MAX_COMMENT_LENGTH,
 } = require('../services/comments');
 const { requireUser, optionalUser } = require('../middleware/auth');
 
@@ -21,8 +22,8 @@ router.post('/', requireUser, async (req, res, next) => {
       return res.status(400).json({ error: 'debateId and body are required' });
     }
 
-    if (body.length > 1000) {
-      return res.status(400).json({ error: 'Comment too long (max 1000 characters)' });
+    if (body.length > MAX_COMMENT_LENGTH) {
+      return res.status(400).json({ error: `Comment too long (max ${MAX_COMMENT_LENGTH} characters)` });
     }
 
     const comment = await createComment({ debateId, userId, body, parentId });
