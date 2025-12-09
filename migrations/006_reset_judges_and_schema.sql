@@ -98,6 +98,9 @@ CREATE TABLE IF NOT EXISTS public.reports (
 -- 2) Reset judges content
 TRUNCATE TABLE public.judges RESTART IDENTITY CASCADE;
 
+-- Set is_celebrity default to true for celebrity judges
+ALTER TABLE public.judges ALTER COLUMN is_celebrity SET DEFAULT true;
+
 INSERT INTO public.judges (id, name, slug, avatar_url, color_theme, is_ai_default, is_free, price_id, description, personality_prompt, category, is_active)
 VALUES
   (gen_random_uuid(), 'AI Judge', 'ai_judge', 'https://api.dicebear.com/8.x/adventurer/png?seed=ai_judge&size=512&backgroundColor=6B7280', '#6B7280', true, true, NULL, 'Impartial AI judge - clear, logical, neutral.', NULL, 'Core', true),
