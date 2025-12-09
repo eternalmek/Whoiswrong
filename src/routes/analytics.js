@@ -42,13 +42,13 @@ router.post('/event', optionalUser, async (req, res) => {
 
     const { error } = await supabaseServiceRole
       .from('analytics_events')
-      .insert([{
+      .insert({
         user_id: userId,
         event_type,
         event_data: event_data || null,
         ip_address: req.ip || null,
         user_agent: req.get('user-agent') || null,
-      }]);
+      });
 
     if (error) {
       console.warn('Failed to log analytics event:', error.message);

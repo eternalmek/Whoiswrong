@@ -54,49 +54,45 @@ router.post('/create', requireUser, async (req, res) => {
       });
     }
 
-    // Generate a new unique code
+    // Generate a new unique code with retry logic
     let code = generateReferralCode();
     let attempts = 0;
-    const maxAttempts = 10;
+    const maxAttempts = 5;
 
     while (attempts < maxAttempts) {
-      const { data: collision } = await supabaseServiceRole
+      const { data, error } = await supabaseServiceRole
         .from('referral_codes')
-        .select('id')
-        .eq('code', code)
-        .maybeSingle();
+        .insert({
+          user_id: userId,
+          code,
+          uses_count: 0,
+        })
+        .select()
+        .single();
 
-      if (!collision) break;
+      // Success - no collision
+      if (!error) {
+        return res.json({
+          ok: true,
+          code: data.code,
+          uses_count: 0,
+        });
+      }
 
-      code = generateReferralCode();
-      attempts++;
-    }
+      // If it's a unique constraint violation, try again with new code
+      if (error.code === '23505' || error.message?.includes('duplicate') || error.message?.includes('unique')) {
+        code = generateReferralCode();
+        attempts++;
+        continue;
+      }
 
-    if (attempts >= maxAttempts) {
-      return res.status(500).json({ error: 'Failed to generate unique referral code' });
-    }
-
-    // Insert new referral code
-    const { data, error } = await supabaseServiceRole
-      .from('referral_codes')
-      .insert([{
-        user_id: userId,
-        code,
-        uses_count: 0,
-      }])
-      .select()
-      .single();
-
-    if (error) {
+      // Other error - return failure
       console.error('Error creating referral code:', error);
       return res.status(500).json({ error: 'Failed to create referral code' });
     }
 
-    return res.json({
-      ok: true,
-      code: data.code,
-      uses_count: 0,
-    });
+    // Max attempts reached
+    return res.status(500).json({ error: 'Failed to generate unique referral code' });
   } catch (error) {
     console.error('Referral code creation error:', error);
     return res.status(500).json({ error: 'Failed to create referral code' });

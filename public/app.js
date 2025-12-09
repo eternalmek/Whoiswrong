@@ -1221,7 +1221,7 @@ function getShareDetails() {
     
     // Short description with verdict
     const shortReason = reason.length > 100 ? reason.substring(0, 97) + '...' : reason;
-    const text = `${hook}\n\n${shortReason}\n\nSettle your debates at:`;
+    const text = `${hook}\n\n${shortReason}\n\n${link}`;
     
     return { wrong, right, reason: shortReason, judgeName, link, text, hook };
 }

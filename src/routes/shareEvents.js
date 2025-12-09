@@ -43,11 +43,11 @@ router.post('/', optionalUser, async (req, res) => {
 
     const { error } = await supabaseServiceRole
       .from('share_events')
-      .insert([{
+      .insert({
         user_id: userId,
         debate_id: debate_id || null,
         platform,
-      }]);
+      });
 
     if (error) {
       console.warn('Failed to log share event:', error.message);
