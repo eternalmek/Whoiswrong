@@ -70,15 +70,57 @@ async function upsertSubscription({ userId, customerId, subscriptionId, status }
 async function addUnlockedJudge({ userId, celebrityId }) {
   if (!supabaseServiceRole || !userId || !celebrityId) return;
 
+  // Resolve the judge_id from slug or celebrity_id
+  let judgeId = celebrityId;
+  
+  // If celebrityId is a slug (not a UUID), resolve it to judge_id
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(celebrityId)) {
+    const { data: judge, error: judgeError } = await supabaseServiceRole
+      .from('judges')
+      .select('id')
+      .eq('slug', celebrityId)
+      .maybeSingle();
+    
+    if (judgeError || !judge) {
+      console.error('Failed to resolve judge slug to id:', celebrityId, judgeError);
+      // Also try legacy table for backwards compatibility
+      const { error: legacyError } = await supabaseServiceRole
+        .from('unlocked_judges')
+        .upsert(
+          { user_id: userId, celebrity_id: celebrityId },
+          { onConflict: 'user_id,celebrity_id' }
+        );
+      if (legacyError) {
+        console.error('Failed to upsert to legacy unlocked judges', legacyError);
+      }
+      return;
+    }
+    
+    judgeId = judge.id;
+  }
+
+  // Insert into new judge_unlocks table
   const { error } = await supabaseServiceRole
+    .from('judge_unlocks')
+    .upsert(
+      { user_id: userId, judge_id: judgeId },
+      { onConflict: 'user_id,judge_id' }
+    );
+
+  if (error) {
+    console.error('Failed to upsert judge unlock', error);
+  }
+
+  // Also insert into legacy table for backwards compatibility
+  const { error: legacyError } = await supabaseServiceRole
     .from('unlocked_judges')
     .upsert(
       { user_id: userId, celebrity_id: celebrityId },
       { onConflict: 'user_id,celebrity_id' }
     );
 
-  if (error) {
-    console.error('Failed to upsert unlocked judge', error);
+  if (legacyError) {
+    console.error('Failed to upsert to legacy unlocked judges', legacyError);
   }
 }
 
