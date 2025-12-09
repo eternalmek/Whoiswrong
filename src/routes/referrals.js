@@ -18,6 +18,39 @@ function generateReferralCode() {
 }
 
 /**
+ * Fetch aggregated stats for a referral code
+ */
+async function getReferralStats(code, { recentLimit = 5 } = {}) {
+  if (!supabaseServiceRole || !code) {
+    return { usesCount: 0, recentUses: [] };
+  }
+
+  const normalizedCode = code.toUpperCase();
+
+  const { count: usesCount = 0, error: countError } = await supabaseServiceRole
+    .from('referral_uses')
+    .select('id', { count: 'exact', head: true })
+    .eq('code', normalizedCode);
+
+  if (countError) {
+    console.warn('Error counting referral uses:', countError);
+  }
+
+  const { data: recentUses = [], error: recentError } = await supabaseServiceRole
+    .from('referral_uses')
+    .select('*')
+    .eq('code', normalizedCode)
+    .order('created_at', { ascending: false })
+    .limit(recentLimit);
+
+  if (recentError) {
+    console.warn('Error fetching recent referral uses:', recentError);
+  }
+
+  return { usesCount: usesCount || 0, recentUses: recentUses || [] };
+}
+
+/**
  * POST /api/referrals/create
  * 
  * Creates or returns the referral code for the current user.
@@ -47,10 +80,12 @@ router.post('/create', requireUser, async (req, res) => {
     }
 
     if (existing) {
+      const stats = await getReferralStats(existing.code);
+
       return res.json({
         ok: true,
         code: existing.code,
-        uses_count: existing.uses_count || 0,
+        uses_count: stats.usesCount,
       });
     }
 
@@ -65,7 +100,6 @@ router.post('/create', requireUser, async (req, res) => {
         .insert({
           user_id: userId,
           code,
-          uses_count: 0,
         })
         .select()
         .single();
@@ -106,6 +140,7 @@ router.post('/create', requireUser, async (req, res) => {
  * 
  * Request body:
  *   - code: string (required)
+ *   - context: string (optional)
  * 
  * Response:
  *   - { ok: true } on success
@@ -113,7 +148,7 @@ router.post('/create', requireUser, async (req, res) => {
  */
 router.post('/use', optionalUser, async (req, res) => {
   try {
-    const { code } = req.body;
+    const { code, context = null } = req.body;
 
     if (!code || typeof code !== 'string') {
       return res.status(400).json({ error: 'Referral code is required' });
@@ -123,11 +158,13 @@ router.post('/use', optionalUser, async (req, res) => {
       return res.status(500).json({ error: 'Database not configured' });
     }
 
+    const normalizedCode = code.toUpperCase();
+
     // Look up referral code
     const { data: referralCode, error: fetchError } = await supabaseServiceRole
       .from('referral_codes')
       .select('*')
-      .eq('code', code.toUpperCase())
+      .eq('code', normalizedCode)
       .maybeSingle();
 
     if (fetchError) {
@@ -151,8 +188,8 @@ router.post('/use', optionalUser, async (req, res) => {
       const { data: existingUse } = await supabaseServiceRole
         .from('referral_uses')
         .select('id')
-        .eq('referral_code_id', referralCode.id)
-        .eq('referred_user_id', userId)
+        .eq('code', normalizedCode)
+        .eq('invited_user_id', userId)
         .maybeSingle();
 
       if (existingUse) {
@@ -164,25 +201,14 @@ router.post('/use', optionalUser, async (req, res) => {
     const { error: insertError } = await supabaseServiceRole
       .from('referral_uses')
       .insert([{
-        referral_code_id: referralCode.id,
-        referred_user_id: userId,
-        ip_address: req.ip || null,
-        user_agent: req.get('user-agent') || null,
+        code: normalizedCode,
+        invited_user_id: userId,
+        context: context || null,
       }]);
 
     if (insertError) {
       console.error('Error recording referral use:', insertError);
       return res.status(500).json({ error: 'Failed to record referral use' });
-    }
-
-    // Increment uses count
-    const { error: updateError } = await supabaseServiceRole
-      .from('referral_codes')
-      .update({ uses_count: (referralCode.uses_count || 0) + 1 })
-      .eq('id', referralCode.id);
-
-    if (updateError) {
-      console.warn('Failed to increment referral uses count:', updateError);
     }
 
     return res.json({ ok: true });
@@ -229,23 +255,13 @@ router.get('/stats', requireUser, async (req, res) => {
       });
     }
 
-    // Fetch recent uses
-    const { data: uses, error: usesError } = await supabaseServiceRole
-      .from('referral_uses')
-      .select('created_at')
-      .eq('referral_code_id', referralCode.id)
-      .order('created_at', { ascending: false })
-      .limit(10);
-
-    if (usesError) {
-      console.warn('Error fetching referral uses:', usesError);
-    }
+    const stats = await getReferralStats(referralCode.code, { recentLimit: 10 });
 
     return res.json({
       ok: true,
       code: referralCode.code,
-      uses_count: referralCode.uses_count || 0,
-      recent_uses: uses || [],
+      uses_count: stats.usesCount,
+      recent_uses: stats.recentUses,
     });
   } catch (error) {
     console.error('Referral stats error:', error);
