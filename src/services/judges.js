@@ -3,7 +3,7 @@
 
 const crypto = require('crypto');
 const { supabaseServiceRole } = require('../supabaseClient');
-const { celebrityJudges } = require('../data/judges');
+const { newCelebrityJudges } = require('../data/newJudges');
 const { ensureJudgeAvatars } = require('./judgeAvatars');
 
 // Number of free judges (AI + two celebrities = 3 total free)
@@ -117,7 +117,7 @@ async function ensureJudgesTable() {
  */
 async function seedJudgesIfMissing(supabase, judges) {
   const client = supabase || supabaseServiceRole;
-  const judgeList = Array.isArray(judges) && judges.length > 0 ? judges : celebrityJudges;
+  const judgeList = Array.isArray(judges) && judges.length > 0 ? judges : newCelebrityJudges;
 
   if (!client) {
     throw new Error('Supabase client is required');
@@ -329,7 +329,7 @@ async function getJudgeById(id) {
  * Useful as fallback when DB is unavailable.
  */
 function getLocalJudges() {
-  return celebrityJudges.map((judge, index) => ({
+  return newCelebrityJudges.map((judge, index) => ({
     ...judge,
     // Generate a deterministic UUID from the slug for consistency
     id: slugToUuid(judge.slug),

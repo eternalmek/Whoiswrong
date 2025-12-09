@@ -23,6 +23,10 @@ const feedRouter = require('./routes/feed');
 const likesRouter = require('./routes/likes');
 const commentsRouter = require('./routes/comments');
 const reportsRouter = require('./routes/reports');
+const shareEventsRouter = require('./routes/shareEvents');
+const referralsRouter = require('./routes/referrals');
+const notificationsRouter = require('./routes/notifications');
+const analyticsRouter = require('./routes/analytics');
 const { supabaseServiceRole } = require('./supabaseClient');
 const { fetchJudges } = require('./services/judges');
 
@@ -87,6 +91,10 @@ app.use('/api/feed', feedRouter);
 app.use('/api/likes', likesRouter);
 app.use('/api/comments', commentsRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/share-events', shareEventsRouter);
+app.use('/api/referrals', referralsRouter);
+app.use('/api/notifications', notificationsRouter);
+app.use('/api/analytics', analyticsRouter);
 
 // Health
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
