@@ -17,7 +17,8 @@ const { optionalUser } = require('../middleware/auth');
  * 
  * Request body:
  *   - event_type: string (required, e.g., 'judge_selected', 'verdict_shared', 'page_view')
- *   - event_data: object (optional, additional event data)
+ *   - event_name: string (required, e.g., 'debate_viewed', 'share_clicked')
+ *   - properties: object (optional, additional event metadata)
  * 
  * Response:
  *   - { ok: true } on success
@@ -25,11 +26,16 @@ const { optionalUser } = require('../middleware/auth');
  */
 router.post('/event', optionalUser, async (req, res) => {
   try {
-    const { event_type, event_data } = req.body;
+    const { event_type, event_name, properties } = req.body;
 
     // Validate event_type
     if (!event_type || typeof event_type !== 'string') {
       return res.status(400).json({ error: 'event_type is required and must be a string' });
+    }
+
+    // Validate event_name
+    if (!event_name || typeof event_name !== 'string') {
+      return res.status(400).json({ error: 'event_name is required and must be a string' });
     }
 
     // Don't fail if database is not configured - this is best-effort only
@@ -39,15 +45,18 @@ router.post('/event', optionalUser, async (req, res) => {
     }
 
     const userId = req.auth?.user?.id || null;
+    const propertiesPayload =
+      properties && typeof properties === 'object' && !Array.isArray(properties)
+        ? properties
+        : null;
 
     const { error } = await supabaseServiceRole
       .from('analytics_events')
       .insert({
         user_id: userId,
         event_type,
-        event_data: event_data || null,
-        ip_address: req.ip || null,
-        user_agent: req.get('user-agent') || null,
+        event_name,
+        properties: propertiesPayload,
       });
 
     if (error) {
