@@ -38,7 +38,9 @@ SET image_url = avatar_url
 WHERE image_url IS NULL AND avatar_url IS NOT NULL;
 
 -- Update price_cents to match price for existing judges
+-- Only update if price_cents doesn't match or is NULL
 -- This ensures consistency between price (in dollars) and price_cents
 UPDATE public.judges 
 SET price_cents = ROUND(price * 100)::integer 
-WHERE price IS NOT NULL;
+WHERE price IS NOT NULL 
+  AND (price_cents IS NULL OR price_cents != ROUND(price * 100)::integer);

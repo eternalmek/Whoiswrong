@@ -45,11 +45,14 @@ Created **Migration 008** (`migrations/008_add_missing_judge_columns.sql`) that:
 If you have the Supabase CLI installed and configured:
 
 ```bash
-# For remote project
+# Apply all pending migrations to remote project
 npx supabase db push
 
-# OR run the specific migration
+# OR run migrations incrementally
 npx supabase migration up
+
+# OR reset and run all migrations from scratch (destructive)
+npx supabase db reset
 ```
 
 ### Option 3: Manual SQL Execution
