@@ -34,8 +34,8 @@ router.get('/', requireUser, async (req, res, next) => {
 
     const [unlockedRes, subsRes] = await Promise.all([
       supabaseServiceRole
-        .from('unlocked_judges')
-        .select('celebrity_id')
+        .from('judge_unlocks')
+        .select('judge_id')
         .eq('user_id', userId),
       supabaseServiceRole
         .from('subscriptions')
@@ -54,7 +54,7 @@ router.get('/', requireUser, async (req, res, next) => {
     }
 
     const unlockedJudges = Array.from(
-      new Set((unlockedRes.data || []).map((row) => row.celebrity_id))
+      new Set((unlockedRes.data || []).map((row) => row.judge_id))
     );
 
     const hasAllAccess = (subsRes.data || []).some(
@@ -194,10 +194,10 @@ router.post('/save', requireUser, async (req, res, next) => {
     if (normalizedMode === 'single') {
       // Avoid duplicate unlocks
       const { data: existingUnlock } = await supabaseServiceRole
-        .from('unlocked_judges')
+        .from('judge_unlocks')
         .select('id')
         .eq('user_id', userId)
-        .eq('celebrity_id', normalizedCelebrityId)
+        .eq('judge_id', normalizedCelebrityId)
         .maybeSingle();
 
       if (existingUnlock) {
@@ -205,10 +205,10 @@ router.post('/save', requireUser, async (req, res, next) => {
       }
 
       const { error } = await supabaseServiceRole
-        .from('unlocked_judges')
+        .from('judge_unlocks')
         .upsert(
-          { user_id: userId, celebrity_id: normalizedCelebrityId },
-          { onConflict: 'user_id,celebrity_id' }
+          { user_id: userId, judge_id: normalizedCelebrityId },
+          { onConflict: 'user_id,judge_id' }
         );
 
       if (error) {

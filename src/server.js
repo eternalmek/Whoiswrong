@@ -186,9 +186,9 @@ app.get('/debate/:slug', async (req, res) => {
 
   const title = debate?.title
     ? debate.title
-    : `Verdict: ${judgement.wrong || 'Someone'} was wrong`;
+    : `Verdict: ${judgement.wrong_side === 'A' ? judgement.option_a : judgement.option_b || 'Someone'} was wrong`;
 
-  const verdictText = debate?.verdict || judgement?.reason || 'See the full verdict on Whoiswrong.io';
+  const verdictText = debate?.verdict || judgement?.reasoning || 'See the full verdict on Whoiswrong.io';
   const description = judgement
     ? `${judgeLabel} decided between ${judgement.option_a} and ${judgement.option_b}. ${verdictText}`
     : verdictText;
@@ -244,12 +244,11 @@ app.get('/debate/:slug', async (req, res) => {
           <span class="eyebrow">Public Debate</span>
           <h1>${escapeHtml(title)}</h1>
           <p class="meta">Judged by <strong>${escapeHtml(judgeLabel)}</strong>${judgement?.created_at || debate?.created_at ? ` • ${escapeHtml(new Date(judgement?.created_at || debate?.created_at).toLocaleString())}` : ''}</p>
-          ${judgement ? `<div class="section"><span class="pill">Wrong: ${escapeHtml(judgement.wrong)}</span><span class="pill">Right: ${escapeHtml(judgement.right)}</span></div>` : ''}
+          ${judgement ? `<div class="section"><span class="pill">Wrong: ${escapeHtml(judgement.wrong_side === 'A' ? judgement.option_a : judgement.option_b)}</span><span class="pill">Right: ${escapeHtml(judgement.right_side === 'A' ? judgement.option_a : judgement.option_b)}</span></div>` : ''}
           <div class="section">
             <h2>Verdict</h2>
             <pre>${escapeHtml(verdictText)}</pre>
           </div>
-          ${(judgement?.roast) ? `<div class="section"><h2>Roast</h2><pre>${escapeHtml(judgement.roast)}</pre></div>` : ''}
           ${(debate?.content || judgement?.context) ? `<div class="section"><h2>Context</h2><pre>${escapeHtml(debate?.content || judgement?.context)}</pre></div>` : ''}
           ${(judgement?.option_a || judgement?.option_b) ? `<div class="section muted">Debated: ${escapeHtml(judgement?.option_a || '')}${judgement?.option_a && judgement?.option_b ? ' vs ' : ''}${escapeHtml(judgement?.option_b || '')}</div>` : ''}
           <a class="cta" href="/">Start your own debate</a>
