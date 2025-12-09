@@ -157,7 +157,7 @@ router.get('/profile', requireUser, async (req, res, next) => {
         if (shareableIds.size > 0) {
           const { data: debates, error } = await supabaseServiceRole
             .from('judgements')
-            .select('id, context, option_a, option_b, wrong, right, reason, roast, user_id, created_at')
+            .select('id, context, option_a, option_b, wrong_side, right_side, reasoning, user_id, created_at')
             .in('user_id', Array.from(shareableIds))
             .order('created_at', { ascending: false })
             .limit(10);
