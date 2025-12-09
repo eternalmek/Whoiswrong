@@ -41,24 +41,28 @@ const baseAvatar = (name) =>
     `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name || 'Judge')}&radius=50&backgroundColor=f8fafc`;
 
 // Priority order for judges (most viral/TikTok-friendly first)
+// Matches the order in src/data/newJudges.js
 const JUDGE_PRIORITY = [
-    'normal',
-    'taylor-swift',
-    'cristiano-ronaldo',
-    'lionel-messi',
-    'donald-trump',
-    'elon-musk',
-    'barack-obama',
-    'mrbeast',
-    'kim-kardashian',
-    'andrew-tate',
-    'gordon-ramsay',
-    'beyonce',
-    'rihanna',
-    'snoop-dogg',
-    'pewdiepie',
-    'eminem',
-    'morgan-freeman',
+    'ai_judge',          // FREE
+    'elon_musk',         // FREE
+    'taylor_swift',      // FREE
+    'cristiano_ronaldo', // PAID - Global Superstars
+    'lionel_messi',      // PAID
+    'drake',             // PAID
+    'zendaya',           // PAID
+    'the_rock',          // PAID - Icons & Legends
+    'kim_kardashian',    // PAID - Ultra-Viral
+    'mrbeast',           // PAID
+    'jordan_peterson',   // PAID - Intellectuals
+    'gordon_ramsay',     // PAID - Icons & Legends
+    'amber_heard',       // PAID - Controversial
+    'johnny_depp',       // PAID - Icons & Legends
+    'kylie_jenner',      // PAID - Ultra-Viral
+    'kevin_hart',        // PAID - Icons & Legends
+    'snoop_dogg',        // PAID
+    'andrew_tate',       // PAID - Controversial
+    'billie_eilish',     // PAID - Global Superstars
+    'mr_wonderful',      // PAID - Business Icons
 ];
 
 const FALLBACK_JUDGES = (Array.isArray(window.celebrityJudges) && window.celebrityJudges.length)
@@ -1207,10 +1211,19 @@ function showCopySuccess() {
 
 function getShareDetails() {
     const wrong = document.getElementById('loserName')?.innerText || 'someone';
+    const right = document.getElementById('winnerName')?.innerText || 'someone else';
     const reason = document.getElementById('explanationText')?.innerText || 'No reason given.';
+    const judgeName = document.getElementById('selectedJudgeName')?.innerText || 'AI Judge';
     const link = lastShareUrl || (lastSavedJudgementId ? `${window.location.origin}/debate/${lastSavedJudgementId}` : window.location.origin);
-    const text = `The AI Judge says ${wrong} is WRONG! 😂\n\n${reason}\n\nSettle your debates at:`;
-    return { wrong, reason, link, text };
+    
+    // TikTok-ready one-line hook
+    const hook = `${judgeName} says ${wrong} is WRONG! 😂`;
+    
+    // Short description with verdict
+    const shortReason = reason.length > 100 ? reason.substring(0, 97) + '...' : reason;
+    const text = `${hook}\n\n${shortReason}\n\nSettle your debates at:`;
+    
+    return { wrong, right, reason: shortReason, judgeName, link, text, hook };
 }
 
 function shareOnTwitter() {
@@ -1218,10 +1231,11 @@ function shareOnTwitter() {
     const encodedText = encodeURIComponent(text);
     const encodedUrl = encodeURIComponent(link);
     window.open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`, '_blank');
+    logShareEvent('x');
 }
 
 function shareDebate(platform) {
-    const { text, link } = getShareDetails();
+    const { text, link, hook } = getShareDetails();
     const shareData = { title: 'Who Is Wrong? Verdict', text: text.replace(/\n/g, ' '), url: link };
 
     if (platform === 'x') {
@@ -1229,31 +1243,94 @@ function shareDebate(platform) {
         return;
     }
 
-    if (navigator.share) {
-        navigator.share(shareData).catch(() => {
-            // Ignore cancellation
-        });
-    } else {
-        copyShareLink();
+    if (platform === 'tiktok') {
+        // Copy link and text for TikTok
+        const tiktokText = `${hook}\n\n${link}`;
+        if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(tiktokText).then(() => {
+                showToast('Text & link copied for TikTok! 📱', 'success');
+            });
+        }
+        // Open TikTok upload page
+        setTimeout(() => {
+            window.open('https://www.tiktok.com/upload?lang=en', '_blank');
+        }, 500);
+        logShareEvent('tiktok');
+        return;
     }
 
-    if (platform === 'tiktok') {
-        copyShareLink('Link copied for TikTok');
-        window.open('https://www.tiktok.com/upload?lang=en', '_blank');
-    } else if (platform === 'instagram') {
-        copyShareLink('Link copied for Instagram');
-        window.open('https://www.instagram.com/create/story/', '_blank');
+    if (platform === 'instagram') {
+        copyShareLink('Link copied for Instagram Story! 📸');
+        // On mobile, try to open Instagram app, fallback to web
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+            window.location.href = 'instagram://story-camera';
+            setTimeout(() => {
+                // Fallback if Instagram app not installed
+                window.open('https://www.instagram.com/create/story/', '_blank');
+            }, 1000);
+        } else {
+            window.open('https://www.instagram.com/create/story/', '_blank');
+        }
+        logShareEvent('instagram');
+        return;
+    }
+
+    if (platform === 'whatsapp') {
+        const whatsappText = encodeURIComponent(`${hook}\n\n${link}`);
+        // Try WhatsApp app first (mobile), fallback to web
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+            window.location.href = `whatsapp://send?text=${whatsappText}`;
+        } else {
+            window.open(`https://web.whatsapp.com/send?text=${whatsappText}`, '_blank');
+        }
+        logShareEvent('whatsapp');
+        return;
+    }
+
+    // Native share API for generic sharing
+    if (navigator.share) {
+        navigator.share(shareData)
+            .then(() => logShareEvent('native'))
+            .catch(() => {
+                // User cancelled, no action needed
+            });
+    } else {
+        copyShareLink();
     }
 }
 
 function copyShareLink(customToastMessage) {
     const { link } = getShareDetails();
-    const toastMessage = customToastMessage || 'Share link copied';
+    const toastMessage = customToastMessage || 'Share link copied to clipboard! 📋';
     if (navigator.clipboard?.writeText) {
-        navigator.clipboard.writeText(link).then(() => showToast(toastMessage, 'success'));
+        navigator.clipboard.writeText(link).then(() => {
+            showToast(toastMessage, 'success');
+            logShareEvent('copy_link');
+        });
     } else {
         fallbackCopy(link);
         showToast(toastMessage, 'success');
+        logShareEvent('copy_link');
+    }
+}
+
+// Best-effort logging of share events (should not break UX)
+async function logShareEvent(platform) {
+    try {
+        const debateId = lastSavedJudgementId || null;
+        await fetch(`${API_BASE}/api/share-events`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+            },
+            body: JSON.stringify({ debate_id: debateId, platform }),
+        });
+    } catch (err) {
+        // Silently fail - this should not break the UX
+        console.debug('Share event logging failed (non-critical):', err);
     }
 }
 
