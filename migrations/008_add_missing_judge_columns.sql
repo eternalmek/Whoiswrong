@@ -18,12 +18,14 @@ ALTER TABLE public.judges
   ADD COLUMN IF NOT EXISTS image_url text;
 
 -- Add price column if missing (used for pricing calculations)
+-- Default to 0.99 to match existing pricing pattern (migration 004)
 ALTER TABLE public.judges 
-  ADD COLUMN IF NOT EXISTS price numeric(10,2) DEFAULT 0.00;
+  ADD COLUMN IF NOT EXISTS price numeric(10,2) DEFAULT 0.99;
 
 -- Add price_cents column if missing (used for Stripe integration)
+-- Default to 99 cents to match price column (0.99 * 100)
 ALTER TABLE public.judges 
-  ADD COLUMN IF NOT EXISTS price_cents int DEFAULT 0;
+  ADD COLUMN IF NOT EXISTS price_cents integer DEFAULT 99;
 
 -- Backfill photo_url from avatar_url for existing judges
 UPDATE public.judges 
@@ -35,25 +37,8 @@ UPDATE public.judges
 SET image_url = avatar_url 
 WHERE image_url IS NULL AND avatar_url IS NOT NULL;
 
--- Ensure judgement_votes table exists (should be from migration 003)
--- Including here for completeness in case migrations were run out of order
-CREATE TABLE IF NOT EXISTS public.judgement_votes (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  judgement_id uuid REFERENCES public.judgements(id) ON DELETE CASCADE,
-  voter_fingerprint text,
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
-  vote text CHECK (vote IN ('agree','disagree')),
-  created_at timestamptz DEFAULT now()
-);
-
--- Ensure indexes exist on judgement_votes
-CREATE INDEX IF NOT EXISTS idx_judgement_votes_judgement 
-  ON public.judgement_votes (judgement_id);
-
-CREATE UNIQUE INDEX IF NOT EXISTS uniq_judgement_vote_user 
-  ON public.judgement_votes (judgement_id, user_id) 
-  WHERE user_id IS NOT NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS uniq_judgement_vote_fingerprint 
-  ON public.judgement_votes (judgement_id, voter_fingerprint) 
-  WHERE voter_fingerprint IS NOT NULL;
+-- Update price_cents to match price for existing judges
+-- This ensures consistency between price (in dollars) and price_cents
+UPDATE public.judges 
+SET price_cents = ROUND(price * 100)::integer 
+WHERE price IS NOT NULL;
