@@ -1,13 +1,13 @@
 -- Judges catalogue for celebrity and default options
 create table if not exists public.judges (
-  id uuid primary key,
+  id uuid primary key default gen_random_uuid(),
   slug text not null unique,
   name text not null,
   is_celebrity boolean default false,
   is_default_free boolean default false,
   avatar_url text,
   description text,
-  system_prompt text,
+  personality_prompt text,
   is_active boolean default true,
   created_at timestamptz default now()
 );
