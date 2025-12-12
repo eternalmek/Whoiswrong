@@ -1,22 +1,31 @@
-# WhoIsWrong Mobile App
+# WhoIsWrong Mobile (Expo)
 
-This folder contains the Expo (React Native) mobile application for WhoIsWrong. It reuses the existing production backend endpoints and does not modify or depend on the web app implementation. The website in `/public` continues to build and deploy as before.
+This directory contains the Expo-powered mobile client for WhoIsWrong. The app uses the same Supabase backend as the web experience and is configured for Expo Router and EAS builds.
 
-## Getting Started locally
+## Getting started
+
+1. Install dependencies:
 
 ```bash
-# from the repository root
+cd apps/mobile
 npm install
-npm --workspace apps/mobile start
 ```
 
-Copy `.env.example` to `.env` inside `apps/mobile` to override the default production API base or to add Supabase credentials.
+2. Create a `.env` file based on `.env.example` and provide the Supabase URL and anon key.
+
+3. Run the app locally:
+
+```bash
+npm run start
+```
+
+Use the Expo Go app or an emulator to load the development server.
+
+## Authentication
+
+- Email/password login and signup are powered by Supabase.
+- Sessions are persisted using `AsyncStorage` so users stay signed in between launches.
 
 ## Building with EAS
 
-```bash
-# from the repository root
-eas build -p ios --profile production
-```
-
-The root `eas.json` points the CLI at `apps/mobile`, so you can trigger builds from the monorepo root without hitting the "Failed to read \"/eas.json\"" error. The Expo config uses the bundle identifier `com.gwendal.whoswrong` so it matches EAS submissions. Icons are generated at build time from a tiny inline base64 image, so no binary assets live in Git. When using Expo's "Build from GitHub" UI, set the base directory to `apps/mobile` and pick the desired build profile.
+An `eas.json` file is included for development, preview, and production profiles. Update `extra.eas.projectId` inside `app.config.ts` with your EAS project ID before running cloud builds.
