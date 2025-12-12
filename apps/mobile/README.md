@@ -15,6 +15,7 @@ Copy `.env.example` to `.env` inside `apps/mobile` to override the default produ
 ## Building with EAS
 
 ```bash
+# run builds from inside the mobile app workspace
 cd apps/mobile
 eas build -p ios --profile production
 ```
