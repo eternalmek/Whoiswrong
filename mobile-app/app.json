@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "WhoIsWrong",
+    "slug": "whoiswrong-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/ax0fQAAAABJRU5ErkJggg==",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "io.whoiswrong.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/ax0fQAAAABJRU5ErkJggg==",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "favicon": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/ax0fQAAAABJRU5ErkJggg=="
+    }
+  }
+}
