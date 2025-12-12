@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "WhoIsWrong Mobile",
+    "slug": "whoiswrong-mobile",
+    "scheme": "whoiswrong",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": ["ios", "android"],
+    "ios": {
+      "bundleIdentifier": "io.whoiswrong.app"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

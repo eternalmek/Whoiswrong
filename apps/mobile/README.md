@@ -24,8 +24,8 @@ Use the Expo Go app or an emulator to load the development server.
 ## Authentication
 
 - Email/password login and signup are powered by Supabase.
-- Sessions are persisted using `AsyncStorage` so users stay signed in between launches.
+- Sessions are persisted using Expo Secure Store so users stay signed in between launches.
 
 ## Building with EAS
 
-An `eas.json` file is included for development, preview, and production profiles. Update `extra.eas.projectId` inside `app.config.ts` with your EAS project ID before running cloud builds.
+An `eas.json` file is included with a production profile. Update `extra.eas.projectId` inside `app.config.ts` with your EAS project ID before running cloud builds.
