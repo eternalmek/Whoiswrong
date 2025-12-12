@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
+    "@whoiswrong/ui": "0.1.0",
     "expo": "~51.0.28",
     "expo-status-bar": "~1.12.1",
     "react": "18.2.0",
@@ -18,8 +19,11 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
+    "@types/node": "^20.11.17",
     "@types/react": "~18.2.79",
     "@types/react-native": "~0.73.0",
+    "babel-preset-expo": "^10.0.1",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
 }
