@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "description": "Backend for Who Is Wrong? — OpenAI + Supabase integration",
   "main": "src/server.js",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
@@ -13,7 +18,8 @@
     "db:migrate": "npx supabase migration up",
     "db:diff": "npx supabase db diff",
     "db:push": "npx supabase db push",
-    "generate:avatars": "node src/scripts/generateAvatars.js"
+    "generate:avatars": "node src/scripts/generateAvatars.js",
+    "mobile:start": "npm --workspace apps/mobile start"
   },
   "engines": {
     "node": ">=18"
