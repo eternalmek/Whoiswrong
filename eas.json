@@ -1,0 +1,7 @@
+{
+  "extends": "./apps/mobile/eas.json",
+  "cli": {
+    "app": "./apps/mobile",
+    "version": ">= 3.13.0"
+  }
+}
