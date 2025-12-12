@@ -15,8 +15,8 @@ Copy `.env.example` to `.env` inside `apps/mobile` to override the default produ
 ## Building with EAS
 
 ```bash
-cd apps/mobile
+# from the repository root
 eas build -p ios --profile production
 ```
 
-The Expo config uses the bundle identifier `com.gwendal.whoswrong` so it matches EAS submissions. Icons are generated at build time from a tiny inline base64 image, so no binary assets live in Git. When using Expo's "Build from GitHub" UI, set the base directory to `apps/mobile` and pick the desired build profile.
+The root `eas.json` points the CLI at `apps/mobile`, so you can trigger builds from the monorepo root without hitting the "Failed to read \"/eas.json\"" error. The Expo config uses the bundle identifier `com.gwendal.whoswrong` so it matches EAS submissions. Icons are generated at build time from a tiny inline base64 image, so no binary assets live in Git. When using Expo's "Build from GitHub" UI, set the base directory to `apps/mobile` and pick the desired build profile.
