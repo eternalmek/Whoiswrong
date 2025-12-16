@@ -1,14 +1,18 @@
 import type { ExpoConfig } from 'expo/config';
 
 const config: ExpoConfig = {
-  name: 'WhoIsWrong Mobile',
-  slug: 'whoiswrong-mobile',
+  name: 'Whoiswrong',
+  slug: 'whoiswrong',
   scheme: 'whoiswrong',
   version: '1.0.0',
   orientation: 'portrait',
   platforms: ['ios', 'android'],
+  owner: 'gwendalpirious-organization',
   ios: {
-    bundleIdentifier: 'io.whoiswrong.app',
+    bundleIdentifier: 'com.whoiswrong.app',
+  },
+  cli: {
+    appVersionSource: 'remote',
   },
   extra: {
     eas: {
