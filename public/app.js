@@ -1448,14 +1448,14 @@ async function loadFeed(forceRefresh = false) {
     const timestamp = forceRefresh ? `&t=${Date.now()}` : '';
 
     const tryDebateFeed = async () => {
-        const res = await fetch(`${API_BASE}/api/feed?limit=20${timestamp}`);
+        const res = await fetch(`${API_BASE}/api/feed?limit=6${timestamp}`);
         if (!res.ok) return null;
         const data = await res.json();
         return Array.isArray(data?.debates) ? data.debates : Array.isArray(data?.items) ? data.items : null;
     };
 
     const tryLegacyFeed = async () => {
-        const res = await fetch(`${API_BASE}/api/judgements/feed?limit=20${timestamp}`);
+        const res = await fetch(`${API_BASE}/api/judgements/feed?limit=6${timestamp}`);
         if (!res.ok) return null;
         const data = await res.json();
         return Array.isArray(data?.items) ? data.items : null;
