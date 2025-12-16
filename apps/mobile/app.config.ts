@@ -10,6 +10,9 @@ const config: ExpoConfig = {
   owner: 'gwendalpirious-organization',
   ios: {
     bundleIdentifier: 'com.whoiswrong.app',
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
   android: {
     package: 'com.whoiswrong.app',
