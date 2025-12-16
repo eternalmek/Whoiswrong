@@ -1,8 +1,12 @@
 {
+  "cli": {
+    "version": ">= 7.0.0",
+    "appVersionSource": "remote"
+  },
   "build": {
     "production": {
       "ios": {
-        "simulator": false
+        "resourceClass": "m-medium"
       }
     }
   }
