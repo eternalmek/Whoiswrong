@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Whoiswrong",
+    "slug": "whoiswrong",
+    "scheme": "whoiswrong",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": ["ios", "android"],
+    "owner": "gwendalpirious-organization",
+    "ios": {
+      "bundleIdentifier": "com.whoiswrong.app"
+    },
+    "android": {
+      "package": "com.whoiswrong.app"
+    },
+    "cli": {
+      "appVersionSource": "remote"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "bae50967-da38-424a-ba03-98ee2814e3d7"
+      }
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
