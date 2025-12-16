@@ -7,7 +7,15 @@
     "production": {
       "ios": {
         "resourceClass": "m-medium"
-      }
+      },
+      "android": {}
+    },
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
     }
+  },
+  "submit": {
+    "production": {}
   }
 }

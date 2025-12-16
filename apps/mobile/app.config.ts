@@ -11,6 +11,9 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: 'com.whoiswrong.app',
   },
+  android: {
+    package: 'com.whoiswrong.app',
+  },
   cli: {
     appVersionSource: 'remote',
   },
