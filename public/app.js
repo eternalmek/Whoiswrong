@@ -165,8 +165,8 @@ if (!availableJudges.find((j) => j.id === selectedJudgeId)) {
     selectedJudgeId = 'normal';
 }
 
-let unlockedJudgeIds = safeParseArray(localStorage.getItem(UNLOCKED_KEY), []);
-let hasAllAccess = localStorage.getItem(ALL_ACCESS_KEY) === 'true';
+let unlockedJudgeIds = [];
+let hasAllAccess = false;
 
 // --- Stripe Prices State ---
 // Default/fallback prices (used until Stripe prices are fetched)
@@ -438,13 +438,11 @@ function getJudgeAccessInfo(judgeId) {
     const judge = availableJudges.find((j) => j.id === judgeId) || availableJudges[0];
     
     // Use is_free field from API response if available, otherwise fall back to position-based logic
-    const isFreeByDefault = judge.is_free === true || judge.is_default_free === true;
+    const isFreeByDefault = judge.is_free === true || (judge.is_free == null && judge.is_default_free === true);
     
-    // Check both local storage and server-synced purchases
-    // Server takes precedence for logged-in users
-    const localUnlocked = hasAllAccess || unlockedJudgeIds.includes(judge.id);
+    // Only server-verified purchases grant premium access.
     const serverUnlocked = serverHasAllAccess || serverUnlockedJudges.includes(judge.id);
-    const unlocked = isFreeByDefault || localUnlocked || serverUnlocked;
+    const unlocked = isFreeByDefault || serverUnlocked;
 
     let label = 'Free';
     if (isFreeByDefault) label = 'Free';
@@ -836,6 +834,8 @@ function clearSessionTokens() {
     currentUser = null;
     serverUnlockedJudges = [];
     serverHasAllAccess = false;
+    unlockedJudgeIds = [];
+    hasAllAccess = false;
     localStorage.removeItem('accessToken');
     localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
@@ -889,19 +889,11 @@ async function fetchUserPurchases() {
             serverUnlockedJudges = data.unlockedJudges || [];
             serverHasAllAccess = data.hasAllAccess || false;
             
-            // Sync server purchases to localStorage for offline access
-            if (serverUnlockedJudges.length > 0 || serverHasAllAccess) {
-                // Merge server unlocked judges with local
-                const mergedUnlocked = [...new Set([...unlockedJudgeIds, ...serverUnlockedJudges])];
-                unlockedJudgeIds = mergedUnlocked;
-                localStorage.setItem(UNLOCKED_KEY, JSON.stringify(mergedUnlocked));
-                
-                if (serverHasAllAccess) {
-                    hasAllAccess = true;
-                    localStorage.setItem(ALL_ACCESS_KEY, 'true');
-                }
-            }
-            
+            // Replace cached state so cancellations and account changes take effect.
+            unlockedJudgeIds = [...serverUnlockedJudges];
+            hasAllAccess = serverHasAllAccess;
+            persistJudgeState();
+
             // Update the UI to reflect server purchases
             updateJudgeUI();
         } else {

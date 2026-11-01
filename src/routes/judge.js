@@ -5,6 +5,7 @@ const { optionalUser } = require('../middleware/auth');
 const { callOpenAI } = require('../openaiClient');
 const { getJudgeById, getLocalJudges } = require('../services/judges');
 const { createPublicDebate, createDebate } = require('../services/debates');
+const { checkJudgeAccess } = require('../services/judgeAccess');
 
 // POST /api/judge
 // body: { context, optionA, optionB, judgeId, makePublic, isAnonymous, category }
@@ -26,6 +27,9 @@ router.post('/', optionalUser, async (req, res, next) => {
     }
 
     const judge = (await getJudgeById(judgeId)) || getLocalJudges()[0];
+
+    const access = await checkJudgeAccess({ judge, userId: req.auth?.user?.id, database: supabaseServiceRole });
+    if (!access.allowed) return res.status(access.status).json({ error: access.error });
 
     // Call OpenAI
     const ai = await callOpenAI({

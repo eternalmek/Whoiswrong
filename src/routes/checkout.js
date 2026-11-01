@@ -11,7 +11,8 @@
 
 const express = require('express');
 const Stripe = require('stripe');
-const { optionalUser } = require('../middleware/auth');
+const { requireUser } = require('../middleware/auth');
+const { fetchJudges } = require('../services/judges');
 
 const router = express.Router();
 
@@ -42,9 +43,9 @@ function requireStringEnv(name) {
  *   - { url: string } on success (Stripe checkout session URL)
  *   - { error: string } on failure
  */
-router.post('/', optionalUser, async (req, res) => {
+router.post('/', requireUser, async (req, res) => {
   try {
-    const { mode, celebrityId } = req.body;
+    const { mode, celebrityId } = req.body || {};
 
     // Validate mode first (client input validation)
     if (!mode || (mode !== 'single' && mode !== 'subscription')) {
@@ -73,11 +74,29 @@ router.post('/', optionalUser, async (req, res) => {
       return res.status(503).json({ error: 'Payment service not configured' });
     }
 
+    // Do not accept money while payment notifications cannot be verified.
+    if (!requireStringEnv('STRIPE_WEBHOOK_SECRET').value) {
+      return res.status(503).json({ error: 'Purchases are temporarily unavailable. Please try again later.' });
+    }
+
+    if (mode === 'single') {
+      const judges = await fetchJudges();
+      const judge = judges.find((item) => item.id === celebrityId || item.slug === celebrityId);
+      if (!judge || judge.is_active === false) {
+        return res.status(400).json({ error: 'Selected judge is unavailable.' });
+      }
+      if (judge.is_free) {
+        return res.status(400).json({ error: 'This judge is free and does not require purchase.' });
+      }
+    }
+
     // Get base URL from environment (defaults to frontend origin)
     const baseUrl =
       process.env.FRONTEND_ORIGIN ||
       process.env.NEXT_PUBLIC_BASE_URL ||
-      'http://localhost:8080';
+      'https://www.whoiswrong.io';
+
+    const checkoutOrigin = new URL(baseUrl).origin;
 
     const userId = req.auth?.user?.id || null;
     let sessionConfig;
@@ -96,7 +115,7 @@ router.post('/', optionalUser, async (req, res) => {
       .replace(/%7B/g, '{')
       .replace(/%7D/g, '}');
 
-    const successUrl = `${baseUrl}/success?${successQuery}`;
+    const successUrl = `${checkoutOrigin}/success?${successQuery}`;
 
     if (mode === 'single') {
       // =====================================================================
@@ -128,7 +147,7 @@ router.post('/', optionalUser, async (req, res) => {
         // Allow promotion codes for better UX
         allow_promotion_codes: true,
         success_url: successUrl,
-        cancel_url: `${baseUrl}/cancel`,
+        cancel_url: `${checkoutOrigin}/cancel`,
       };
     } else {
       // =====================================================================
@@ -156,10 +175,11 @@ router.post('/', optionalUser, async (req, res) => {
           userId,
           mode: 'subscription',
         },
+        subscription_data: { metadata: { userId } },
         // Allow promotion codes for better UX
         allow_promotion_codes: true,
         success_url: successUrl,
-        cancel_url: `${baseUrl}/cancel`,
+        cancel_url: `${checkoutOrigin}/cancel`,
       };
     }
 
@@ -172,7 +192,7 @@ router.post('/', optionalUser, async (req, res) => {
   } catch (error) {
     console.error('Checkout error:', error);
     return res.status(500).json({ 
-      error: error.message || 'Failed to create checkout session' 
+      error: 'Unable to start checkout. Please try again later.'
     });
   }
 });
