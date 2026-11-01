@@ -11,7 +11,7 @@
 
 const express = require('express');
 const Stripe = require('stripe');
-const { optionalUser } = require('../middleware/auth');
+const { requireUser } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -42,7 +42,7 @@ function requireStringEnv(name) {
  *   - { url: string } on success (Stripe checkout session URL)
  *   - { error: string } on failure
  */
-router.post('/', optionalUser, async (req, res) => {
+router.post('/', requireUser, async (req, res) => {
   try {
     const { mode, celebrityId } = req.body;
 
