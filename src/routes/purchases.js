@@ -11,6 +11,8 @@ const router = express.Router();
 const Stripe = require('stripe');
 const { supabaseServiceRole } = require('../supabaseClient');
 const { requireUser } = require('../middleware/auth');
+const { verifyPurchaseSession } = require('../services/paymentVerification');
+const { resolveJudgeId } = require('../services/judges');
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeSecret ? new Stripe(stripeSecret) : null;
@@ -95,7 +97,8 @@ router.post('/save', requireUser, async (req, res, next) => {
       stripeSessionId,
     } = req.body || {};
 
-    const normalizedMode = (mode || purchaseType || '').toLowerCase();
+    const requestedMode = mode || purchaseType || '';
+    const normalizedMode = typeof requestedMode === 'string' ? requestedMode.toLowerCase() : '';
     const normalizedCelebrityId = celebrityId || judgeId;
 
     // Validate input
@@ -139,6 +142,19 @@ router.post('/save', requireUser, async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid or expired Stripe session' });
     }
 
+    const verificationError = verifyPurchaseSession(session, userId);
+    if (verificationError) {
+      return res.status(verificationError.status).json({ error: verificationError.error });
+    }
+
+    if (normalizedMode === 'subscription') {
+      if (!session.subscription) return res.status(400).json({ error: 'Subscription is missing from checkout.' });
+      const subscription = await stripe.subscriptions.retrieve(session.subscription);
+      if (subscription.status !== 'active') {
+        return res.status(409).json({ error: 'This subscription is not currently active.' });
+      }
+    }
+
     // Ensure the session metadata matches the request
     const sessionMode = session.metadata?.mode || session.mode;
     const sessionCelebrityId = session.metadata?.celebrityId || session.metadata?.judgeId;
@@ -177,11 +193,13 @@ router.post('/save', requireUser, async (req, res, next) => {
     }
 
     // Prevent re-using the same Stripe session across different accounts
-    const { data: existingSession } = await supabaseServiceRole
+    const { data: existingSession, error: existingSessionError } = session.subscription ? await supabaseServiceRole
       .from('subscriptions')
       .select('user_id, stripe_subscription_id')
       .eq('stripe_subscription_id', session.subscription || null)
-      .maybeSingle();
+      .maybeSingle() : { data: null, error: null };
+
+    if (existingSessionError) return res.status(503).json({ error: 'Unable to verify the existing purchase. Please retry.' });
 
     if (existingSession && existingSession.user_id !== userId) {
       return res.status(409).json({
@@ -192,12 +210,13 @@ router.post('/save', requireUser, async (req, res, next) => {
     }
 
     if (normalizedMode === 'single') {
+      const resolvedJudgeId = await resolveJudgeId(supabaseServiceRole, normalizedCelebrityId);
       // Avoid duplicate unlocks
       const { data: existingUnlock } = await supabaseServiceRole
         .from('judge_unlocks')
         .select('id')
         .eq('user_id', userId)
-        .eq('judge_id', normalizedCelebrityId)
+        .eq('judge_id', resolvedJudgeId)
         .maybeSingle();
 
       if (existingUnlock) {
@@ -207,7 +226,7 @@ router.post('/save', requireUser, async (req, res, next) => {
       const { error } = await supabaseServiceRole
         .from('judge_unlocks')
         .upsert(
-          { user_id: userId, judge_id: normalizedCelebrityId },
+          { user_id: userId, judge_id: resolvedJudgeId },
           { onConflict: 'user_id,judge_id' }
         );
 

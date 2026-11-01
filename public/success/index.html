@@ -2,19 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Payment Successful | Who Is Wrong?</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Confirm your purchase | Who Is Wrong?</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #0a0a0a; color: #f4f4f5; font: 17px/1.6 system-ui, sans-serif; }
+    main { width: 100%; max-width: 480px; padding: 32px; border: 1px solid #383838; border-radius: 20px; background: #171717; }
+    .brand { color: #a1a1aa; font-weight: 700; letter-spacing: .08em; font-size: 12px; }
+    h1 { font-size: 30px; line-height: 1.2; }
+    p { color: #d4d4d8; }
+    a, button { display: block; width: 100%; text-align: center; padding: 14px; border-radius: 10px; text-decoration: none; font: inherit; font-weight: 650; }
+    button { color: white; background: #dc2626; border: 0; cursor: pointer; margin: 20px 0 12px; }
+    button:disabled { opacity: .5; cursor: wait; }
+    a { color: #f4f4f5; border: 1px solid #52525b; }
+    a:focus-visible, button:focus-visible { outline: 3px solid #fca5a5; outline-offset: 4px; }
+    [hidden] { display: none; }
+  </style>
+  <script src="/purchase-success.js" defer></script>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center px-4">
-  <div class="max-w-xl w-full bg-gray-800/60 border border-gray-700 rounded-2xl p-6 shadow-xl space-y-4 text-center">
-    <div class="text-5xl">✅</div>
-    <h1 class="text-2xl font-bold">Payment successful!</h1>
-    <p class="text-gray-300">Your judges are now unlocked. Head back to the app to start judging with your new access.</p>
-    <a href="/" class="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold px-5 py-3 rounded-xl transition">Return to WhoIsWrong</a>
-  </div>
+<body>
+  <main>
+    <div class="brand">WHO IS WRONG? / CHECKOUT</div>
+    <h1 id="purchaseTitle">Confirming your purchase</h1>
+    <p id="purchaseStatus" role="status" aria-live="polite">Please wait while we verify payment and save your access.</p>
+    <button id="retryPurchase" type="button" hidden>Retry verification</button>
+    <a href="/" id="returnHome">Return to WhoIsWrong</a>
+  </main>
 </body>
 </html>

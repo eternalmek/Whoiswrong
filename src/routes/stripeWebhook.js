@@ -7,6 +7,7 @@
 const express = require('express');
 const Stripe = require('stripe');
 const { supabaseServiceRole } = require('../supabaseClient');
+const { verifyPurchaseSession } = require('../services/paymentVerification');
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ function jsonError(res, status, message) {
 }
 
 async function upsertSubscription({ userId, customerId, subscriptionId, status }) {
-  if (!supabaseServiceRole) return;
+  if (!supabaseServiceRole) throw new Error('Payment database unavailable');
 
   let resolvedUserId = userId;
 
@@ -32,13 +33,13 @@ async function upsertSubscription({ userId, customerId, subscriptionId, status }
       .maybeSingle();
 
     if (error) {
-      console.error('Failed to resolve user for subscription', error);
+      throw error;
     }
 
     resolvedUserId = data?.user_id || null;
   }
 
-  if (!resolvedUserId) return;
+  if (!resolvedUserId) throw new Error('Unable to link subscription to an account');
 
   const payload = {
     user_id: resolvedUserId,
@@ -52,7 +53,7 @@ async function upsertSubscription({ userId, customerId, subscriptionId, status }
     .upsert(payload, { onConflict: 'stripe_subscription_id' });
 
   if (error) {
-    console.error('Failed to upsert subscription', error);
+    throw error;
   }
 
   try {
@@ -68,7 +69,7 @@ async function upsertSubscription({ userId, customerId, subscriptionId, status }
 }
 
 async function addUnlockedJudge({ userId, celebrityId }) {
-  if (!supabaseServiceRole || !userId || !celebrityId) return;
+  if (!supabaseServiceRole || !userId || !celebrityId) throw new Error('Missing purchase fulfillment data');
 
   // Resolve the judge_id from slug
   let judgeId = celebrityId;
@@ -82,8 +83,7 @@ async function addUnlockedJudge({ userId, celebrityId }) {
       .maybeSingle();
     
     if (judgeError || !judge) {
-      console.error('Failed to resolve judge slug to id:', celebrityId, judgeError);
-      return;
+      throw judgeError || new Error('Purchased judge could not be resolved');
     }
     
     judgeId = judge.id;
@@ -98,7 +98,7 @@ async function addUnlockedJudge({ userId, celebrityId }) {
     );
 
   if (error) {
-    console.error('Failed to upsert judge unlock', error);
+    throw error;
   }
 }
 
@@ -125,12 +125,14 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
 
   try {
     switch (event.type) {
-      case 'checkout.session.completed': {
+      case 'checkout.session.completed':
+      case 'checkout.session.async_payment_succeeded': {
         const session = event.data.object;
         await handleCheckoutCompleted(session);
         break;
       }
-      case 'invoice.paid': {
+      case 'invoice.paid':
+      case 'invoice.payment_succeeded': {
         const invoice = event.data.object;
         await handleInvoicePaid(invoice);
         break;
@@ -138,6 +140,12 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object;
         await handleSubscriptionDeleted(subscription);
+        break;
+      }
+      case 'customer.subscription.updated': {
+        const subscription = await stripe.subscriptions.retrieve(event.data.object.id);
+        await upsertSubscription({ userId: subscription.metadata?.userId,
+          customerId: subscription.customer, subscriptionId: subscription.id, status: subscription.status });
         break;
       }
       default:
@@ -156,38 +164,41 @@ async function handleCheckoutCompleted(session) {
   const mode = metadata.mode || session.mode;
   const userId = metadata.userId;
 
-  if (!userId) {
-    console.warn('Checkout session missing userId metadata');
-  }
+  // Delayed payment methods send async_payment_succeeded when money clears.
+  if (session.payment_status !== 'paid') return;
+  const verificationError = verifyPurchaseSession(session, userId);
+  if (verificationError) throw new Error(verificationError.error);
 
   if (mode === 'single') {
     const celebrityId = metadata.celebrityId || metadata.judgeId;
     await addUnlockedJudge({ userId, celebrityId });
   } else if (mode === 'subscription') {
+    const subscription = await stripe.subscriptions.retrieve(session.subscription);
     await upsertSubscription({
       userId,
       customerId: session.customer,
       subscriptionId: session.subscription,
-      status: 'active',
+      status: subscription.status,
     });
   }
 }
 
 async function handleInvoicePaid(invoice) {
-  const subscriptionId = invoice.subscription;
-  if (!subscriptionId || !supabaseServiceRole) return;
+  const subscriptionId = invoice.subscription || invoice.parent?.subscription_details?.subscription;
+  if (!subscriptionId) return;
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
   await upsertSubscription({
-    userId: null,
+    userId: subscription.metadata?.userId,
     customerId: invoice.customer,
     subscriptionId,
-    status: 'active',
+    status: subscription.status,
   });
 }
 
 async function handleSubscriptionDeleted(subscription) {
   const subscriptionId = subscription.id;
-  if (!subscriptionId || !supabaseServiceRole) return;
+  if (!subscriptionId || !supabaseServiceRole) throw new Error('Payment database unavailable');
 
   const { data: record, error } = await supabaseServiceRole
     .from('subscriptions')
@@ -196,11 +207,11 @@ async function handleSubscriptionDeleted(subscription) {
     .maybeSingle();
 
   if (error) {
-    console.error('Failed to fetch subscription', error);
+    throw error;
   }
 
   await upsertSubscription({
-    userId: record?.user_id || null,
+    userId: record?.user_id || subscription.metadata?.userId || null,
     customerId: subscription.customer,
     subscriptionId,
     status: 'canceled',
